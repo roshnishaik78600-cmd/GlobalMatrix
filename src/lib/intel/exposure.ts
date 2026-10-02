@@ -1,4 +1,4 @@
-import { COUNTRIES, getCountry, type CountryProfile } from "./countries";
+import { COUNTRIES, getCountry } from "./countries";
 import { INDUSTRIES, getIndustry, type Industry } from "./industries";
 import { getNode } from "./nodes";
 import {
@@ -44,6 +44,14 @@ export interface ExposureContribution {
   reference: string;
   stage: string;
   channel: Channel;
+  /** How the shock physically travels down this channel. */
+  mechanism: string;
+  /** Pathway magnitude as authored in the corpus, 0..1. */
+  magnitude: number;
+  /** Pathway confidence as authored in the corpus, 0..1. */
+  confidence: number;
+  /** Transmission lag window in days, low..high. */
+  lagDays: [number, number];
   viaNodeId: string;
   viaNodeLabel: string;
   /** Raw impact of the exposure as authored in the corpus. */
@@ -54,6 +62,8 @@ export interface ExposureContribution {
   weight: number;
   /** Amplifier applied because the channel matches the entity's affinity. */
   affinity: number;
+  /** Fully weighted contribution, i.e. the term actually summed into load. */
+  contribution: number;
 }
 
 export interface ExposureProfile {
@@ -100,8 +110,9 @@ function accumulate(
 
         const weight = exposure.impact * match.share;
         const affinity = match.affinity ? AFFINITY_BOOST : 1;
-        byChannelRaw[pathway.channel] +=
+        const contribution =
           weight * pathway.magnitude * pathway.confidence * affinity;
+        byChannelRaw[pathway.channel] += contribution;
 
         contributions.push({
           eventId: assessment.scenario.id,
@@ -109,12 +120,17 @@ function accumulate(
           reference: assessment.scenario.reference,
           stage: assessment.scenario.stage,
           channel: pathway.channel,
+          mechanism: pathway.mechanism,
+          magnitude: pathway.magnitude,
+          confidence: pathway.confidence,
+          lagDays: pathway.lagDays,
           viaNodeId: exposure.nodeId,
           viaNodeLabel: getNode(exposure.nodeId).label,
           impact: exposure.impact,
           share: match.share,
           weight,
           affinity,
+          contribution,
         });
       }
     }
@@ -128,7 +144,7 @@ function accumulate(
       .map((c) => `${c.eventId}:${c.channel}`),
   );
 
-  contributions.sort((a, b) => b.weight - a.weight);
+  contributions.sort((a, b) => b.contribution - a.contribution);
 
   return {
     load: normalise(total, ceiling),
@@ -297,14 +313,21 @@ export function countryProfilePayload(
 
   const industries = INDUSTRIES.map((industry) => {
     const role = industryRole(industry, nodeId);
-    const via = exposure.contributions.find((c) => c.viaNodeId === nodeId);
+    // The live figure must come from *this industry's* exposure profile, not
+    // the node's — otherwise every row inherits the same top event.
+    const sectorExposure = industryExposure(assessments, industry);
+    const via = sectorExposure.contributions.find(
+      (c) => c.viaNodeId === nodeId,
+    );
     return {
       id: industry.id,
       label: industry.label,
       code: industry.code,
       basis: role.basis,
       share: role.share,
-      live: via ? via.weight : 0,
+      live: via ? via.contribution : 0,
+      liveChannel: via ? via.channel : null,
+      liveEventId: via ? via.eventId : null,
       fragility: industry.fragility,
     };
   })
@@ -373,7 +396,13 @@ export interface IndustryRow {
   substitutionMonths: number;
   topChannel: Channel;
   concentration: number;
-  topEvent: { eventId: string; title: string; weight: number } | null;
+  topEvent: {
+    eventId: string;
+    title: string;
+    weight: number;
+    contribution: number;
+    channel: Channel;
+  } | null;
 }
 
 export function industryIndex(assessments: EventAssessment[]): IndustryRow[] {
@@ -394,7 +423,13 @@ export function industryIndex(assessments: EventAssessment[]): IndustryRow[] {
       topChannel: [...exposure.byChannel].sort((a, b) => b.load - a.load)[0].channel,
       concentration: industry.producers.reduce((m, p) => Math.max(m, p.share), 0),
       topEvent: top
-        ? { eventId: top.eventId, title: top.title, weight: top.weight }
+        ? {
+            eventId: top.eventId,
+            title: top.title,
+            weight: top.weight,
+            contribution: top.contribution,
+            channel: top.channel,
+          }
         : null,
     };
   }).sort((a, b) => b.load - a.load);

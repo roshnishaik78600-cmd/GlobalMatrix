@@ -1,8 +1,9 @@
 import { Link, NavLink, useNavigate } from "react-router";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { CORPUS_LABEL } from "@/lib/intel/scenarios";
+import { CommandPalette } from "./CommandPalette";
 
 const NAV = [
   { to: "/app", label: "Detection", index: "01", end: true },
@@ -14,6 +15,7 @@ const NAV = [
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -57,7 +59,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center">
-            <span className="hidden border-r border-rule px-5 text-[10px] tracking-[0.14em] text-muted-foreground uppercase lg:block">
+            <button
+              type="button"
+              onClick={() => setSearchOpen(true)}
+              className="label hidden items-center gap-2 border-r border-rule px-5 text-muted-foreground transition-colors hover:text-ink lg:flex"
+            >
+              Search
+              <kbd className="num border border-rule px-1 py-0.5 text-[9px]">
+                ⌘K
+              </kbd>
+            </button>
+            <span className="hidden border-r border-rule px-5 text-[10px] tracking-[0.14em] text-muted-foreground uppercase xl:block">
               {CORPUS_LABEL}
             </span>
             <div className="flex items-center gap-3 px-4 lg:px-5">
@@ -77,6 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       {children}
+      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

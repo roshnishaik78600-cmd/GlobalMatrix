@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { useConvex } from "convex/react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Bookmark, BookmarkCheck, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Bookmark, BookmarkCheck, Sparkles, Trash2 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Panel } from "@/components/intel/AppShell";
 import {
@@ -289,22 +289,27 @@ export default function EventAnalysis() {
                     {pathway && pathway.exposures.length > 0 ? (
                       <div className="flex-1 px-4 py-4">
                         <Label className="mb-3 block">Exposed nodes</Label>
-                        <ul className="space-y-3">
-                          {pathway.exposures
-                            .slice()
-                            .sort((a, b) => b.impact - a.impact)
-                            .map((exposure) => {
-                              const node = getNode(exposure.nodeId);
-                              return (
-                                <li key={exposure.nodeId}>
-                                  <div className="flex items-baseline justify-between gap-2">
-                                    <span className="text-[12px] font-medium">
-                                      {node.label}
-                                    </span>
-                                    <span className="num text-[10px] text-muted-foreground">
-                                      {node.short}
-                                    </span>
-                                  </div>
+                        <ul className="space-y-3">{pathway.exposures
+                              .slice()
+                              .sort((a, b) => b.impact - a.impact)
+                              .map((exposure) => {
+                                const node = getNode(exposure.nodeId);
+                                return (
+                                  <li key={exposure.nodeId}>
+                                    <div className="flex items-baseline justify-between gap-2">
+                                      <Link
+                                        to={`/app/country/${exposure.nodeId}`}
+                                        className="group flex items-baseline gap-1.5"
+                                      >
+                                        <span className="text-[12px] font-medium transition-colors group-hover:text-signal">
+                                          {node.label}
+                                        </span>
+                                        <ArrowUpRight className="size-2.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                                      </Link>
+                                      <span className="num text-[10px] text-muted-foreground">
+                                        {node.short}
+                                      </span>
+                                    </div>
                                   <Meter
                                     value={exposure.impact}
                                     tone={

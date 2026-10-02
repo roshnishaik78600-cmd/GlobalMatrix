@@ -187,7 +187,7 @@ export function bandOf(score: number): RiskBand {
 }
 
 /** Decompose the composite into auditable, channel-tagged contributions. */
-export function driversOf(scenario: Scenario, score: number): Driver[] {
+export function driversOf(scenario: Scenario): Driver[] {
   const pressure = channelPressureOf(scenario);
   const drivers: Driver[] = CHANNELS.map((channel) => {
     const contribution = pressure[channel] * CHANNEL_SHARE[channel] * 100;
@@ -249,7 +249,7 @@ export function assess(scenario: Scenario): EventAssessment {
       low: clamp(score - half, 0, 100),
       high: clamp(score + half, 0, 100),
       band: bandOf(score),
-      drivers: driversOf(scenario, score),
+      drivers: driversOf(scenario),
     };
   }
 

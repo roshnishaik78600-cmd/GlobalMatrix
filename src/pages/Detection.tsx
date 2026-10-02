@@ -195,6 +195,25 @@ export default function Detection() {
                           </span>
                         </div>
                         <Sparkline series={row.velocitySeries} className="mt-0.5" />
+
+                        <div className="mt-3 border-t border-rule pt-2.5">
+                          <span className="label text-[8px] text-muted-foreground">
+                            Lands hardest on
+                          </span>
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {row.topNodes.map((node) => (
+                              <Link
+                                key={node.nodeId}
+                                to={`/app/country/${node.nodeId}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="label border border-rule px-1.5 py-1 text-[8px] text-muted-foreground transition-colors hover:border-signal hover:text-signal"
+                                title={`${node.label} · weight ${node.weight.toFixed(2)}`}
+                              >
+                                {node.short}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
                       </div>
 
                       <div className="col-span-12 lg:col-span-3">

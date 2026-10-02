@@ -1,12 +1,12 @@
 import { Link, useParams } from "react-router";
-import { useQuery } from "convex/react";
-import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { ArrowLeft, ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Panel } from "@/components/intel/AppShell";
+import { PathTrace } from "@/components/intel/PathTrace";
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
 import { pct } from "@/lib/format";
-import { CHANNEL_LABEL, STAGE_LABEL, type Channel, type Stage } from "@/lib/intel/types";
+import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 
 export default function CountryProfile() {
   const { nodeId } = useParams<{ nodeId: string }>();
@@ -14,6 +14,7 @@ export default function CountryProfile() {
     api.intel.countryProfile,
     nodeId ? { nodeId } : "skip",
   );
+  const toggleWatch = useMutation(api.research.toggleWatch);
 
   if (!nodeId || !data) {
     return (
@@ -23,8 +24,8 @@ export default function CountryProfile() {
     );
   }
 
-  const { node, country, exposure, industries, peers, dependents } = data;
-  const isCorridor = !country;
+  const { node, country, exposure, industries, peers, dependents, watched } =
+    data;
 
   return (
     <main>
@@ -48,6 +49,18 @@ export default function CountryProfile() {
                 <span className="label border border-signal px-1.5 py-0.5 text-[9px] text-signal">
                   Modelled exposure
                 </span>
+                <button
+                  type="button"
+                  onClick={() => toggleWatch({ eventId: `NODE:${nodeId}` })}
+                  className="label ml-auto flex items-center gap-1.5 border border-ink px-2.5 py-1 transition-colors hover:bg-ink hover:text-paper lg:ml-0"
+                >
+                  {watched ? (
+                    <BookmarkCheck className="size-3" />
+                  ) : (
+                    <Bookmark className="size-3" />
+                  )}
+                  {watched ? "Tracking" : "Track"}
+                </button>
               </div>
               <h1 className="display mt-4 text-[2.4rem] sm:text-[3.2rem] lg:text-[4rem]">
                 {node.label}
@@ -236,7 +249,17 @@ export default function CountryProfile() {
                           {pct(industry.fragility)}
                         </span>
                         <span className="num text-[10px] text-muted-foreground">
-                          live {industry.live.toFixed(2)}
+                          {industry.live > 0 ? (
+                            <>
+                              live{" "}
+                              {industry.liveChannel
+                                ? CHANNEL_LABEL[industry.liveChannel]
+                                : ""}{" "}
+                              {industry.live.toFixed(3)}
+                            </>
+                          ) : (
+                            "not currently reached"
+                          )}
                         </span>
                       </div>
                     </li>
@@ -284,62 +307,14 @@ export default function CountryProfile() {
         </div>
       ) : null}
 
-      {/* Event contributions */}
+      {/* Causal path trace */}
       <div>
         <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
           <Panel
-            caption="How this load was built"
+            caption="Causal path trace · how this load was built"
             aside={`${exposure.contributions.length} pathway exposures across ${exposure.eventCount} events`}
           >
-            {exposure.contributions.length === 0 ? (
-              <p className="px-4 py-10 text-center text-[13px] text-muted-foreground">
-                No event in the current corpus exposes this node. That is a real
-                finding, not missing data — the corpus is finite and this node
-                has not been reached.
-              </p>
-            ) : (
-              <motion.ul
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.35 }}
-                className="divide-y divide-rule"
-              >
-                {exposure.contributions.map((c, i) => (
-                  <li
-                    key={`${c.eventId}-${c.channel}-${i}`}
-                    className="grid grid-cols-12 items-center gap-x-4 gap-y-1 px-4 py-3"
-                  >
-                    <div className="col-span-8 lg:col-span-7">
-                      <Link
-                        to={`/app/event/${c.eventId}`}
-                        className="text-[13px] font-medium transition-colors hover:text-signal"
-                      >
-                        {c.title}
-                      </Link>
-                      <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        {c.reference} · {STAGE_LABEL[c.stage as Stage]} ·{" "}
-                        {CHANNEL_LABEL[c.channel]}
-                        {c.affinity > 1 ? " · structural affinity" : ""}
-                      </p>
-                    </div>
-                    <div className="col-span-4 lg:col-span-3">
-                      <Meter value={c.impact} tone="signal" />
-                      <p className="num mt-1 text-[10px] text-muted-foreground">
-                        impact {pct(c.impact)}
-                      </p>
-                    </div>
-                    <div className="col-span-12 lg:col-span-2 lg:text-right">
-                      <span className="num text-[13px] font-semibold">
-                        {c.weight.toFixed(2)}
-                      </span>
-                      <p className="label text-[8px] text-muted-foreground">
-                        weighted
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </motion.ul>
-            )}
+            <PathTrace contributions={exposure.contributions} limit={8} />
           </Panel>
         </div>
       </div>

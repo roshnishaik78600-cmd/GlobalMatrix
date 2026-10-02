@@ -1,15 +1,18 @@
 import { Link } from "react-router";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { motion } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import { Panel, SectionHeader } from "@/components/intel/AppShell";
+import { FilterToggle, Panel, SectionHeader } from "@/components/intel/AppShell";
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
 import { pct } from "@/lib/format";
 import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
+import { useState } from "react";
 
 export default function Countries() {
   const data = useQuery(api.intel.countryDirectory);
+  const toggleWatch = useMutation(api.research.toggleWatch);
+  const [watchedOnly, setWatchedOnly] = useState(false);
 
   if (!data) {
     return (
@@ -19,8 +22,15 @@ export default function Countries() {
     );
   }
 
-  const { countries, corridors } = data;
-  const regions = [...new Set(countries.map((c) => c.region))].sort();
+  const { countries: allCountries, corridors: allCorridors, watchlistSize } =
+    data;
+  const countries = watchedOnly
+    ? allCountries.filter((c) => c.watched)
+    : allCountries;
+  const corridors = watchedOnly
+    ? allCorridors.filter((c) => c.watched)
+    : allCorridors;
+  const regions = [...new Set(allCountries.map((c) => c.region))].sort();
 
   return (
     <main>
@@ -32,7 +42,7 @@ export default function Countries() {
 
       <div className="border-b border-rule bg-card">
         <dl className="mx-auto grid max-w-[1600px] grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-4 lg:px-8">
-          <Stat caption="Economies & blocs" value={String(countries.length)} note="Profiled nodes with structural parameters" />
+          <Stat caption="Economies & blocs" value={String(allCountries.length)} note="Profiled nodes with structural parameters" />
           <Stat
             caption="Infrastructure nodes"
             value={String(corridors.length)}
@@ -41,14 +51,29 @@ export default function Countries() {
           <Stat
             caption="Most exposed"
             value={countries[0]?.short ?? "—"}
-            note={countries[0] ? `${countries[0].label} · ${pct(countries[0].load)} live load` : ""}
+            note={allCountries[0] ? `${allCountries[0].label} · ${pct(allCountries[0].load)} live load` : ""}
           />
           <Stat
             caption="Uncontested"
-            value={String(countries.filter((c) => c.load < 0.1).length)}
+            value={String(allCountries.filter((c) => c.load < 0.1).length)}
             note="No current event reaches these nodes"
           />
         </dl>
+      </div>
+
+      <div className="border-b border-rule">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-5 py-3 lg:px-8">
+          <span className="label text-muted-foreground">
+            Showing {countries.length} of {allCountries.length} economies ·{" "}
+            {corridors.length} of {allCorridors.length} infrastructure nodes
+          </span>
+          <FilterToggle
+            active={watchedOnly}
+            onClick={() => setWatchedOnly((v) => !v)}
+          >
+            Watchlist ({watchlistSize})
+          </FilterToggle>
+        </div>
       </div>
 
       <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
@@ -56,6 +81,12 @@ export default function Countries() {
           caption={`Economies & blocs · ${countries.length}`}
           aside="Live load = Σ impact × magnitude × confidence across all pathways"
         >
+          {countries.length === 0 ? (
+            <p className="px-4 py-16 text-center text-[13px] text-muted-foreground">
+              You are not tracking any economies yet. Turn off the watchlist
+              filter, then use the bookmark on any node.
+            </p>
+          ) : (
           <div className="divide-y divide-rule">
             {regions.map((region) => (
               <section key={region}>
@@ -71,7 +102,7 @@ export default function Countries() {
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.25) }}
-                        className="group border-b border-rule md:border-r xl:border-b-0"
+                        className="group relative border-b border-rule md:border-r xl:border-b-0"
                       >
                         <Link
                           to={`/app/country/${row.nodeId}`}
@@ -124,12 +155,32 @@ export default function Countries() {
                             </p>
                           </div>
                         </Link>
+
+                        <button
+                          type="button"
+                          aria-label={
+                            row.watched
+                              ? "Remove from watchlist"
+                              : "Add to watchlist"
+                          }
+                          onClick={() =>
+                            toggleWatch({ eventId: `NODE:${row.nodeId}` })
+                          }
+                          className="absolute top-3 right-3 p-1.5 text-muted-foreground transition-colors hover:text-ink"
+                        >
+                          {row.watched ? (
+                            <BookmarkCheck className="size-3.5 text-signal" />
+                          ) : (
+                            <Bookmark className="size-3.5" />
+                          )}
+                        </button>
                       </motion.li>
                     ))}
                 </ul>
               </section>
             ))}
           </div>
+          )}
         </Panel>
       </div>
 
@@ -139,6 +190,11 @@ export default function Countries() {
             caption={`Infrastructure · ${corridors.length}`}
             aside="Nodes that transmit rather than absorb"
           >
+            {corridors.length === 0 ? (
+              <p className="px-4 py-10 text-center text-[13px] text-muted-foreground">
+                No infrastructure nodes in this view.
+              </p>
+            ) : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[760px] border-collapse text-left">
                 <thead>
@@ -188,6 +244,7 @@ export default function Countries() {
                 </tbody>
               </table>
             </div>
+            )}
           </Panel>
         </div>
       </div>

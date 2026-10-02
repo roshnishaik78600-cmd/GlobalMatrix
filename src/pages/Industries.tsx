@@ -1,15 +1,18 @@
+import { useState } from "react";
 import { Link } from "react-router";
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { motion } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import { Panel, SectionHeader } from "@/components/intel/AppShell";
+import { FilterToggle, Panel, SectionHeader } from "@/components/intel/AppShell";
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
 import { pct } from "@/lib/format";
 import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 
 export default function Industries() {
   const data = useQuery(api.intel.industryDirectory);
+  const toggleWatch = useMutation(api.research.toggleWatch);
+  const [watchedOnly, setWatchedOnly] = useState(false);
 
   if (!data) {
     return (
@@ -19,11 +22,14 @@ export default function Industries() {
     );
   }
 
-  const { industries } = data;
-  const mostConcentrated = [...industries].sort(
+  const { industries: allIndustries, watchlistSize } = data;
+  const industries = watchedOnly
+    ? allIndustries.filter((i) => i.watched)
+    : allIndustries;
+  const mostConcentrated = [...allIndustries].sort(
     (a, b) => b.concentration - a.concentration,
   )[0];
-  const leastSubstitutable = [...industries].sort(
+  const leastSubstitutable = [...allIndustries].sort(
     (a, b) => b.substitutionMonths - a.substitutionMonths,
   )[0];
 
@@ -39,13 +45,13 @@ export default function Industries() {
         <dl className="mx-auto grid max-w-[1600px] grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-4 lg:px-8">
           <Stat
             caption="Sectors modelled"
-            value={String(industries.length)}
+            value={String(allIndustries.length)}
             note="Each with production, demand and route structure"
           />
           <Stat
             caption="Most exposed sector"
-            value={industries[0]?.id ?? "—"}
-            note={industries[0] ? `${industries[0].label} · ${pct(industries[0].load)}` : ""}
+            value={allIndustries[0]?.id ?? "—"}
+            note={allIndustries[0] ? `${allIndustries[0].label} · ${pct(allIndustries[0].load)}` : ""}
           />
           <Stat
             caption="Most concentrated"
@@ -66,6 +72,20 @@ export default function Industries() {
             }
           />
         </dl>
+      </div>
+
+      <div className="border-b border-rule">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-5 py-3 lg:px-8">
+          <span className="label text-muted-foreground">
+            Showing {industries.length} of {allIndustries.length} sectors
+          </span>
+          <FilterToggle
+            active={watchedOnly}
+            onClick={() => setWatchedOnly((v) => !v)}
+          >
+            Watchlist ({watchlistSize})
+          </FilterToggle>
+        </div>
       </div>
 
       <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
@@ -163,7 +183,8 @@ export default function Industries() {
                           {row.topEvent.title}
                         </p>
                         <p className="num mt-1 text-[10px] text-muted-foreground">
-                          weight {row.topEvent.weight.toFixed(2)} ·{" "}
+                          {CHANNEL_LABEL[row.topEvent.channel]} ·{" "}
+                          {row.topEvent.contribution.toFixed(3)} ·{" "}
                           {row.eventCount} events
                         </p>
                       </>
@@ -178,7 +199,24 @@ export default function Industries() {
                     <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink" />
                   </div>
                 </Link>
-              </motion.li>
+
+                  <button
+                    type="button"
+                    aria-label={
+                      row.watched ? "Remove from watchlist" : "Add to watchlist"
+                    }
+                    onClick={() =>
+                      toggleWatch({ eventId: `SECTOR:${row.id}` })
+                    }
+                    className="absolute top-4 right-3 p-1.5 text-muted-foreground transition-colors hover:text-ink"
+                  >
+                    {row.watched ? (
+                      <BookmarkCheck className="size-4 text-signal" />
+                    ) : (
+                      <Bookmark className="size-4" />
+                    )}
+                  </button>
+                </motion.li>
             ))}
           </ul>
         </Panel>

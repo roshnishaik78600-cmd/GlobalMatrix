@@ -1,12 +1,12 @@
 import { Link, useParams } from "react-router";
-import { useQuery } from "convex/react";
-import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { useMutation, useQuery } from "convex/react";
+import { ArrowLeft, ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Panel } from "@/components/intel/AppShell";
+import { PathTrace } from "@/components/intel/PathTrace";
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
 import { pct } from "@/lib/format";
-import { CHANNEL_LABEL, STAGE_LABEL, type Channel, type Stage } from "@/lib/intel/types";
+import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 
 const ROLE_TONE: Record<string, "signal" | "ink" | "blue"> = {
   Producer: "signal",
@@ -21,6 +21,7 @@ export default function IndustryProfile() {
     api.intel.industryProfile,
     industryId ? { industryId } : "skip",
   );
+  const toggleWatch = useMutation(api.research.toggleWatch);
 
   if (!industryId || !data) {
     return (
@@ -30,7 +31,7 @@ export default function IndustryProfile() {
     );
   }
 
-  const { industry, exposure, structure, liveNodes } = data;
+  const { industry, exposure, structure, liveNodes, watched } = data;
   const producers = structure.filter((s) => s.role === "Producer");
   const consumers = structure.filter((s) => s.role === "Consumer");
   const inputs = structure.filter((s) => s.role === "Input");
@@ -56,6 +57,18 @@ export default function IndustryProfile() {
                 <span className="label border border-signal px-1.5 py-0.5 text-[9px] text-signal">
                   Modelled exposure
                 </span>
+                <button
+                  type="button"
+                  onClick={() => toggleWatch({ eventId: `SECTOR:${industry.id}` })}
+                  className="label ml-auto flex items-center gap-1.5 border border-ink px-2.5 py-1 transition-colors hover:bg-ink hover:text-paper lg:ml-0"
+                >
+                  {watched ? (
+                    <BookmarkCheck className="size-3" />
+                  ) : (
+                    <Bookmark className="size-3" />
+                  )}
+                  {watched ? "Tracking" : "Track"}
+                </button>
               </div>
               <h1 className="display mt-4 text-[2.4rem] sm:text-[3.2rem] lg:text-[4rem]">
                 {industry.label}
@@ -229,88 +242,22 @@ export default function IndustryProfile() {
         </div>
       </div>
 
-      {/* Contributions */}
+      {/* Causal path trace */}
       <div>
         <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
           <Panel
-            caption="Full derivation"
+            caption="Causal path trace · how this load was built"
             aside={`${exposure.contributions.length} node exposures`}
           >
-            {exposure.contributions.length === 0 ? (
-              <p className="px-4 py-10 text-center text-[13px] text-muted-foreground">
-                Nothing in the current corpus reaches this sector.
-              </p>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.35 }}
-                className="overflow-x-auto"
-              >
-                <table className="w-full min-w-[900px] border-collapse text-left">
-                  <thead>
-                    <tr className="border-b border-rule">
-                      {["Event", "Channel", "Node", "Impact", "Share", "Weight", "Affinity"].map((h) => (
-                        <th key={h} className="label px-4 py-2.5 text-muted-foreground">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {exposure.contributions.map((c, i) => (
-                      <tr
-                        key={`${c.eventId}-${c.channel}-${c.viaNodeId}-${i}`}
-                        className="border-b border-rule align-top last:border-b-0"
-                      >
-                        <td className="px-4 py-3">
-                          <Link
-                            to={`/app/event/${c.eventId}`}
-                            className="text-[12px] font-medium transition-colors hover:text-signal"
-                          >
-                            {c.title}
-                          </Link>
-                          <p className="mt-0.5 text-[10px] text-muted-foreground">
-                            {c.reference} · {STAGE_LABEL[c.stage as Stage]}
-                          </p>
-                        </td>
-                        <td className="label px-4 py-3 text-[9px]">
-                          {CHANNEL_LABEL[c.channel]}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Link
-                            to={`/app/country/${c.viaNodeId}`}
-                            className="text-[12px] transition-colors hover:text-signal"
-                          >
-                            {c.viaNodeLabel}
-                          </Link>
-                        </td>
-                        <td className="num px-4 py-3 text-[12px]">
-                          {pct(c.impact)}
-                        </td>
-                        <td className="num px-4 py-3 text-[12px]">
-                          {pct(c.share)}
-                        </td>
-                        <td className="num px-4 py-3 text-[12px] font-semibold">
-                          {c.weight.toFixed(2)}
-                        </td>
-                        <td className="num px-4 py-3 text-[12px]">
-                          ×{c.affinity.toFixed(1)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </motion.div>
-            )}
+            <PathTrace contributions={exposure.contributions} limit={8} />
           </Panel>
 
           <div className="mt-6 flex items-center justify-between gap-4">
             <Link
-              to="/app/risk"
+              to="/app/industries"
               className="label inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-ink"
             >
-              <ArrowLeft className="size-3" /> Risk board
+              <ArrowLeft className="size-3" /> Industries
             </Link>
             <Link
               to="/app/countries"

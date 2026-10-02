@@ -17,13 +17,18 @@ const STEPS = [
   },
   {
     index: "03",
+    title: "Resolve",
+    body: "That graph is joined to the structure of 19 economies and 10 industries — production shares, demand centres, upstream inputs and route dependencies — so a shock can be attributed to the entities it actually lands on.",
+  },
+  {
+    index: "04",
     title: "Estimate",
     body: "A composite risk score on 7, 30 and 90-day horizons, always published as a central estimate inside an 80% interval. Weak evidence widens the interval rather than lowering the score.",
   },
   {
-    index: "04",
+    index: "05",
     title: "Explain",
-    body: "Every number resolves to a signal, a pathway or a stated coefficient. The evidence ledger shows source class, reliability prior, corroboration count and baseline deviation for each observation.",
+    body: "Every number resolves to a signal, a pathway or a stated coefficient. The evidence ledger and the causal path trace show the arithmetic the model actually ran, term by term.",
   },
 ];
 
@@ -303,7 +308,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Uncertainty */}
+      {/* The graph */}
       <section className="border-b border-rule">
         <div className="mx-auto max-w-[1600px] px-5 py-14 lg:px-8 lg:py-20">
           <div className="grid grid-cols-12 gap-x-4 gap-y-10">
@@ -311,6 +316,86 @@ export default function Landing() {
               <div className="flex items-center gap-3">
                 <span className="num text-[11px] font-semibold tracking-[0.2em] text-signal">
                   03
+                </span>
+                <span className="h-px w-10 bg-rule" />
+                <span className="label text-muted-foreground">
+                  Derived, not assigned
+                </span>
+              </div>
+              <h2 className="display mt-6 text-[2.2rem] sm:text-[2.9rem]">
+                Nothing here is
+                <br />
+                a stored score.
+              </h2>
+              <p className="mt-6 max-w-md text-[14px] leading-relaxed text-muted-foreground">
+                Country and industry exposure is computed by walking the event
+                corpus to the nodes that make up each entity. Change the corpus
+                and every profile moves with it.
+              </p>
+              <div className="mt-8 border border-rule bg-card p-5">
+                <p className="label text-muted-foreground">
+                  The derivation, in full
+                </p>
+                <p className="num mt-3 text-[12px] leading-relaxed">
+                  load = Σ ( impact × structural share × magnitude × confidence ×
+                  affinity )
+                </p>
+                <p className="mt-3 text-[11px] leading-relaxed text-muted-foreground">
+                  Every term is printed next to its result on each profile, so
+                  you can re-derive the number yourself or argue with the
+                  coefficient.
+                </p>
+              </div>
+            </div>
+
+            <div className="col-span-12 lg:col-span-7">
+              <div className="grid grid-cols-1 gap-px bg-rule sm:grid-cols-2">
+                {[
+                  {
+                    k: "19",
+                    v: "Economies & blocs",
+                    n: "Macro structure, energy mix, declared dependencies and reverse-dependencies.",
+                  },
+                  {
+                    k: "7",
+                    v: "Infrastructure nodes",
+                    n: "Chokepoints, corridors and settlement rails that transmit rather than absorb.",
+                  },
+                  {
+                    k: "10",
+                    v: "Industries",
+                    n: "Production concentration, demand centres, upstream inputs and route dependency.",
+                  },
+                  {
+                    k: "4",
+                    v: "Transmission channels",
+                    n: "Trade, energy, finance and diplomatic — scored independently, never averaged away.",
+                  },
+                ].map((cell) => (
+                  <div key={cell.v} className="bg-card p-6">
+                    <p className="num display text-[3rem] leading-none opacity-15">
+                      {cell.k}
+                    </p>
+                    <p className="mt-3 text-[13px] font-semibold">{cell.v}</p>
+                    <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
+                      {cell.n}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Uncertainty */}
+      <section className="border-b border-rule">
+        <div className="mx-auto max-w-[1600px] px-5 py-14 lg:px-8 lg:py-20">
+          <div className="grid grid-cols-12 gap-x-4 gap-y-10">
+            <div className="col-span-12 lg:col-span-5">
+              <div className="flex items-center gap-3">
+                <span className="num text-[11px] font-semibold tracking-[0.2em] text-signal">
+                  04
                 </span>
                 <span className="h-px w-10 bg-rule" />
                 <span className="label text-muted-foreground">
@@ -368,16 +453,17 @@ export default function Landing() {
         <div className="mx-auto max-w-[1600px] px-5 py-16 lg:px-8 lg:py-24">
           <div className="grid grid-cols-12 gap-x-4 gap-y-10">
             <div className="col-span-12 lg:col-span-8">
-              <p className="label text-paper/50">04 — Access</p>
+              <p className="label text-paper/50">05 — Access</p>
               <h2 className="display mt-6 text-[2.4rem] sm:text-[3.6rem]">
                 Built for researchers
                 <br />
                 who have to show their work.
               </h2>
               <p className="mt-6 max-w-xl text-[14px] leading-relaxed text-paper/60">
-                An account gives you the full console, a private watchlist and
-                per-event annotations. Nothing is published, nothing is shared,
-                and every score remains traceable to its evidence.
+                An account gives you the full console, a watchlist that spans
+                events, countries and sectors, and per-event annotations. Nothing
+                is published, nothing is shared, and every score remains
+                traceable to its evidence.
               </p>
             </div>
             <div className="col-span-12 lg:col-span-4 lg:flex lg:items-end">

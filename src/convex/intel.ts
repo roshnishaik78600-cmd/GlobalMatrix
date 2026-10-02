@@ -10,8 +10,9 @@ import {
   industryProfilePayload,
 } from "../lib/intel/exposure";
 import { SCENARIOS } from "../lib/intel/scenarios";
+import { getNode } from "../lib/intel/nodes";
 import { CHANNELS, type Channel, type Stage } from "../lib/intel/types";
-import { query } from "./_generated/server";
+import { query, type QueryCtx } from "./_generated/server";
 
 /**
  * Detection feed.
@@ -49,31 +50,56 @@ export const detectionFeed = query({
       .filter((a) => !args.channel || a.channelPressure[args.channel as Channel] > 0.3)
       .filter((a) => !args.stage || a.scenario.stage === (args.stage as Stage))
       .filter((a) => !args.watchlistOnly || watched.has(a.scenario.id))
-      .map((a) => ({
-        id: a.scenario.id,
-        reference: a.scenario.reference,
-        title: a.scenario.title,
-        summary: a.scenario.summary,
-        stage: a.scenario.stage,
-        detectedAt: a.scenario.detectedAt,
-        firstSignalAt: a.scenario.firstSignalAt,
-        confidence: a.scenario.confidence,
-        novelty: a.scenario.novelty,
-        velocity: a.scenario.velocity,
-        actors: a.scenario.actors,
-        regions: a.scenario.regions,
-        tags: a.scenario.tags,
-        signalCount: a.scenario.signals.length,
-        dominantChannel: a.dominantChannel,
-        channelPressure: a.channelPressure,
-        score30: a.risk[30].score,
-        low30: a.risk[30].low,
-        high30: a.risk[30].high,
-        band: a.band,
-        evidenceStrength: a.evidenceStrength,
-        velocitySeries: a.velocitySeries,
-        watched: watched.has(a.scenario.id),
-      }));
+      .map((a) => {
+        // The nodes this event lands on hardest, so the feed answers
+        // "where does this land?" without opening the event.
+        const byNode = new Map<string, number>();
+        for (const pathway of a.scenario.pathways) {
+          for (const exposure of pathway.exposures) {
+            const term = exposure.impact * pathway.magnitude * pathway.confidence;
+            byNode.set(
+              exposure.nodeId,
+              (byNode.get(exposure.nodeId) ?? 0) + term,
+            );
+          }
+        }
+        const topNodes = [...byNode.entries()]
+          .sort((x, y) => y[1] - x[1])
+          .slice(0, 3)
+          .map(([nodeId, weight]) => ({
+            nodeId,
+            label: getNode(nodeId).label,
+            short: getNode(nodeId).short,
+            weight,
+          }));
+
+        return {
+          id: a.scenario.id,
+          reference: a.scenario.reference,
+          title: a.scenario.title,
+          summary: a.scenario.summary,
+          stage: a.scenario.stage,
+          detectedAt: a.scenario.detectedAt,
+          firstSignalAt: a.scenario.firstSignalAt,
+          confidence: a.scenario.confidence,
+          novelty: a.scenario.novelty,
+          velocity: a.scenario.velocity,
+          actors: a.scenario.actors,
+          regions: a.scenario.regions,
+          tags: a.scenario.tags,
+          signalCount: a.scenario.signals.length,
+          dominantChannel: a.dominantChannel,
+          channelPressure: a.channelPressure,
+          score30: a.risk[30].score,
+          low30: a.risk[30].low,
+          high30: a.risk[30].high,
+          band: a.band,
+          evidenceStrength: a.evidenceStrength,
+          velocitySeries: a.velocitySeries,
+          topNodes,
+          watched: watched.has(a.scenario.id),
+        };
+      });
 
     return {
       rows,
@@ -184,28 +210,53 @@ export const riskBoard = query({
  */
 export const countryDirectory = query({
   args: {},
-  handler: async () => {
+  handler: async (ctx) => {
     const all = allAssessments(SCENARIOS);
+    const watched = await watchedKeys(ctx);
+    const mark = (id: string) => watched.has(`NODE:${id}`);
     return {
-      countries: countryIndex(all),
-      corridors: corridorIndex(all),
+      countries: countryIndex(all).map((r) => ({ ...r, watched: mark(r.nodeId) })),
+      corridors: corridorIndex(all).map((r) => ({ ...r, watched: mark(r.nodeId) })),
+      watchlistSize: [...watched].filter((k) => k.startsWith("NODE:")).length,
     };
   },
 });
+
+/** Keys of everything this researcher is tracking. */
+async function watchedKeys(ctx: QueryCtx): Promise<Set<string>> {
+  const userId = await getAuthUserId(ctx);
+  if (!userId) return new Set();
+  const rows = await ctx.db
+    .query("watchlist")
+    .withIndex("by_user", (q) => q.eq("userId", userId))
+    .collect();
+  return new Set(rows.map((r) => r.eventId));
+}
 
 /** Full profile for one country, bloc, chokepoint or institution. */
 export const countryProfile = query({
   args: { nodeId: v.string() },
   handler: async (ctx, args) => {
-    return countryProfilePayload(allAssessments(SCENARIOS), args.nodeId);
+    const watched = await watchedKeys(ctx);
+    return {
+      ...countryProfilePayload(allAssessments(SCENARIOS), args.nodeId),
+      watched: watched.has(`NODE:${args.nodeId}`),
+    };
   },
 });
 
 /** Industry index, ranked by live exposure. */
 export const industryDirectory = query({
   args: {},
-  handler: async () => {
-    return { industries: industryIndex(allAssessments(SCENARIOS)) };
+  handler: async (ctx) => {
+    const watched = await watchedKeys(ctx);
+    return {
+      industries: industryIndex(allAssessments(SCENARIOS)).map((r) => ({
+        ...r,
+        watched: watched.has(`SECTOR:${r.id}`),
+      })),
+      watchlistSize: [...watched].filter((k) => k.startsWith("SECTOR:")).length,
+    };
   },
 });
 
@@ -213,7 +264,13 @@ export const industryDirectory = query({
 export const industryProfile = query({
   args: { industryId: v.string() },
   handler: async (ctx, args) => {
-    return industryProfilePayload(allAssessments(SCENARIOS), args.industryId);
+    const payload = industryProfilePayload(
+      allAssessments(SCENARIOS),
+      args.industryId,
+    );
+    if (!payload) return null;
+    const watched = await watchedKeys(ctx);
+    return { ...payload, watched: watched.has(`SECTOR:${args.industryId}`) };
   },
 });
 
