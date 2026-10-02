@@ -54,7 +54,7 @@ export default function World() {
     <main className="min-w-0">
       <PageHead
         title="World"
-        lede="Every plotted node is a real coordinate. Radius encodes live load derived from the corpus; arcs are real transmission links. Institutions are excluded because they have no location."
+        lede="Every plotted point is a real coordinate on real country geometry. Radius encodes live load derived from the corpus, shading shows the same load by country, and each arc means the two places are exposed to the same events. Institutions are excluded because they have no location."
         actions={
           <button
             type="button"
@@ -69,8 +69,8 @@ export default function World() {
       <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
         <section className="xl:col-span-9">
           <Panel
-            title="Activity map"
-            meta={`${nodes.length} of ${allNodes.length} nodes`}
+            title="World map"
+            meta={`${nodes.length} of ${allNodes.length} places`}
           >
             <WorldMap
               nodes={nodes}
@@ -191,10 +191,11 @@ export default function World() {
 
           <Panel title="On these arcs">
             <p className="px-3 py-3 text-[11px] leading-relaxed text-muted-foreground">
-              Arcs are chokepoint → dependent-economy links, weighted by the
-              exposure term the engine summed into that economy&apos;s load.
-              They are not shipping lanes or trade flows — no trade-flow dataset
-              exists in this build.
+              An arc means a chokepoint and an economy are pulled by the same
+              events, weighted by the weaker of the two contribution terms. It
+              is a coupling in the model, not a shipping lane and not a trade
+              flow — reported merchandise values live on the trade page, with
+              their own source.
             </p>
           </Panel>
         </section>

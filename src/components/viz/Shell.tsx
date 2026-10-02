@@ -34,19 +34,20 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: "/app", label: "Overview", icon: LayoutGrid, end: true },
   { to: "/app/data", label: "Sources", icon: Database },
+  { to: "/app/chain", label: "Event → world", icon: Network },
   { to: "/app/events", label: "Events", icon: Activity },
   { to: "/app/world", label: "World", icon: Globe2 },
   { to: "/app/countries", label: "Countries", icon: Globe2 },
-  { to: "/app/companies", label: "Companies", icon: Factory, unavailable: "no company graph in v1" },
+  { to: "/app/companies", label: "Companies", icon: Factory, unavailable: "no company-level data connected" },
   { to: "/app/industries", label: "Industries", icon: Boxes },
-  { to: "/app/trade", label: "Trade", icon: Boxes, unavailable: "no trade-flow data in v1" },
+  { to: "/app/trade", label: "Trade", icon: Boxes },
   { to: "/app/supply", label: "Supply chains", icon: Boxes },
-  { to: "/app/markets", label: "Markets", icon: Activity, unavailable: "no market feed in v1" },
-  { to: "/app/policy", label: "Policy", icon: AlertTriangle, unavailable: "no policy registry in v1" },
+  { to: "/app/markets", label: "Markets", icon: Activity },
+  { to: "/app/policy", label: "Policy", icon: AlertTriangle, unavailable: "no policy registry connected" },
   { to: "/app/risk", label: "Risk", icon: AlertTriangle },
   { to: "/app/graph", label: "Graph", icon: Network },
   { to: "/app/scenarios", label: "Scenarios", icon: Radar },
-  { to: "/app/analogues", label: "Analogues", icon: Boxes, unavailable: "no historical corpus in v1" },
+  { to: "/app/analogues", label: "Analogues", icon: Boxes, unavailable: "no historical corpus connected" },
   { to: "/app/analyst", label: "AI analyst", icon: Activity },
 ];
 
@@ -63,6 +64,7 @@ export function Shell({ children }: { children: ReactNode }) {
   };
 
   const stats = useQuery(api.intel.corpusStats);
+  const health = useQuery(api.observations.sourceHealth);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -103,8 +105,11 @@ export function Shell({ children }: { children: ReactNode }) {
                         <span className="truncate text-[12px]">{item.label}</span>
                       ) : null}
                       {!collapsed ? (
-                        <span className="ml-auto text-[8px] tracking-wider uppercase">
-                          n/a
+                        <span
+                          className="ml-auto text-[8px] tracking-wider uppercase"
+                          title="Not measured yet — the page explains why"
+                        >
+                          soon
                         </span>
                       ) : null}
                     </button>
@@ -167,7 +172,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </button>
 
             <div className="ml-auto flex items-center gap-3 overflow-x-auto">
-              <StatusStrip stats={stats} />
+              <StatusStrip stats={stats} health={health} />
               <div className="hidden items-center gap-2 border-l border-rule pl-3 sm:flex">
                 {isAuthenticated ? (
                   <>
@@ -209,38 +214,84 @@ export function Shell({ children }: { children: ReactNode }) {
 }
 
 /**
- * Status strip. Every value is a real count from the corpus. There is no
- * ingestion pipeline behind this app, so no freshness or uptime is claimed.
+ * Status strip.
+ *
+ * Every value here is read from something real: how many connected sources are
+ * answering, when the last one answered, and how many events and places the
+ * corpus covers. Nothing is hardcoded, and nothing claims to be live when it
+ * is not — a quiet source says so.
  */
 function StatusStrip({
   stats,
+  health,
 }: {
-  stats: { events: number; signals: number; actors: number; nodes: number } | undefined;
+  stats:
+    | { events: number; signals: number; actors: number; nodes: number; countries: number }
+    | undefined;
+  health:
+    | { sourceId: string; ok: boolean; status: string; retrievedAt: number; problem?: string }[]
+    | undefined;
 }) {
+  const live = (health ?? []).filter((h) => h.ok).length;
+  const total = health?.length ?? 0;
+  const lastUpdate = (health ?? []).reduce((max, h) => Math.max(max, h.retrievedAt), 0);
+  const anyLive = live > 0;
+
   return (
     <div className="flex items-center gap-3 sm:gap-4">
-      <span className="flex items-center gap-1.5">
-        <span className="size-1.5 bg-stable" aria-hidden />
-        <span className="label text-muted-foreground">Corpus loaded</span>
+      <span className="flex items-center gap-1.5 whitespace-nowrap">
+        <span
+          className={cn(
+            "size-1.5 shrink-0 rounded-full",
+            anyLive ? "bg-stable" : "bg-muted-foreground/50",
+          )}
+          aria-hidden
+        />
+        <span className="label text-muted-foreground">Live data</span>
+        <span className="num text-[12px] font-medium">
+          {total === 0 ? "connecting" : `${live}/${total}`}
+        </span>
       </span>
+
+      <span className="hidden items-baseline gap-1.5 whitespace-nowrap lg:flex">
+        <span className="label text-muted-foreground">Last updated</span>
+        <span className="num text-[12px] font-medium">
+          {lastUpdate ? timeAgo(lastUpdate) : "not yet"}
+        </span>
+      </span>
+
       {[
+        ["Sources", total],
         ["Events", stats?.events],
-        ["Signals", stats?.signals],
-        ["Actors", stats?.actors],
-        ["Nodes", stats?.nodes],
+        ["Countries", stats?.countries],
       ].map(([label, value]) => (
-        <span key={label as string} className="hidden items-baseline gap-1.5 md:flex">
+        <span
+          key={label as string}
+          className="hidden items-baseline gap-1.5 whitespace-nowrap md:flex"
+        >
           <span className="label text-muted-foreground">{label}</span>
-          <span className="num text-[12px] font-medium">
-            {value ?? "—"}
-          </span>
+          <span className="num text-[12px] font-medium">{value ?? "—"}</span>
         </span>
       ))}
-      <span className="label hidden text-muted-foreground lg:block">
+
+      <span
+        className="label hidden text-muted-foreground xl:block"
+        title="The event corpus is a scenario, not a live feed. The live figures are the source counts above."
+      >
         {CORPUS_LABEL}
       </span>
     </div>
   );
+}
+
+/** Compact relative time for the header, where space is tight. */
+function timeAgo(ms: number): string {
+  const minutes = Math.max(0, Math.round((Date.now() - ms) / 60000));
+  if (minutes < 1) return "now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
 }
 
 /** Standard page header — compact, no marketing typography. */

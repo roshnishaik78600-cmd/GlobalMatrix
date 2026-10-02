@@ -6,6 +6,7 @@ import { Play, TriangleAlert } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { PageHead } from "@/components/viz/Shell";
 import { Bar, NoData, Panel, Skeleton } from "@/components/viz/core";
+import { PropagationRibbon } from "@/components/viz/PropagationRibbon";
 import { riskColorForScore } from "@/lib/intel/visual";
 import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 import { GEO_NODES } from "@/lib/intel/nodes";
@@ -62,6 +63,14 @@ export default function Scenarios() {
       <PageHead
         title="Scenario lab"
         lede="Choose a shock, then re-run the real propagation engine over a perturbed corpus. These are not predictions — they are the model's own arithmetic recomputed under a stated assumption."
+        actions={
+          <Link
+            to="/app/chain"
+            className="label flex items-center gap-2 border border-rule px-3 py-2 transition-colors hover:border-foreground"
+          >
+            See a real event travel →
+          </Link>
+        }
       />
 
       {/* Builder */}
@@ -202,6 +211,15 @@ export default function Scenarios() {
               {(magnitude * 100).toFixed(0)}% intensity. It is not a prediction
               that this will happen.
             </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+            <Panel
+              title="How it propagates"
+              meta="shock → first order → second order → exposed → uncertainty"
+            >
+              <PropagationRibbon result={result} />
+            </Panel>
           </div>
 
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">

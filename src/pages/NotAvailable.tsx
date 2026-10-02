@@ -1,22 +1,13 @@
 import { useLocation } from "react-router";
 import { PageHead } from "@/components/viz/Shell";
 import { Panel } from "@/components/viz/core";
+import { QuestionStrip } from "@/components/viz/Unavailable";
 
 const REASONS: Record<string, { data: string; because: string }> = {
   Companies: {
     data: "company graph, supplier relationships, filings",
     because:
       "There is no company dataset behind this application. Any dependency or exposure shown for a company would be invented.",
-  },
-  Trade: {
-    data: "bilateral trade flows, values, commodities",
-    because:
-      "No trade-flow dataset exists here. The map shows transmission links computed by the model, not commercial trade lanes, and they are not interchangeable.",
-  },
-  Markets: {
-    data: "prices, indices, FX, rates, volatility",
-    because:
-      "No market feed is connected. Prices, sparklines and heatmaps would be fabricated numbers, which is the one thing an intelligence product must never do.",
   },
   Policy: {
     data: "policy registry with lifecycle status",
@@ -32,8 +23,6 @@ const REASONS: Record<string, { data: string; because: string }> = {
 
 const SLUG_TO_MODULE: Record<string, string> = {
   companies: "Companies",
-  trade: "Trade",
-  markets: "Markets",
   policy: "Policy",
   analogues: "Analogues",
 };
@@ -53,6 +42,31 @@ export default function NotAvailable() {
             ? "This module is intentionally empty rather than populated with invented data."
             : "This module has no data source in the current build."
         }
+      />
+      <QuestionStrip
+        className="border-b border-rule"
+        answers={[
+          {
+            q: "What's happening?",
+            a: "Nothing here, and nothing is faked to fill the gap.",
+          },
+          {
+            q: "Why is it empty?",
+            a: reason?.data
+              ? `It needs ${reason.data}.`
+              : "It needs a data source that is not connected.",
+          },
+          {
+            q: "What can I use instead?",
+            a: "The same question, answered one level up: countries, sectors and the propagation chain.",
+            href: "/app/chain",
+          },
+          {
+            q: "Show evidence",
+            a: "The source register lists every feed that is connected, and what each one is not evidence of.",
+            href: "/app/data",
+          },
+        ]}
       />
       <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
         <section className="xl:col-span-7">
@@ -81,16 +95,20 @@ export default function NotAvailable() {
           <Panel title="Available now" meta="fully data-backed">
             <ul className="divide-y divide-rule">
               {[
-                ["Overview", "/app", "map, radar, gauges, timeline"],
+                ["Overview", "/app", "map, six signals, live change"],
+                ["Event → world", "/app/chain", "event to market, stage by stage"],
                 ["Events", "/app/events", "ranked detection feed"],
-                ["World", "/app/world", "geospatial transmission graph"],
-                ["Countries", "/app/countries", "19 economies + infrastructure"],
-                ["Industries", "/app/industries", "10 sectors"],
+                ["World", "/app/world", "real geography, couplings, events"],
+                ["Countries", "/app/countries", "economies + infrastructure"],
+                ["Industries", "/app/industries", "sector exposure"],
                 ["Supply chains", "/app/supply", "dependency chains"],
+                ["Trade", "/app/trade", "reported merchandise values"],
+                ["Markets", "/app/markets", "reported growth, coverage"],
                 ["Risk", "/app/risk", "event × channel matrix"],
                 ["Graph", "/app/graph", "propagation explorer"],
                 ["Scenarios", "/app/scenarios", "re-scored perturbations"],
                 ["AI analyst", "/app/analyst", "evidence-grounded briefs"],
+                ["Sources", "/app/data", "what is connected, and its limits"],
               ].map(([label, to, note]) => (
                 <li key={to}>
                   <a

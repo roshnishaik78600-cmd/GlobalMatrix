@@ -6,9 +6,14 @@ import { api } from "@/convex/_generated/api";
 import { PageHead } from "@/components/viz/Shell";
 import { useAuthAction } from "@/hooks/use-auth-action";
 import { Bar, NoData, Panel, Skeleton } from "@/components/viz/core";
+import { RiskTrajectory, EventFootprintMap } from "@/components/viz/EventVisuals";
+import { NodeEvidence } from "@/components/viz/NodeEvidence";
+import { NoVerifiedData } from "@/components/viz/Unavailable";
 import { CHANNEL_LABEL, SOURCE_CLASS_LABEL, type Channel } from "@/lib/intel/types";
+import { getNode } from "@/lib/intel/nodes";
 import { dayMonth, timestamp } from "@/lib/format";
 import { riskColorForScore } from "@/lib/intel/visual";
+import { cn } from "@/lib/utils";
 
 /**
  * Analyst workspace.
@@ -17,6 +22,24 @@ import { riskColorForScore } from "@/lib/intel/visual";
  * prompt contains only the ledger already published on the event page, and the
  * response must return caveats alongside its thesis.
  */
+/** The place this event lands on hardest, by weighted contribution. */
+function mostExposedNode(assessment: {
+  scenario: { pathways: { magnitude: number; confidence: number; exposures: { nodeId: string; impact: number }[] }[] };
+}): string | null {
+  const byNode = new Map<string, number>();
+  for (const pathway of assessment.scenario.pathways) {
+    for (const exposure of pathway.exposures) {
+      byNode.set(
+        exposure.nodeId,
+        (byNode.get(exposure.nodeId) ?? 0) +
+          exposure.impact * pathway.magnitude * pathway.confidence,
+      );
+    }
+  }
+  const best = [...byNode.entries()].sort((a, b) => b[1] - a[1])[0];
+  return best ? best[0] : null;
+}
+
 export default function Analyst() {
   const feed = useQuery(api.intel.detectionFeed, {});
   const convex = useConvex();
@@ -65,6 +88,10 @@ export default function Analyst() {
 
   const brief = detail?.brief;
   const assessment = detail?.assessment;
+  const topExposedNode = assessment ? mostExposedNode(assessment) : null;
+
+  const getNodeLabel = (id: string) =>
+    getNode(id).label;
 
   return (
     <main className="min-w-0">
@@ -111,8 +138,20 @@ export default function Analyst() {
       ) : null}
 
       <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
+        {/* The answer, shown rather than told: what the numbers look like. */}
+        {assessment ? (
+          <>
+            <section className="xl:col-span-5">
+              <EventFootprintMap assessment={assessment} className="h-full" />
+            </section>
+            <section className="xl:col-span-3">
+              <RiskTrajectory assessment={assessment} className="h-full" />
+            </section>
+          </>
+        ) : null}
+
         {/* Answer */}
-        <section className="xl:col-span-6">
+        <section className={cn("min-w-0", assessment ? "xl:col-span-4" : "xl:col-span-6")}>
           <Panel
             title="Answer"
             meta={brief ? `generated ${timestamp(brief.createdAt)}` : "no brief yet"}
@@ -125,11 +164,16 @@ export default function Analyst() {
               </div>
             ) : brief ? (
               <div className="space-y-4 p-3">
-                <p className="text-[13.5px] leading-relaxed">{brief.thesis}</p>
+                <div>
+                  <p className="label text-muted-foreground">In one line</p>
+                  <p className="mt-1.5 text-[13.5px] leading-relaxed">
+                    {brief.thesis}
+                  </p>
+                </div>
                 {brief.channels.length > 0 ? (
                   <div>
                     <p className="label text-muted-foreground">
-                      Transmission reading
+                      How it travels
                     </p>
                     <ul className="mt-2 space-y-1.5">
                       {brief.channels.map((c, i) => (
@@ -149,7 +193,7 @@ export default function Analyst() {
                 {brief.caveats.length > 0 ? (
                   <div>
                     <p className="label text-muted-foreground">
-                      Caveats &amp; falsifiers
+                      What would prove this wrong
                     </p>
                     <ul className="mt-2 space-y-1.5">
                       {brief.caveats.map((c, i) => (
@@ -164,6 +208,12 @@ export default function Analyst() {
                     </ul>
                   </div>
                 ) : null}
+                <Link
+                  to={`/app/event/${active}`}
+                  className="label inline-block border border-rule px-2.5 py-1.5 text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                >
+                  See the charts behind this →
+                </Link>
               </div>
             ) : (
               <NoData reason="No brief generated for this event yet. Press Generate to run the model over its evidence ledger." />
@@ -172,7 +222,7 @@ export default function Analyst() {
         </section>
 
         {/* Drivers + model output */}
-        <section className="space-y-3 xl:col-span-3">
+        <section className="min-w-0 space-y-3 xl:col-span-3">
           <Panel title="Model output" meta="deterministic">
             {assessment ? (
               <div className="space-y-2.5 p-3">
@@ -223,7 +273,7 @@ export default function Analyst() {
         </section>
 
         {/* Evidence */}
-        <section className="xl:col-span-3">
+        <section className="min-w-0 xl:col-span-3">
           <Panel
             title="Evidence"
             meta={`${assessment?.scenario.signals.length ?? 0} observations`}
@@ -264,13 +314,31 @@ export default function Analyst() {
       </div>
 
       {assessment ? (
-        <div className="px-3 pb-4">
-          <Link
-            to={`/app/event/${assessment.scenario.id}`}
-            className="label text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Open full event analysis →
-          </Link>
+        <div className="grid grid-cols-1 gap-3 px-3 pb-4 xl:grid-cols-12">
+          <div className="panel min-w-0 xl:col-span-6">
+            <div className="panel-head">
+              <span className="label">Reported context, outside the model</span>
+              <span className="label text-muted-foreground">
+                {topExposedNode ? getNodeLabel(topExposedNode) : "no place resolved"}
+              </span>
+            </div>
+            {topExposedNode ? (
+              <NodeEvidence nodeId={topExposedNode} />
+            ) : (
+              <NoVerifiedData
+                title="Reported context"
+                domain="a most-exposed place to report on"
+              />
+            )}
+          </div>
+          <div className="xl:col-span-6">
+            <Link
+              to={`/app/event/${assessment.scenario.id}`}
+              className="label flex h-full items-center justify-center gap-2 border border-rule px-3 py-3 transition-colors hover:border-foreground"
+            >
+              Open full event analysis →
+            </Link>
+          </div>
         </div>
       ) : null}
     </main>

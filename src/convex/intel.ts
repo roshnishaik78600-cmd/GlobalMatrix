@@ -13,7 +13,8 @@ import {
 } from "../lib/intel/exposure";
 import { SCENARIOS } from "../lib/intel/scenarios";
 import { getNode } from "../lib/intel/nodes";
-import { getIndustry } from "../lib/intel/industries";
+import { COUNTRIES } from "../lib/intel/countries";
+import { getIndustry, INDUSTRIES } from "../lib/intel/industries";
 import { runScenario, SHOCK_LABEL, SHOCK_DESCRIPTION } from "../lib/intel/scenario";
 import {
   CHANNELS,
@@ -23,6 +24,34 @@ import {
   type Stage,
 } from "../lib/intel/types";
 import { query, type QueryCtx } from "./_generated/server";
+
+/**
+ * Fixed ceiling for shared-event coupling, so adding a strongly coupled pair
+ * cannot silently rescale every other arc on the map.
+ */
+const COUPLING_CEILING = 1.8;
+
+/**
+ * How strongly two nodes are pulled by the same events.
+ *
+ * For each event both nodes are exposed to, this takes the weaker of the two
+ * contribution terms and sums them. That is a statement about the corpus, not
+ * about physical routing — which is why the map labels these as couplings.
+ */
+function sharedEventCoupling(
+  a: ReturnType<typeof nodeExposure>,
+  b: ReturnType<typeof nodeExposure>,
+): number {
+  const byEvent = new Map<string, number>();
+  for (const c of a.contributions) {
+    byEvent.set(c.eventId, (byEvent.get(c.eventId) ?? 0) + c.contribution);
+  }
+  let shared = 0;
+  for (const c of b.contributions) {
+    shared += Math.min(c.contribution, byEvent.get(c.eventId) ?? 0);
+  }
+  return Math.min(1, shared / COUPLING_CEILING);
+}
 
 /**
  * Detection feed.
@@ -243,6 +272,180 @@ async function watchedKeys(ctx: QueryCtx): Promise<Set<string>> {
   return new Set(rows.map((r) => r.eventId));
 }
 
+/**
+ * The six-signal comparison across every tracked economy.
+ *
+ * Five columns are model output and one is not computed here at all: the
+ * economic column is a reported World Bank figure, so it is filled in on the
+ * client from the verified feed and simply left empty where the Bank publishes
+ * no reading. The two are never mixed into one score.
+ */
+export const signalMatrix = query({
+  args: {},
+  handler: async () => {
+    const all = allAssessments(SCENARIOS);
+    const countries = countryIndex(all);
+    const corridors = corridorIndex(all).filter((c) => c.kind !== "institution");
+
+    const profiles = new Map<string, ReturnType<typeof nodeExposure>>();
+    for (const row of [...countries, ...corridors]) {
+      profiles.set(row.nodeId, nodeExposure(all, row.nodeId));
+    }
+
+    /** Fixed ceiling for the supply-chain column, for the same reason. */
+    const SUPPLY_CEILING = 0.5;
+
+    const rows = countries.map((country) => {
+      const profile = profiles.get(country.nodeId);
+      const load = new Map(
+        (profile?.byChannel ?? []).map((c) => [c.channel as Channel, c.load]),
+      );
+
+      // Supply chain: how much of this economy's exposure arrives through
+      // infrastructure that is itself loaded, weighted by that load.
+      let supply = 0;
+      for (const corridor of corridors) {
+        const other = profiles.get(corridor.nodeId);
+        if (!other || !profile) continue;
+        supply += sharedEventCoupling(other, profile) * corridor.load;
+      }
+
+      return {
+        nodeId: country.nodeId,
+        label: country.label,
+        short: country.short,
+        region: country.region,
+        geopolitical: load.get("diplomatic") ?? 0,
+        trade: load.get("trade") ?? 0,
+        energy: load.get("energy") ?? 0,
+        market: load.get("finance") ?? 0,
+        supply: Math.min(1, supply / SUPPLY_CEILING),
+        eventCount: country.eventCount,
+        overall: country.load,
+      };
+    });
+
+    return { rows: rows.sort((a, b) => b.overall - a.overall) };
+  },
+});
+
+/**
+ * The transmission chain for one event, stage by stage.
+ *
+ * event → country → trade → energy → supply chain → industry are all read
+ * straight off the propagation graph for this event. Company and market are
+ * included as explicit stages that report their absence, because a chain that
+ * silently skips two of its eight links would read as if those effects do not
+ * exist — they are simply not measured by this build.
+ */
+export const eventChain = query({
+  args: { eventId: v.string() },
+  handler: async (ctx, args) => {
+    const assessment = allAssessments(SCENARIOS).find(
+      (a) => a.scenario.id === args.eventId,
+    );
+    if (!assessment) return null;
+
+    const byChannel = (channel: Channel) =>
+      assessment.scenario.pathways
+        .filter((p) => p.channel === channel)
+        .flatMap((p) =>
+          p.exposures.map((e) => ({
+            nodeId: e.nodeId,
+            label: getNode(e.nodeId).label,
+            short: getNode(e.nodeId).short,
+            channel: p.channel,
+            mechanism: p.mechanism,
+            lagDays: p.lagDays as [number, number],
+            confidence: p.confidence,
+            impact: e.impact,
+            note: e.note,
+          })),
+        )
+        .sort((a, b) => b.impact * b.confidence - a.impact * a.confidence);
+
+    const everyNode = byChannel("trade")
+      .concat(byChannel("energy"), byChannel("finance"), byChannel("diplomatic"));
+
+    const countries = everyNode
+      .reduce<Array<{ nodeId: string; label: string; short: string; load: number }>>(
+        (acc, row) => {
+          // Infrastructure and institutions get their own stages further down;
+          // mixing them into "countries" would misdescribe what they are.
+          const kind = getNode(row.nodeId).kind;
+          if (kind === "chokepoint" || kind === "corridor" || kind === "institution") {
+            return acc;
+          }
+          const found = acc.find((a) => a.nodeId === row.nodeId);
+          if (found) {
+            found.load += row.impact * row.confidence;
+          } else {
+            acc.push({
+              nodeId: row.nodeId,
+              label: row.label,
+              short: row.short,
+              load: row.impact * row.confidence,
+            });
+          }
+          return acc;
+        },
+        [],
+      )
+      .sort((a, b) => b.load - a.load);
+
+    // Infrastructure this event actually travels through.
+    const seenInfrastructure = new Set<string>();
+    const infrastructure = everyNode
+      .filter((c) => {
+        const kind = getNode(c.nodeId).kind;
+        if (kind !== "chokepoint" && kind !== "corridor") return false;
+        if (seenInfrastructure.has(c.nodeId)) return false;
+        seenInfrastructure.add(c.nodeId);
+        return true;
+      })
+      .sort((a, b) => b.impact * b.confidence - a.impact * a.confidence);
+
+    // Industries the event reaches, by structural share through that node.
+    const industryReach = INDUSTRIES.map((industry) => {
+      const exposure = industryExposure(allAssessments(SCENARIOS), industry);
+      const share = exposure.contributions
+        .filter((c) => c.eventId === assessment.scenario.id)
+        .reduce((s, c) => s + c.weight, 0);
+      return {
+        id: industry.id,
+        label: industry.label,
+        share,
+        channel: exposure.contributions.find(
+          (c) => c.eventId === assessment.scenario.id,
+        )?.channel,
+      };
+    })
+      .filter((row) => row.share > 0)
+      .sort((a, b) => b.share - a.share);
+
+    return {
+      event: {
+        id: assessment.scenario.id,
+        reference: assessment.scenario.reference,
+        title: assessment.scenario.title,
+        detectedAt: assessment.scenario.detectedAt,
+        stage: assessment.scenario.stage,
+        score: assessment.risk[30].score,
+        low: assessment.risk[30].low,
+        high: assessment.risk[30].high,
+        band: assessment.band,
+        uncertainty: assessment.uncertainty,
+        confidence: assessment.confidence,
+      },
+      countries: countries.slice(0, 10),
+      trade: byChannel("trade").slice(0, 8),
+      energy: byChannel("energy").slice(0, 8),
+      supply: infrastructure.slice(0, 8),
+      industries: industryReach.slice(0, 8),
+    };
+  },
+});
+
 /** Full profile for one country, bloc, chokepoint or institution. */
 export const countryProfile = query({
   args: { nodeId: v.string() },
@@ -322,15 +525,25 @@ export const overview = query({
       .sort((a, b) => b.at.localeCompare(a.at))
       .slice(0, 14);
 
-    // Map flows: chokepoint → the economies most dependent on it.
+    // Map links: chokepoint → economy, weighted by how strongly the two are
+    // exposed to the *same* events. This is a coupling, not a shipping lane and
+    // not a trade flow — the wording on the map says so.
+    const profiles = new Map<string, ReturnType<typeof nodeExposure>>();
+    for (const row of [...countries, ...corridors]) {
+      profiles.set(row.nodeId, nodeExposure(all, row.nodeId));
+    }
     const flows: { from: string; to: string; weight: number }[] = [];
     for (const corridor of corridors) {
-      for (const row of countries) {
-        const exposure = nodeExposure(all, row.nodeId);
-        const via = exposure.contributions.find(
-          (c) => c.viaNodeId === corridor.nodeId,
-        );
-        if (via) flows.push({ from: corridor.nodeId, to: row.nodeId, weight: via.contribution });
+      if (corridor.kind === "institution") continue;
+      const from = profiles.get(corridor.nodeId);
+      if (!from) continue;
+      for (const country of countries) {
+        const to = profiles.get(country.nodeId);
+        if (!to) continue;
+        const weight = sharedEventCoupling(from, to);
+        if (weight > 0.01) {
+          flows.push({ from: corridor.nodeId, to: country.nodeId, weight });
+        }
       }
     }
     flows.sort((a, b) => b.weight - a.weight);
@@ -351,7 +564,19 @@ export const overview = query({
         eventCount: r.eventCount,
         criticality: r.criticality,
       })),
-      flows: flows.slice(0, 60),
+      flows: flows.slice(0, 80),
+      // Where each event lands, for the map markers.
+      mapEvents: all.map((a) => {
+        const primary = topNodesOf(a, 1)[0];
+        return {
+          id: a.scenario.id,
+          label: a.scenario.title,
+          nodeId: primary?.nodeId ?? "",
+          score: a.risk[30].score,
+          channel: a.dominantChannel,
+          detectedAt: a.scenario.detectedAt,
+        };
+      }),
       domains,
       observations,
       topEvents: all.slice(0, 5).map((a) => ({
@@ -600,6 +825,11 @@ export const corpusStats = query({
       events: all.length,
       signals: all.reduce((sum, a) => sum + a.scenario.signals.length, 0),
       actors: new Set(all.flatMap((a) => a.scenario.actors)).size,
+      // Places that carry a real coordinate, i.e. everything the map can plot.
+      countries: COUNTRIES.filter((c) => {
+        const node = getNode(c.nodeId);
+        return node.lat !== undefined && node.lon !== undefined;
+      }).length,
       meanScore: all.reduce((s, a) => s + a.overall, 0) / all.length,
       bands,
       nodes: new Set(

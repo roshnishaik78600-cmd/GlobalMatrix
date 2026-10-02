@@ -6,8 +6,16 @@ import { api } from "@/convex/_generated/api";
 import { PageHead } from "@/components/viz/Shell";
 import { Bar, Gauge, Panel, Radar, Skeleton, Timeline } from "@/components/viz/core";
 import { NoVerifiedData, QuestionStrip } from "@/components/viz/Unavailable";
-import { MacroPanel, TradePanel, AttentionSection } from "@/components/viz/VerifiedPanels";
+import {
+  MacroPanel,
+  TradePanel,
+  AttentionSection,
+} from "@/components/viz/VerifiedPanels";
+import { AttentionReplay } from "@/components/viz/AttentionReplay";
 import { MapLegend, MapSelection, WorldMap } from "@/components/viz/WorldMap";
+import { ChangeTimeline } from "@/components/viz/ChangeTimeline";
+import { SignalMatrix } from "@/components/viz/SignalMatrix";
+import { ChainExplorer } from "@/components/viz/ChainExplorer";
 import { CHANNEL_COLOR, riskColorForScore } from "@/lib/intel/visual";
 import { bandOf } from "@/lib/intel/engine";
 import { CHANNELS, CHANNEL_LABEL, STAGE_LABEL, type Stage } from "@/lib/intel/types";
@@ -23,6 +31,7 @@ export default function Overview() {
   const {
     mapNodes,
     flows,
+    mapEvents: mapEventsRaw,
     domains,
     observations,
     topEvents,
@@ -34,6 +43,9 @@ export default function Overview() {
   } = data;
 
   const top = topEvents[0];
+  // Every corpus event, anchored to the place it lands on hardest, so the map
+  // shows where events actually are rather than only where load is.
+  const mapEvents = (mapEventsRaw ?? []).filter((e) => e.nodeId !== "");
   const hottestNode = mapNodes.reduce(
     (best, n) => (n.load > best.load ? n : best),
     mapNodes[0] ?? { nodeId: "", label: "", load: 0, eventCount: 0, criticality: 0 },
@@ -67,53 +79,60 @@ export default function Overview() {
         className="border-b border-rule"
         answers={[
           {
-            q: "What happened",
+            q: "What's happening?",
             a: top ? top.title : "No events in the current corpus.",
             href: top ? `/app/event/${top.id}` : undefined,
           },
           {
-            q: "Where",
+            q: "Where is it?",
             a: hottestNode?.nodeId
-              ? `Most exposed node is ${hottestNode.label}, at ${(hottestNode.load * 100).toFixed(0)}% live load.`
+              ? `Most exposed place is ${hottestNode.label}, at ${(hottestNode.load * 100).toFixed(0)}% live load.`
               : "No exposure resolved.",
             href: "/app/world",
           },
           {
-            q: "What changed",
+            q: "What's changing?",
             a: observations[0]
               ? `${observations[0].title} — ${dayMonth(observations[0].at)}.`
               : "No recent observations.",
           },
           {
-            q: "Who is affected",
+            q: "Who's affected?",
             a: hottestCountries[0]
               ? `${hottestCountries[0].label} leads on live exposure.`
               : "No country exposure resolved.",
             href: hottestCountries[0] ? `/app/country/${hottestCountries[0].nodeId}` : undefined,
           },
           {
-            q: "Why it matters",
+            q: "Why does it matter?",
             a: top
               ? `${top.score.toFixed(1)} / 100 composite risk on ${CHANNEL_LABEL[top.dominantChannel].toLowerCase()} transmission.`
-              : "—",
+              : "Nothing scored in the current corpus.",
             href: "/app/risk",
           },
         ]}
       />
 
       <div className="grid grid-cols-1 gap-px bg-rule xl:grid-cols-12">
+        {/* Follow one event all the way through the world */}
+        <section className="bg-background p-3 xl:col-span-12">
+          <ChainExplorer />
+        </section>
+
         {/* Hero map */}
         <section className="bg-background p-3 xl:col-span-8">
           <div className="panel h-full">
             <div className="panel-head">
               <span className="label">Global activity map</span>
               <span className="label text-muted-foreground">
-                {mapNodes.length} nodes · {flows.length} transmission links
+                {mapNodes.length} places · {flows.length} couplings ·{" "}
+                {mapEvents.length} events
               </span>
             </div>
             <WorldMap
               nodes={mapNodes}
               flows={flows}
+              events={mapEvents}
               height={440}
               selected={selected}
               onSelect={(id) => setSelected(id === selected ? null : id)}
@@ -170,7 +189,7 @@ export default function Overview() {
         {/* What changed */}
         <section className="bg-background p-3 xl:col-span-4">
           <Panel
-            title="What changed"
+            title="Recent observations"
             meta={`${observations.length} most recent`}
             className="h-full"
           >
@@ -185,6 +204,16 @@ export default function Overview() {
               />
             </div>
           </Panel>
+        </section>
+
+        {/* Live change, from connected sources only */}
+        <section className="bg-background p-3 xl:col-span-4">
+          <ChangeTimeline className="h-full" />
+        </section>
+
+        {/* Step through measured coverage */}
+        <section className="bg-background p-3 xl:col-span-4">
+          <AttentionReplay className="h-full" />
         </section>
 
         {/* Top developments */}
@@ -244,7 +273,7 @@ export default function Overview() {
 
         {/* Corpus census */}
         <section className="bg-background p-3 xl:col-span-4">
-          <Panel title="Corpus" meta="what is being analysed" className="h-full">
+          <Panel title="Scenario corpus" meta="what is being analysed" className="h-full">
             <dl className="grid grid-cols-2 gap-px bg-rule">
               {[
                 ["Events", stats.events],
@@ -259,10 +288,11 @@ export default function Overview() {
               ))}
             </dl>
             <p className="px-3 py-3 text-[11px] leading-relaxed text-muted-foreground">
-              This is a synthetic, internally-consistent scenario corpus — not a
-              live intelligence feed. There is no ingestion pipeline behind this
-              app, so no freshness or uptime is claimed anywhere in the
-              interface.
+              These counts describe the scenario corpus: a synthetic,
+              internally-consistent set of events used to drive the model. It is
+              not a live news feed. The live figures on this page — sources,
+              coverage, reported trade and growth — each carry their own source
+              and fetch time, and are never mixed with these counts.
             </p>
           </Panel>
         </section>
@@ -434,6 +464,11 @@ export default function Overview() {
         {/* Public attention and live coverage, straight from the news index */}
         <section className="bg-background p-3 pt-0 xl:col-span-12">
           <AttentionSection />
+        </section>
+
+        {/* Six signals, side by side, model against reported */}
+        <section className="bg-background p-3 pt-0 xl:col-span-12">
+          <SignalMatrix />
         </section>
       </div>
     </main>

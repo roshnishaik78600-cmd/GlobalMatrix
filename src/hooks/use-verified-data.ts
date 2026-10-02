@@ -99,19 +99,52 @@ const expired = (rows: Row[], window: number): boolean => {
   return Date.now() - newest(rows) > window;
 };
 
-/** Kicks the refresh actions once per mount, never on every render. */
+/**
+ * Refreshes are keyed per source for the lifetime of the page session.
+ *
+ * Several panels on a screen can need the same source, and the news index
+ * rate-limits hard from shared addresses. Without this guard each panel would
+ * fire its own refresh of the same connector.
+ */
+const attempted = new Set<string>();
+const inFlight = new Set<string>();
+
+/** Shared refresh state, so several panels can watch one connector's status. */
+const refreshListeners = new Set<() => void>();
+
+function announceRefresh(key: string, active: boolean) {
+  if (active) inFlight.add(key);
+  else inFlight.delete(key);
+  for (const listener of refreshListeners) listener();
+}
+
+/** Subscribe to a source's refresh flag without setting state during render. */
+function useRefreshing(key: string): boolean {
+  const [refreshing, setRefreshing] = useState(() => inFlight.has(key));
+  useEffect(() => {
+    const update = () => setRefreshing(inFlight.has(key));
+    refreshListeners.add(update);
+    update();
+    return () => {
+      refreshListeners.delete(update);
+    };
+  }, [key]);
+  return refreshing;
+}
+
+/** Kicks a refresh at most once per source per session. */
 function useBackgroundRefresh(
+  key: string,
   shouldRefresh: boolean,
   run: () => Promise<unknown>,
 ): { refreshing: boolean } {
-  const [refreshing, setRefreshing] = useState(false);
   const started = useRef(false);
 
   useEffect(() => {
     if (!shouldRefresh || started.current) return;
     started.current = true;
-    let cancelled = false;
-    setRefreshing(true);
+    if (attempted.has(key) || inFlight.has(key)) return;
+    announceRefresh(key, true);
     run()
       .catch(() => {
         // Failure is already recorded server-side and renders as an honest
@@ -119,14 +152,12 @@ function useBackgroundRefresh(
         // rejection or a red console error for a non-technical reader.
       })
       .finally(() => {
-        if (!cancelled) setRefreshing(false);
+        attempted.add(key);
+        announceRefresh(key, false);
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [shouldRefresh, run]);
+  }, [key, shouldRefresh, run]);
 
-  return { refreshing };
+  return { refreshing: useRefreshing(key) };
 }
 
 /* ------------------------------------------------------------------ */
@@ -141,6 +172,7 @@ export function useMacroData(): Verified<MacroReading[]> {
     [convex],
   );
   const { refreshing } = useBackgroundRefresh(
+    "worldbank",
     !!rows && expired(rows, STALE_AFTER_MS.worldbank ?? Infinity),
     run,
   );
@@ -166,6 +198,7 @@ export function useTradeData(): Verified<TradeFlow[]> {
     [convex],
   );
   const { refreshing } = useBackgroundRefresh(
+    "comtrade",
     !!rows && expired(rows, STALE_AFTER_MS.comtrade ?? Infinity),
     run,
   );
@@ -191,6 +224,7 @@ export function useAttentionData(): Verified<AttentionPoint[]> {
     [convex],
   );
   const { refreshing } = useBackgroundRefresh(
+    "gdelt",
     !!rows && expired(rows, STALE_AFTER_MS.gdelt ?? Infinity),
     run,
   );

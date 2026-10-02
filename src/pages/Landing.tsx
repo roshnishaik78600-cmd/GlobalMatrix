@@ -36,21 +36,21 @@ const STEPS = [
 const OUTPUTS = [
   {
     index: "01",
-    name: "Detection",
-    route: "/app",
-    body: "The ranked feed. Twelve emerging events with channel pressure, evidence mass and the interval behind each score.",
+    name: "Follow an event",
+    route: "/app/chain",
+    body: "Event → country → trade → energy → supply chain → industry → company → market, one stage at a time — including the two stages this build cannot yet measure.",
   },
   {
     index: "02",
-    name: "Event analysis",
-    route: "/app/event/MER-4130",
-    body: "The propagation map: four channels, transmission lags, exposed nodes, driver decomposition and the full evidence ledger.",
+    name: "Detection",
+    route: "/app",
+    body: "The ranked feed, a real world map, six signals compared side by side, and what changed in the last hour.",
   },
   {
     index: "03",
-    name: "Risk board",
-    route: "/app/risk",
-    body: "Every event against every channel, plus loaded nodes and tail scenarios. Built for concentration risk.",
+    name: "Event analysis",
+    route: "/app/event/MER-4130",
+    body: "The propagation map: four channels, transmission lags, exposed nodes, driver decomposition and the full evidence ledger.",
   },
   {
     index: "04",

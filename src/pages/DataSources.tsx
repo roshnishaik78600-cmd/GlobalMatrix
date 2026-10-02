@@ -40,6 +40,14 @@ const NOT_CONNECTED = [
     why: "UN Comtrade's public preview tier reports reporter totals, not a full corridor matrix. Only totals are shown.",
   },
   {
+    title: "Commodity-level flows and prices",
+    why: "Commodity detail needs a feed this build does not have. The map draws reporter totals, so no bilateral or per-commodity arrow is drawn either.",
+  },
+  {
+    title: "Company supply relationships",
+    why: "No company dataset is connected, so the company stage of the event chain is left open rather than filled with an estimate.",
+  },
+  {
     title: "Policy lifecycle registry",
     why: "Policy activity is surfaced through the event corpus rather than a dated legislative tracker.",
   },

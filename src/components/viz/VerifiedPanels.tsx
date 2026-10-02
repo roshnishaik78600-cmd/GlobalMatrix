@@ -27,7 +27,7 @@ import { pct } from "@/lib/format";
  */
 
 /** Compact absolute-size formatting so trade values stay readable. */
-function usd(value: number): string {
+export function usd(value: number): string {
   const abs = Math.abs(value);
   if (abs >= 1e12) return `${(value / 1e12).toFixed(2)}T`;
   if (abs >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
@@ -42,7 +42,7 @@ function usd(value: number): string {
  * rather than against the maximum. A series-only sparkline would flatten a
  * contraction to invisibility.
  */
-function MiniSpark({
+export function MiniSpark({
   values,
   width = 56,
   height = 18,
@@ -109,7 +109,7 @@ function Delta({ history }: { history: MacroReading[] }) {
  * Sorted on the observed values themselves, so the ordering is a fact about the
  * data rather than a judgement from the model.
  */
-export function MacroPanel() {
+export function MacroPanel({ limit = 7 }: { limit?: number }) {
   const macro = useMacroData();
 
   if (macro.data === null) {
@@ -124,7 +124,7 @@ export function MacroPanel() {
   const growth = [...series.values()]
     .filter((s) => s.latest.indicatorKey === "gdpGrowth")
     .sort((a, b) => Math.abs(b.latest.value) - Math.abs(a.latest.value))
-    .slice(0, 7);
+    .slice(0, limit);
 
   if (growth.length === 0) {
     return (
@@ -200,7 +200,7 @@ export function MacroPanel() {
  * balance is our arithmetic on those two observed totals and is labelled as
  * such, not presented as a separate published figure.
  */
-export function TradePanel() {
+export function TradePanel({ limit = 7 }: { limit?: number }) {
   const trade = useTradeData();
 
   if (trade.data === null) {
@@ -251,7 +251,7 @@ export function TradePanel() {
         <SourceNote note="Public preview tier: sampled, abbreviated detail. Balance is arithmetic on the two reported totals." />
       </div>
       <ul className="divide-y divide-rule">
-        {flows.slice(0, 7).map((f) => {
+        {flows.slice(0, limit).map((f) => {
           const node = getNode(f.reporter);
           const total = f.exportsUsd + f.importsUsd;
           const balance = f.exportsUsd - f.importsUsd;
@@ -496,6 +496,16 @@ function HeadlinesPanel() {
       </ul>
     </Panel>
   );
+}
+
+/** Every reporter, ranked, with no row cap. Used on the trade page. */
+export function TradeTable() {
+  return <TradePanel limit={40} />;
+}
+
+/** Every economy with a World Bank growth reading, with no row cap. */
+export function MacroTable() {
+  return <MacroPanel limit={40} />;
 }
 
 /** Public attention and coverage, side by side. */

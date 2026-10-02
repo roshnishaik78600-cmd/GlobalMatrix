@@ -6,6 +6,9 @@ import { useToggleWatch } from "@/hooks/use-auth-action";
 import { Panel } from "@/components/intel/AppShell";
 import { PathTrace } from "@/components/intel/PathTrace";
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
+import { QuestionStrip } from "@/components/viz/Unavailable";
+import { NodeEvidence } from "@/components/viz/NodeEvidence";
+import { MacroTrend } from "@/components/viz/MacroTrend";
 import { pct } from "@/lib/format";
 import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 
@@ -27,6 +30,7 @@ export default function CountryProfile() {
 
   const { node, country, exposure, industries, peers, dependents, watched } =
     data;
+  const topContribution = exposure.contributions[0];
 
   return (
     <main>
@@ -129,6 +133,62 @@ export default function CountryProfile() {
                   ) : null}
                 </dl>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* The same five questions the rest of the site answers. */}
+      <QuestionStrip
+        className="border-b border-rule"
+        answers={[
+          {
+            q: "What's happening here?",
+            a: topContribution
+              ? `${topContribution.title} is the largest single term in this profile's load.`
+              : "No event in the corpus currently reaches this node.",
+            href: topContribution ? `/app/event/${topContribution.eventId}` : undefined,
+          },
+          {
+            q: "What changed?",
+            a: `Live load is ${pct(exposure.load)} across ${exposure.eventCount} events.`,
+          },
+          {
+            q: "Who's affected?",
+            a:
+              dependents.length > 0
+                ? `${dependents.length} ${dependents.length === 1 ? "place depends" : "places depend"} on this node structurally.`
+                : peers.length > 0
+                  ? `It depends on ${peers.length} other ${peers.length === 1 ? "node" : "nodes"} in turn.`
+                  : "No structural dependency recorded.",
+          },
+          {
+            q: "Why does it matter?",
+            a: `Criticality ${pct(node.criticality)} — how strongly a shock here travels onward.`,
+            href: "/app/chain",
+          },
+          {
+            q: "Show evidence",
+            a: "Reported growth and trade below, each with its source and fetch time.",
+          },
+        ]}
+      />
+
+      {/* Reported evidence, kept visibly separate from the modelled load. */}
+      <div className="border-b border-rule">
+        <div className="mx-auto grid max-w-[1600px] gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
+          <div className="lg:col-span-7">
+            <MacroTrend nodeId={nodeId} />
+          </div>
+          <div className="lg:col-span-5">
+            <div className="panel h-full">
+              <div className="panel-head">
+                <span className="label">Reported evidence</span>
+                <span className="label text-muted-foreground">
+                  measured, not modelled
+                </span>
+              </div>
+              <NodeEvidence nodeId={nodeId} />
             </div>
           </div>
         </div>
