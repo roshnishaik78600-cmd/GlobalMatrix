@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
+import { X } from "lucide-react";
 import { useQuery } from "convex/react";
 import {
   Activity,
@@ -20,6 +21,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useAuthAction } from "@/hooks/use-auth-action";
 import { CORPUS_LABEL } from "@/lib/intel/scenarios";
 import { CommandPalette } from "@/components/intel/CommandPalette";
+import { FocusDrawer } from "@/components/viz/FocusPanel";
+import { useFocus } from "@/lib/focus";
+import { getNode } from "@/lib/intel/nodes";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -57,6 +61,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const { focus, clear } = useFocus();
 
   const handleSignOut = async () => {
     await signOut();
@@ -164,7 +169,7 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
               <span className="truncate text-[12px] text-muted-foreground">
-                Search events, countries, industries…
+                Search events, countries, sectors, infrastructure…
               </span>
               <kbd className="num ml-auto hidden shrink-0 border border-rule px-1 text-[9px] text-muted-foreground sm:block">
                 ⌘K
@@ -205,12 +210,63 @@ export function Shell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
+        {/* The current selection follows you between pages, so drilling in and
+            coming back never loses what you were looking at. */}
+        {focus ? (
+          <div className="sticky top-12 z-20 flex items-center gap-2 border-b border-signal/40 bg-signal/10 px-3 py-1.5">
+            <span className="label text-signal">Inspecting</span>
+            <span className="min-w-0 truncate text-[12px]">{focusLabel(focus)}</span>
+            <Link
+              to={focusRoute(focus)}
+              className="label ml-auto shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Open profile →
+            </Link>
+            <button
+              type="button"
+              onClick={clear}
+              title="Clear selection (Esc)"
+              className="flex size-5 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <X className="size-3" />
+            </button>
+          </div>
+        ) : null}
+
         {children}
       </div>
 
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
+      <FocusDrawer />
     </div>
   );
+}
+
+/** Plain-language name for whatever is currently selected. */
+function focusLabel(focus: NonNullable<ReturnType<typeof useFocus>["focus"]>) {
+  switch (focus.kind) {
+    case "node":
+      return getNode(focus.id).label;
+    case "event":
+      return `Event ${focus.id}`;
+    case "industry":
+      return focus.id;
+    case "channel":
+      return `${focus.id} channel`;
+  }
+}
+
+function focusRoute(focus: NonNullable<ReturnType<typeof useFocus>["focus"]>) {
+  switch (focus.kind) {
+    case "node":
+      return `/app/country/${focus.id}`;
+    case "event":
+      return `/app/event/${focus.id}`;
+    case "industry":
+      return `/app/industry/${focus.id}`;
+    case "channel":
+      return "/app/risk";
+  }
 }
 
 /**

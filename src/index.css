@@ -236,6 +236,18 @@
       stroke-dashoffset: 0;
     }
   }
+  /* A slow dash travelling along a coupling arc. It says "these two places are
+     connected in the model", nothing more — the arc's width and colour carry
+     the magnitude, and neither of those animates. */
+  .flow-arc {
+    stroke-dasharray: 5 7;
+    animation: flow 2.4s linear infinite;
+  }
+  @keyframes flow {
+    to {
+      stroke-dashoffset: -24;
+    }
+  }
   .shimmer {
     background: linear-gradient(
       90deg,
@@ -255,6 +267,7 @@
     .animate-rise,
     .animate-fade,
     .animate-draw,
+    .flow-arc,
     .shimmer {
       animation: none;
     }

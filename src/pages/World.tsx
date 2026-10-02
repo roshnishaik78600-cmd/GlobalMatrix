@@ -1,16 +1,22 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageHead } from "@/components/viz/Shell";
 import { Bar, NoData, Panel, Skeleton } from "@/components/viz/core";
 import { MapLegend, MapSelection, WorldMap } from "@/components/viz/WorldMap";
 import { riskColorForScore } from "@/lib/intel/visual";
+import { useFocus } from "@/lib/focus";
 
 /** Full-width map explorer. Filters re-scope every panel below the map. */
 export default function World() {
   const overview = useQuery(api.intel.overview);
   const directory = useQuery(api.intel.countryDirectory);
-  const [selected, setSelected] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { focus, toggle, clear } = useFocus();
+  const selected = focus?.kind === "node" ? focus.id : null;
+  const setSelected = (id: string | null) =>
+    id === null ? clear() : toggle({ kind: "node", id });
   const [region, setRegion] = useState<string | null>(null);
   const [showFlows, setShowFlows] = useState(true);
 
@@ -54,14 +60,14 @@ export default function World() {
     <main className="min-w-0">
       <PageHead
         title="World"
-        lede="Every plotted point is a real coordinate on real country geometry. Radius encodes live load derived from the corpus, shading shows the same load by country, and each arc means the two places are exposed to the same events. Institutions are excluded because they have no location."
+        lede="Every plotted point is a real coordinate on real country geometry. Radius encodes live load derived from the corpus, shading shows the same load by country, and each arc means the two places are exposed to the same events. Click to inspect, double-click to open the profile, drag to pan. Institutions are excluded because they have no location."
         actions={
           <button
             type="button"
             onClick={() => setShowFlows((v) => !v)}
             className="label border border-rule px-3 py-2 transition-colors hover:border-foreground"
           >
-            {showFlows ? "Hide links" : "Show links"}
+            {showFlows ? "Hide couplings" : "Show couplings"}
           </button>
         }
       />
@@ -75,9 +81,11 @@ export default function World() {
             <WorldMap
               nodes={nodes}
               flows={showFlows ? overview.flows : []}
+              events={(overview.mapEvents ?? []).filter((e) => e.nodeId !== "")}
               height={540}
               selected={selected}
-              onSelect={(id) => setSelected(id === selected ? null : id)}
+              onSelect={setSelected}
+              onInspect={(id) => navigate(`/app/country/${id}`)}
             />
             <div className="border-t border-rule">
               <MapLegend />

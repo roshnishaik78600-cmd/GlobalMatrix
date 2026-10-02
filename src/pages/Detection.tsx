@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
@@ -15,6 +15,7 @@ import {
 } from "@/components/intel/primitives";
 import { pct, relativeDays } from "@/lib/format";
 import { CHANNELS, CHANNEL_LABEL, type Channel, STAGE_LABEL, type Stage } from "@/lib/intel/types";
+import { useFocus } from "@/lib/focus";
 
 const STAGE_FILTERS: (Stage | "all")[] = ["all", "emerging", "escalating", "active"];
 
@@ -22,6 +23,8 @@ export default function Detection() {
   const [channel, setChannel] = useState<Channel | "all">("all");
   const [stage, setStage] = useState<Stage | "all">("all");
   const [watchedOnly, setWatchedOnly] = useState(false);
+  const { toggle } = useFocus();
+  const navigate = useNavigate();
 
   const args = useMemo(
     () => ({
@@ -146,8 +149,17 @@ export default function Detection() {
                   transition={{ duration: 0.35, delay: Math.min(i * 0.03, 0.3) }}
                   className="group relative border-b border-rule last:border-b-0"
                 >
-                  <Link
-                    to={`/app/event/${row.id}`}
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => toggle({ kind: "event", id: row.id })}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        toggle({ kind: "event", id: row.id });
+                      }
+                    }}
+                    onDoubleClick={() => navigate(`/app/event/${row.id}`)}
                     className="block px-4 py-5 transition-colors hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none lg:px-6"
                   >
                     <div className="grid grid-cols-12 items-start gap-x-4 gap-y-3">
@@ -245,10 +257,17 @@ export default function Detection() {
                       </div>
 
                       <div className="col-span-1 hidden justify-end pt-1 lg:flex">
-                        <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
+                        <Link
+                          to={`/app/event/${row.id}`}
+                          title="Open the full event analysis"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <ArrowUpRight className="size-4" />
+                        </Link>
                       </div>
                     </div>
-                  </Link>
+                  </div>
 
                   <button
                     type="button"

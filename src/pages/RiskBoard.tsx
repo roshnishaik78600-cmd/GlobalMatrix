@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
@@ -12,10 +12,13 @@ import {
   Label,
   Meter,
 } from "@/components/intel/primitives";
-import { CHANNEL_LABEL, STAGE_LABEL } from "@/lib/intel/types";
+import { CHANNEL_LABEL, STAGE_LABEL, type Channel } from "@/lib/intel/types";
+import { useFocus } from "@/lib/focus";
 
 export default function RiskBoard() {
   const data = useQuery(api.intel.riskBoard);
+  const { toggle } = useFocus();
+  const navigate = useNavigate();
 
   if (!data) {
     return (
@@ -90,9 +93,11 @@ export default function RiskBoard() {
                       className="group border-b border-rule last:border-b-0"
                     >
                       <td className="px-4 py-3">
-                        <Link
-                          to={`/app/event/${row.id}`}
-                          className="block focus-visible:outline-none"
+                        <button
+                          type="button"
+                          onClick={() => toggle({ kind: "event", id: row.id })}
+                          onDoubleClick={() => navigate(`/app/event/${row.id}`)}
+                          className="block w-full text-left focus-visible:outline-none"
                         >
                           <span className="num label text-signal">
                             {String(i + 1).padStart(2, "0")}
@@ -104,12 +109,19 @@ export default function RiskBoard() {
                             {STAGE_LABEL[row.stage]} · dominant{" "}
                             {CHANNEL_LABEL[row.dominantChannel]}
                           </p>
-                        </Link>
+                        </button>
                       </td>
 
                       {channels.map((c) => (
                         <td key={c} className="p-1">
-                          <HeatCell value={row.channelPressure[c]} />
+                          <button
+                            type="button"
+                            onClick={() => toggle({ kind: "channel", id: c as Channel })}
+                            title={`Inspect ${CHANNEL_LABEL[c as Channel]} pressure`}
+                            className="block w-full focus-visible:outline-none"
+                          >
+                            <HeatCell value={row.channelPressure[c]} />
+                          </button>
                         </td>
                       ))}
 

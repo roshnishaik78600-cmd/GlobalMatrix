@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
@@ -9,10 +9,13 @@ import { FilterToggle, Panel, SectionHeader } from "@/components/intel/AppShell"
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
 import { pct } from "@/lib/format";
 import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
+import { useFocus } from "@/lib/focus";
 
 export default function Industries() {
   const data = useQuery(api.intel.industryDirectory);
   const toggleWatch = useToggleWatch();
+  const { toggle } = useFocus();
+  const navigate = useNavigate();
   const [watchedOnly, setWatchedOnly] = useState(false);
 
   if (!data) {
@@ -103,8 +106,17 @@ export default function Industries() {
                 transition={{ duration: 0.32, delay: Math.min(i * 0.04, 0.3) }}
                 className="group relative"
               >
-                <Link
-                  to={`/app/industry/${row.id}`}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => toggle({ kind: "industry", id: row.id })}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      toggle({ kind: "industry", id: row.id });
+                    }
+                  }}
+                  onDoubleClick={() => navigate(`/app/industry/${row.id}`)}
                   className="grid grid-cols-12 items-start gap-x-4 gap-y-3 px-4 py-5 transition-colors hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none"
                 >
                   <div className="col-span-6 lg:col-span-1">
@@ -197,9 +209,16 @@ export default function Industries() {
                   </div>
 
                   <div className="col-span-1 hidden justify-end pt-1 lg:flex">
-                    <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
+                    <Link
+                      to={`/app/industry/${row.id}`}
+                      title="Open the full sector page"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <ArrowUpRight className="size-4" />
+                    </Link>
                   </div>
-                </Link>
+                </div>
 
                   <button
                     type="button"

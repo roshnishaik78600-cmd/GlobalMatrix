@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageHead } from "@/components/viz/Shell";
@@ -7,6 +7,7 @@ import { QuestionStrip } from "@/components/viz/Unavailable";
 import { ChainExplorer } from "@/components/viz/ChainExplorer";
 import { MapLegend, MapSelection, WorldMap } from "@/components/viz/WorldMap";
 import { SignalMatrix } from "@/components/viz/SignalMatrix";
+import { useFocus } from "@/lib/focus";
 
 /**
  * How an event connects to the rest of the world.
@@ -18,7 +19,11 @@ import { SignalMatrix } from "@/components/viz/SignalMatrix";
  */
 export default function ChainPage() {
   const overview = useQuery(api.intel.overview);
-  const [selected, setSelected] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { focus, toggle, clear } = useFocus();
+  const selected = focus?.kind === "node" ? focus.id : null;
+  const setSelected = (id: string | null) =>
+    id === null ? clear() : toggle({ kind: "node", id });
 
   if (!overview) {
     return (
@@ -92,7 +97,8 @@ export default function ChainPage() {
                 events={(overview.mapEvents ?? []).filter((e) => e.nodeId !== "")}
                 height={480}
                 selected={selected}
-                onSelect={(id) => setSelected(id === selected ? null : id)}
+                onSelect={setSelected}
+                onInspect={(id) => navigate(`/app/country/${id}`)}
               />
               <div className="border-t border-rule">
                 <MapLegend />

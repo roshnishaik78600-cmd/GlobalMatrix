@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { Link } from "react-router";
 import { useQuery } from "convex/react";
 import { ArrowUpRight } from "lucide-react";
@@ -20,11 +21,16 @@ import { CHANNEL_COLOR, riskColorForScore } from "@/lib/intel/visual";
 import { bandOf } from "@/lib/intel/engine";
 import { CHANNELS, CHANNEL_LABEL, STAGE_LABEL, type Stage } from "@/lib/intel/types";
 import { dayMonth } from "@/lib/format";
+import { useFocus } from "@/lib/focus";
 
 export default function Overview() {
   const data = useQuery(api.intel.overview);
-  const [selected, setSelected] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const { focus, toggle, clear, isFocused } = useFocus();
   const [domain, setDomain] = useState<string | null>(null);
+  const selected = focus?.kind === "node" ? focus.id : null;
+  const setSelected = (id: string | null) =>
+    id === null ? clear() : toggle({ kind: "node", id });
 
   if (!data) return <OverviewSkeleton />;
 
@@ -135,7 +141,8 @@ export default function Overview() {
               events={mapEvents}
               height={440}
               selected={selected}
-              onSelect={(id) => setSelected(id === selected ? null : id)}
+              onSelect={setSelected}
+              onInspect={(id) => navigate(`/app/country/${id}`)}
             />
             <div className="border-t border-rule">
               <MapLegend />
@@ -152,7 +159,13 @@ export default function Overview() {
           <Panel title="Domain activity" meta="mean channel pressure">
             <Radar
               axes={domains}
-              onSelect={(l) => setDomain(domain === l ? null : l)}
+              onSelect={(label) => {
+                const channel = CHANNELS.find(
+                  (c) => CHANNEL_LABEL[c] === label,
+                );
+                if (channel) toggle({ kind: "channel", id: channel });
+                setDomain(domain === label ? null : label);
+              }}
               selected={domain}
             />
             <p className="px-3 pb-3 text-[11px] leading-relaxed text-muted-foreground">
@@ -168,13 +181,20 @@ export default function Overview() {
                 const axis = domains.find((d) => d.label === CHANNEL_LABEL[channel]);
                 const value = (axis?.value ?? 0) * 100;
                 return (
-                  <Gauge
+                  <button
                     key={channel}
-                    label={CHANNEL_LABEL[channel]}
-                    score={value}
-                    band={bandOf(value)}
-                    detail={`${axis?.count ?? 0} events`}
-                  />
+                    type="button"
+                    onClick={() => toggle({ kind: "channel", id: channel })}
+                    aria-pressed={isFocused("channel", channel)}
+                    className="text-left transition-opacity hover:opacity-80"
+                  >
+                    <Gauge
+                      label={CHANNEL_LABEL[channel]}
+                      score={value}
+                      band={bandOf(value)}
+                      detail={`${axis?.count ?? 0} events`}
+                    />
+                  </button>
                 );
               })}
             </div>
@@ -225,46 +245,60 @@ export default function Overview() {
           >
             <ul>
               {topEvents.map((event) => (
-                <li key={event.id}>
-                  <Link
-                    to={`/app/event/${event.id}`}
-                    className="group block border-b border-rule px-3 py-3 transition-colors last:border-b-0 hover:bg-white/4"
-                  >
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span
-                        className="label"
-                        style={{ color: CHANNEL_COLOR[event.dominantChannel] }}
-                      >
-                        {CHANNEL_LABEL[event.dominantChannel]}
-                      </span>
-                      <span className="num text-[13px] font-semibold">
-                        {event.score.toFixed(1)}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-[12.5px] leading-snug font-medium group-hover:text-signal">
-                      {event.title}
-                    </p>
-                    <Bar
-                      value={event.score}
-                      tone={riskColorForScore(event.score)}
-                      height={4}
-                      className="mt-2"
-                    />
-                    <div className="mt-2 flex flex-wrap items-center gap-1">
-                      {event.topNodes.map((n) => (
+                <li
+                  key={event.id}
+                  className="group border-b border-rule last:border-b-0"
+                >
+                  <div className="flex items-stretch">
+                    <button
+                      type="button"
+                      onClick={() => toggle({ kind: "event", id: event.id })}
+                      aria-pressed={isFocused("event", event.id)}
+                      className="min-w-0 flex-1 px-3 py-3 text-left transition-colors hover:bg-white/4"
+                    >
+                      <div className="flex items-baseline justify-between gap-2">
                         <span
-                          key={n.nodeId}
-                          className="num border border-rule px-1 text-[8px] text-muted-foreground"
-                          title={`${n.label} · ${n.weight.toFixed(2)}`}
+                          className="label"
+                          style={{ color: CHANNEL_COLOR[event.dominantChannel] }}
                         >
-                          {n.short}
+                          {CHANNEL_LABEL[event.dominantChannel]}
                         </span>
-                      ))}
-                      <span className="num ml-auto text-[9px] text-muted-foreground">
-                        80% {event.low.toFixed(0)}–{event.high.toFixed(0)}
-                      </span>
-                    </div>
-                  </Link>
+                        <span className="num text-[13px] font-semibold">
+                          {event.score.toFixed(1)}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[12.5px] leading-snug font-medium group-hover:text-signal">
+                        {event.title}
+                      </p>
+                      <Bar
+                        value={event.score}
+                        tone={riskColorForScore(event.score)}
+                        height={4}
+                        className="mt-2"
+                      />
+                      <div className="mt-2 flex flex-wrap items-center gap-1">
+                        {event.topNodes.map((n) => (
+                          <span
+                            key={n.nodeId}
+                            className="num border border-rule px-1 text-[8px] text-muted-foreground"
+                            title={`${n.label} · ${n.weight.toFixed(2)}`}
+                          >
+                            {n.short}
+                          </span>
+                        ))}
+                        <span className="num ml-auto text-[9px] text-muted-foreground">
+                          80% {event.low.toFixed(0)}–{event.high.toFixed(0)}
+                        </span>
+                      </div>
+                    </button>
+                    <Link
+                      to={`/app/event/${event.id}`}
+                      title="Open full analysis"
+                      className="flex w-9 shrink-0 items-center justify-center border-l border-rule text-muted-foreground transition-colors hover:text-foreground"
+                    >
+                      <ArrowUpRight className="size-3.5" />
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -313,10 +347,12 @@ export default function Overview() {
           >
             <ul className="divide-y divide-rule">
               {hottestCountries.map((row) => (
-                <li key={row.nodeId}>
-                  <Link
-                    to={`/app/country/${row.nodeId}`}
-                    className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-white/4"
+                <li key={row.nodeId} className="flex items-stretch">
+                  <button
+                    type="button"
+                    onClick={() => toggle({ kind: "node", id: row.nodeId })}
+                    aria-pressed={isFocused("node", row.nodeId)}
+                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-white/4"
                   >
                     <span className="num w-8 shrink-0 text-[11px] text-muted-foreground">
                       {row.short}
@@ -334,6 +370,13 @@ export default function Overview() {
                     <span className="num w-9 shrink-0 text-right text-[11px]">
                       {(row.load * 100).toFixed(0)}%
                     </span>
+                  </button>
+                  <Link
+                    to={`/app/country/${row.nodeId}`}
+                    title={`Open ${row.label}`}
+                    className="flex w-8 shrink-0 items-center justify-center border-l border-rule text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <ArrowUpRight className="size-3" />
                   </Link>
                 </li>
               ))}
@@ -356,10 +399,12 @@ export default function Overview() {
           >
             <ul className="divide-y divide-rule">
               {hottestIndustries.map((row) => (
-                <li key={row.id}>
-                  <Link
-                    to={`/app/industry/${row.id}`}
-                    className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-white/4"
+                <li key={row.id} className="flex items-stretch">
+                  <button
+                    type="button"
+                    onClick={() => toggle({ kind: "industry", id: row.id })}
+                    aria-pressed={isFocused("industry", row.id)}
+                    className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left transition-colors hover:bg-white/4"
                   >
                     <span className="min-w-0 flex-1 truncate text-[12.5px]">
                       {row.label}
@@ -374,6 +419,13 @@ export default function Overview() {
                     <span className="num w-9 shrink-0 text-right text-[11px]">
                       {(row.load * 100).toFixed(0)}%
                     </span>
+                  </button>
+                  <Link
+                    to={`/app/industry/${row.id}`}
+                    title={`Open ${row.label}`}
+                    className="flex w-8 shrink-0 items-center justify-center border-l border-rule text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    <ArrowUpRight className="size-3" />
                   </Link>
                 </li>
               ))}
@@ -398,9 +450,10 @@ export default function Overview() {
                 <ul className="divide-y divide-rule">
                   {supplyPressure.map((row) => (
                     <li key={row.nodeId}>
-                      <Link
-                        to={`/app/country/${row.nodeId}`}
-                        className="flex items-center gap-2.5 px-3 py-2 transition-colors hover:bg-white/4"
+                      <button
+                        type="button"
+                        onClick={() => toggle({ kind: "node", id: row.nodeId })}
+                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-white/4"
                       >
                         <span className="min-w-0 flex-1 truncate text-[12px]">
                           {row.label}
@@ -415,7 +468,7 @@ export default function Overview() {
                         <span className="num w-8 shrink-0 text-right text-[10px]">
                           {(row.load * 100).toFixed(0)}%
                         </span>
-                      </Link>
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -432,9 +485,10 @@ export default function Overview() {
                 <ul className="divide-y divide-rule">
                   {policyEvents.map((row) => (
                     <li key={row.id}>
-                      <Link
-                        to={`/app/event/${row.id}`}
-                        className="block px-3 py-2 transition-colors hover:bg-white/4"
+                      <button
+                        type="button"
+                        onClick={() => toggle({ kind: "event", id: row.id })}
+                        className="block w-full px-3 py-2 text-left transition-colors hover:bg-white/4"
                       >
                         <p className="line-clamp-2 text-[12px] leading-snug">
                           {row.title}
@@ -442,7 +496,7 @@ export default function Overview() {
                         <p className="num mt-0.5 text-[9px] text-muted-foreground">
                           {row.tags.join(" · ")} · {row.score.toFixed(1)}
                         </p>
-                      </Link>
+                      </button>
                     </li>
                   ))}
                 </ul>

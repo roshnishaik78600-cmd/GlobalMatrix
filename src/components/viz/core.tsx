@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import { RISK_COLOR, RISK_FILL, clamp01, riskColorForScore } from "@/lib/intel/visual";
 import type { RiskBand } from "@/lib/intel/types";
 import { cn } from "@/lib/utils";
@@ -64,6 +66,68 @@ export function NoData({
 
 export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("shimmer rounded-none", className)} aria-hidden />;
+}
+
+/**
+ * A panel row that opens in place.
+ *
+ * Deeper detail should cost one click, not one navigation — otherwise reading
+ * past the fourth row means losing everything else on screen. The expansion is
+ * a height transition because that is the only motion here that carries
+ * meaning: something is now occupying space that was not there before.
+ */
+export function Expandable({
+  summary,
+  children,
+  defaultOpen = false,
+  className,
+  openLabel = "Show more",
+  closeLabel = "Show less",
+}: {
+  summary: ReactNode;
+  children: ReactNode;
+  defaultOpen?: boolean;
+  className?: string;
+  openLabel?: string;
+  closeLabel?: string;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className={className}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/4"
+      >
+        <span className="min-w-0 flex-1">{summary}</span>
+        <span className="label flex shrink-0 items-center gap-1 text-muted-foreground">
+          {open ? closeLabel : openLabel}
+          <ChevronDown
+            className={cn(
+              "size-3 transition-transform duration-200",
+              open && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            key="body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            className="overflow-hidden"
+          >
+            {children}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
 }
 
 /** Compact horizontal meter with a threshold tick. */

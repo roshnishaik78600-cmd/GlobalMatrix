@@ -40,6 +40,19 @@ interface View {
   h: number;
 }
 
+/**
+ * What the map is currently emphasising. Each layer re-weights encodings the
+ * map already has — land shading, node radius, arcs, event rings — so no layer
+ * can show something the others cannot.
+ */
+type LayerId = "load" | "events" | "links";
+
+const LAYERS: { id: LayerId; label: string; hint: string }[] = [
+  { id: "load", label: "Load", hint: "Land shading and node size follow live load" },
+  { id: "events", label: "Events", hint: "Where corpus events land hardest" },
+  { id: "links", label: "Couplings", hint: "Chokepoint-to-economy shared-event coupling" },
+];
+
 const FULL: View = { x: 0, y: 0, w: MAP_W, h: MAP_H };
 
 /** Zoom is bounded so the map can never be panned off its own geometry. */
@@ -82,8 +95,10 @@ export function WorldMap({
   loading,
   height = 380,
   onSelect,
+  onInspect,
   selected,
   className,
+  layers = true,
 }: {
   nodes: MapNode[];
   flows?: MapFlow[];
@@ -91,11 +106,16 @@ export function WorldMap({
   loading?: boolean;
   height?: number;
   onSelect?: (nodeId: string) => void;
+  /** Double-click: open the full profile for this place. */
+  onInspect?: (nodeId: string) => void;
   selected?: string | null;
   className?: string;
+  /** Show the layer switcher. Off where the map is a supporting picture. */
+  layers?: boolean;
 }) {
   const [view, setView] = useState<View>(FULL);
   const [hover, setHover] = useState<string | null>(null);
+  const [layer, setLayer] = useState<LayerId>("load");
   const drag = useRef<{ x: number; y: number; view: View } | null>(null);
   const svg = useRef<SVGSVGElement | null>(null);
 
@@ -136,6 +156,11 @@ export function WorldMap({
   const shapes = countryShapes();
   const zoom = MAP_W / view.w;
   const zoomedIn = view.w < 780;
+  // Each layer re-weights the same three real encodings rather than adding new
+  // data, so switching one can never imply information the others lack.
+  const showLoad = layer === "load";
+  const showEvents = layer === "events" || layer === "load";
+  const showLinks = layer === "links" || layer === "load";
 
   const pointerToView = (clientX: number, clientY: number) => {
     const rect = svg.current?.getBoundingClientRect();
@@ -205,7 +230,7 @@ export function WorldMap({
         <g stroke="var(--rule)" strokeWidth={0.4} strokeLinejoin="round">
           {shapes.map((shape) => {
             const owner = plotted.find((p) => p.shape?.iso === shape.iso);
-            const fill = owner
+            const fill = owner && showLoad
               ? `color-mix(in oklch, ${riskColorForScore(owner.load * 100)} ${Math.round(
                   18 + owner.load * 62,
                 )}%, transparent)`
@@ -215,8 +240,8 @@ export function WorldMap({
                 key={shape.iso}
                 d={shape.d}
                 fill={fill}
-                stroke={owner ? "var(--foreground)" : "var(--rule)"}
-                strokeOpacity={owner ? 0.45 : 0.7}
+                stroke={owner && showLoad ? "var(--foreground)" : "var(--rule)"}
+                strokeOpacity={owner && showLoad ? 0.45 : 0.7}
               />
             );
           })}
@@ -249,8 +274,9 @@ export function WorldMap({
         ) : null}
 
         {/* Transmission arcs */}
-        <g fill="none">
-          {flows.map((f, i) => {
+        <g fill="none" opacity={showLinks ? 1 : 0.12}>
+          {showLinks
+            ? flows.map((f, i) => {
             const a = getNode(f.from);
             const b = getNode(f.to);
             if (a.lat === undefined || a.lon === undefined) return null;
@@ -267,15 +293,19 @@ export function WorldMap({
                 strokeWidth={(0.5 + f.weight * 2.4) / zoom}
                 opacity={selected && f.from !== selected && f.to !== selected ? 0.07 : 0.38}
                 strokeLinecap="round"
+                // Motion marks the coupling itself; magnitude stays encoded in
+                // width and colour, which never animate.
+                className={layer === "links" ? "flow-arc" : undefined}
               />
             );
-          })}
+          })
+            : null}
         </g>
 
         {/* Nodes */}
         <g>
           {plotted.map((n) => {
-            const r = (3.4 + (n.load / maxLoad) * 9) / zoom;
+            const r = ((showLoad ? 3.4 + (n.load / maxLoad) * 9 : 2.6) ) / zoom;
             const colour = riskColorForScore(n.load * 100);
             const active = selected === n.nodeId || hover === n.nodeId;
             const dim = selected && !active;
@@ -285,6 +315,7 @@ export function WorldMap({
                 className={cn(onSelect && "cursor-pointer")}
                 onMouseEnter={() => setHover(n.nodeId)}
                 onClick={() => onSelect?.(n.nodeId)}
+                onDoubleClick={() => onInspect?.(n.nodeId)}
                 opacity={dim ? 0.3 : 1}
               >
                 <circle
@@ -337,27 +368,51 @@ export function WorldMap({
         </g>
 
         {/* Event markers, anchored where each event lands hardest. */}
-        {events.map((e) => {
-          const host = plotted.find((p) => p.nodeId === e.nodeId);
-          if (!host) return null;
-          const r = (5 + (e.score / 100) * 8) / zoom;
-          return (
-            <g key={e.id} opacity={selected && selected !== e.nodeId ? 0.25 : 1}>
-              <circle
-                cx={host.x}
-                cy={host.y}
-                r={r * 1.9}
-                fill="none"
-                stroke="var(--signal)"
-                strokeWidth={0.8 / zoom}
-                opacity={0.4}
-              />
-              <circle cx={host.x} cy={host.y} r={r * 0.55} fill="var(--signal)" />
-              <title>{`${e.label} — ${e.score.toFixed(0)} / 100`}</title>
-            </g>
-          );
-        })}
+        {showEvents
+          ? events.map((e) => {
+              const host = plotted.find((p) => p.nodeId === e.nodeId);
+              if (!host) return null;
+              const r = ((layer === "events" ? 7 : 5) + (e.score / 100) * 8) / zoom;
+              return (
+                <g key={e.id} opacity={selected && selected !== e.nodeId ? 0.25 : 1}>
+                  <circle
+                    cx={host.x}
+                    cy={host.y}
+                    r={r * 1.9}
+                    fill="none"
+                    stroke="var(--signal)"
+                    strokeWidth={0.8 / zoom}
+                    opacity={0.4}
+                  />
+                  <circle cx={host.x} cy={host.y} r={r * 0.55} fill="var(--signal)" />
+                  <title>{`${e.label} — ${e.score.toFixed(0)} / 100`}</title>
+                </g>
+              );
+            })
+          : null}
       </svg>
+
+      {layers ? (
+        <div className="absolute top-2 left-2 flex flex-wrap gap-px">
+          {LAYERS.map((l) => (
+            <button
+              key={l.id}
+              type="button"
+              onClick={() => setLayer(l.id)}
+              aria-pressed={l.id === layer}
+              title={l.hint}
+              className={cn(
+                "label border px-2 py-1 backdrop-blur transition-colors",
+                l.id === layer
+                  ? "border-signal bg-background/90 text-signal"
+                  : "border-rule bg-background/80 text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {/* Zoom controls — deliberately buttons, so the page never hijacks scroll. */}
       <div className="absolute top-2 right-2 flex flex-col gap-px">
@@ -421,7 +476,7 @@ export function MapLegend() {
         Event
       </span>
       <span className="label text-muted-foreground">
-        Land shading = live load · drag to pan · scroll-safe zoom buttons
+        Land shading = live load · click to inspect · double-click to open the profile · drag to pan
       </span>
     </div>
   );

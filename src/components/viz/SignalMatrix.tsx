@@ -1,11 +1,13 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { useQuery } from "convex/react";
+import { ArrowUpRight } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { Panel, Skeleton } from "@/components/viz/core";
 import { NoVerifiedData } from "@/components/viz/Unavailable";
 import { StatusBadge, SourceLine } from "@/components/viz/Provenance";
 import { macroSeries, useMacroData } from "@/hooks/use-verified-data";
+import { useFocus } from "@/lib/focus";
 import { CHANNEL_LABEL } from "@/lib/intel/types";
 import { riskColorForScore } from "@/lib/intel/visual";
 import { cn } from "@/lib/utils";
@@ -50,6 +52,7 @@ const COLUMNS: {
 export function SignalMatrix({ className }: { className?: string }) {
   const matrix = useQuery(api.intel.signalMatrix);
   const macro = useMacroData();
+  const { focus, toggle, isFocused } = useFocus();
   const [sort, setSort] = useState<ColumnId | "overall">("overall");
 
   const growth = useMemo(
@@ -58,6 +61,9 @@ export function SignalMatrix({ className }: { className?: string }) {
   );
 
   const rows = matrix?.rows ?? [];
+
+  /** A focused country stays visible and pinned to the top of the ranking. */
+  const focused = focus?.kind === "node" ? focus.id : null;
 
   const sorted = useMemo(() => {
     const copy = [...rows];
@@ -76,6 +82,13 @@ export function SignalMatrix({ className }: { className?: string }) {
     }
     return copy;
   }, [rows, sort, growth]);
+
+  const ordered = focused
+    ? [
+        ...sorted.filter((r) => r.nodeId === focused),
+        ...sorted.filter((r) => r.nodeId !== focused),
+      ]
+    : sorted;
 
   if (!matrix) {
     return (
@@ -129,20 +142,39 @@ export function SignalMatrix({ className }: { className?: string }) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((row) => {
+            {ordered.map((row) => {
               const observed = growth.get(`${row.nodeId}:gdpGrowth`);
+              const active = isFocused("node", row.nodeId);
               return (
-                <tr key={row.nodeId} className="border-t border-rule">
+                <tr
+                  key={row.nodeId}
+                  className={cn(
+                    "border-t border-rule transition-colors",
+                    active && "bg-signal/10",
+                    focus && !active && "opacity-60",
+                  )}
+                >
                   <th className="sticky left-0 z-10 bg-card px-3 py-1.5 text-left font-normal">
-                    <Link
-                      to={`/app/country/${row.nodeId}`}
-                      className="flex min-w-0 items-center gap-2 transition-colors hover:text-signal"
-                    >
-                      <span className="num w-7 shrink-0 text-[10px] text-muted-foreground">
-                        {row.short}
-                      </span>
-                      <span className="min-w-0 truncate text-[12px]">{row.label}</span>
-                    </Link>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => toggle({ kind: "node", id: row.nodeId })}
+                        aria-pressed={active}
+                        className="flex min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:text-signal"
+                      >
+                        <span className="num w-7 shrink-0 text-[10px] text-muted-foreground">
+                          {row.short}
+                        </span>
+                        <span className="min-w-0 truncate text-[12px]">{row.label}</span>
+                      </button>
+                      <Link
+                        to={`/app/country/${row.nodeId}`}
+                        title={`Open ${row.label}`}
+                        className="flex size-5 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <ArrowUpRight className="size-3" />
+                      </Link>
+                    </div>
                   </th>
 
                   {COLUMNS.filter((c) => !c.observed).map((c) => {

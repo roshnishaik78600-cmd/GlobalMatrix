@@ -7,6 +7,7 @@ import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { FocusProvider } from "@/lib/focus";
 import "./index.css";
 
 // Lazy load route components for better code splitting
@@ -138,9 +139,10 @@ createRoot(document.getElementById("root")!).render(
       </ToolbarErrorBoundary>
       <ConvexAuthProvider client={convex}>
         <BrowserRouter>
-          <RouteSyncer />
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
+          <FocusProvider>
+            <RouteSyncer />
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
               <Route path="/" element={<Landing />} />
               <Route
                 path="/auth"
@@ -167,8 +169,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/app/policy" element={console_(<NotAvailable />)} />
               <Route path="/app/analogues" element={console_(<NotAvailable />)} />
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
+              </Routes>
+            </Suspense>
+          </FocusProvider>
         </BrowserRouter>
         <Toaster />
       </ConvexAuthProvider>

@@ -7,6 +7,7 @@ import { NoVerifiedData } from "@/components/viz/Unavailable";
 import { SourceTag } from "@/components/viz/Provenance";
 import { useHeadlinesData } from "@/hooks/use-verified-data";
 import { sourceById } from "@/lib/sources";
+import { WINDOW_MS, useFocus, type TimeWindow } from "@/lib/focus";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,14 +19,7 @@ import { cn } from "@/lib/utils";
  * and tells the reader which sources it watches.
  */
 
-const WINDOWS = [
-  { id: "1h", label: "1h", ms: 60 * 60 * 1000 },
-  { id: "6h", label: "6h", ms: 6 * 60 * 60 * 1000 },
-  { id: "24h", label: "24h", ms: 24 * 60 * 60 * 1000 },
-  { id: "7d", label: "7d", ms: 7 * 24 * 60 * 60 * 1000 },
-] as const;
-
-type WindowId = (typeof WINDOWS)[number]["id"];
+const WINDOWS: TimeWindow[] = ["1h", "6h", "24h", "7d"];
 
 /** GDELT stamps look like 20261002T080000Z. */
 function parseStamp(stamp: string): number {
@@ -60,15 +54,14 @@ interface Change {
 }
 
 export function ChangeTimeline({ className }: { className?: string }) {
-  const [windowId, setWindowId] = useState<WindowId>("24h");
+  const { window: windowId, setWindow } = useFocus();
   const health = useQuery(api.observations.sourceHealth);
   const headlines = useHeadlinesData();
 
-  const window = WINDOWS.find((w) => w.id === windowId) ?? WINDOWS[2];
   // Fixed once per mount so the render itself stays pure; the windows are
   // short enough that a minute of staleness changes nothing a reader sees.
   const [mountedAt] = useState(() => Date.now());
-  const cutoff = mountedAt - window.ms;
+  const cutoff = mountedAt - WINDOW_MS[windowId];
 
   const changes = useMemo<Change[]>(() => {
     const out: Change[] = [];
@@ -112,24 +105,24 @@ export function ChangeTimeline({ className }: { className?: string }) {
   return (
     <Panel
       title="What's changing"
-      meta={changes.length > 0 ? `${changes.length} in the last ${window.label}` : undefined}
+      meta={changes.length > 0 ? `${changes.length} in the last ${windowId}` : undefined}
       className={cn("min-w-0", className)}
     >
       <div className="flex flex-wrap items-center gap-1.5 border-b border-rule px-3 py-2">
         {WINDOWS.map((w) => (
           <button
-            key={w.id}
+            key={w}
             type="button"
-            onClick={() => setWindowId(w.id)}
-            aria-pressed={w.id === windowId}
+            onClick={() => setWindow(w)}
+            aria-pressed={w === windowId}
             className={cn(
               "chip transition-colors",
-              w.id === windowId
+              w === windowId
                 ? "border-signal text-signal"
                 : "border-rule text-muted-foreground hover:text-foreground",
             )}
           >
-            {w.label}
+            {w}
           </button>
         ))}
         <span className="label ml-auto flex items-center gap-1.5 text-muted-foreground">
@@ -147,7 +140,7 @@ export function ChangeTimeline({ className }: { className?: string }) {
         <div className="p-4">
           <p className="flex items-center gap-2 text-[12.5px] font-medium">
             <Radio className="size-3.5 text-muted-foreground" aria-hidden />
-            Nothing new in the last {window.label}.
+            Nothing new in the last {windowId}.
           </p>
           <p className="mt-1.5 max-w-md text-[11.5px] leading-relaxed text-muted-foreground">
             That is a real reading, not a gap: GlobalMatrix only reports a change

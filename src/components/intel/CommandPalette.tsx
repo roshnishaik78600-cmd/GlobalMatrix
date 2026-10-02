@@ -15,7 +15,7 @@ import { STAGE_LABEL } from "@/lib/intel/types";
 import { pct } from "@/lib/format";
 
 type Entry = {
-  kind: "event" | "country" | "industry";
+  kind: "event" | "country" | "industry" | "screen";
   id: string;
   label: string;
   hint: string;
@@ -27,7 +27,74 @@ const GROUPS = [
   { kind: "event", label: "Events", tag: "EVT" },
   { kind: "country", label: "Countries & infrastructure", tag: "NODE" },
   { kind: "industry", label: "Industries", tag: "SECT" },
+  { kind: "screen", label: "Screens", tag: "GO" },
 ] as const;
+
+/**
+ * Domains a reader will reasonably search for that this build does not measure.
+ *
+ * They are listed rather than missing, so searching "commodity" returns an
+ * honest answer with a link to the page that explains why — instead of a dead
+ * search result that reads like the data does not exist.
+ */
+const SCREENS: Entry[] = [
+  {
+    kind: "screen",
+    id: "chain",
+    label: "Event → world",
+    hint: "follow one event through every layer it touches",
+    meta: "",
+    to: "/app/chain",
+  },
+  {
+    kind: "screen",
+    id: "sources",
+    label: "Data sources",
+    hint: "what is connected, what is fresh, what it cannot prove",
+    meta: "",
+    to: "/app/data",
+  },
+  {
+    kind: "screen",
+    id: "trade",
+    label: "Trade",
+    hint: "reported merchandise values, UN Comtrade",
+    meta: "",
+    to: "/app/trade",
+  },
+  {
+    kind: "screen",
+    id: "markets",
+    label: "Markets",
+    hint: "reported growth and coverage — no price feed connected",
+    meta: "",
+    to: "/app/markets",
+  },
+  {
+    kind: "screen",
+    id: "companies",
+    label: "Companies",
+    hint: "not measured in this build",
+    meta: "empty",
+    to: "/app/companies",
+  },
+  {
+    kind: "screen",
+    id: "commodities",
+    label: "Commodities",
+    hint: "not measured in this build",
+    meta: "empty",
+    to: "/app/trade",
+  },
+  {
+    kind: "screen",
+    id: "policy",
+    label: "Policy registry",
+    hint: "not measured in this build",
+    meta: "empty",
+    to: "/app/policy",
+  },
+];
 
 /**
  * Global jump-to. A researcher working an event, a country and a sector at the
@@ -51,6 +118,22 @@ export function CommandPalette({
       if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         onOpenChange(!open);
+        return;
+      }
+      // "/" jumps to search the way it does in most consoles, but never while
+      // the reader is typing into something.
+      if (event.key === "/" && !open) {
+        const target = event.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.isContentEditable)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        onOpenChange(true);
       }
     }
     document.addEventListener("keydown", onKey);
@@ -99,6 +182,7 @@ export function CommandPalette({
         to: `/app/industry/${row.id}`,
       });
     }
+    out.push(...SCREENS);
     return out;
   }, [feed, countries, industries]);
 
@@ -107,11 +191,11 @@ export function CommandPalette({
       open={open}
       onOpenChange={onOpenChange}
       title="Jump to"
-      description="Search events, countries and industries."
+      description="Search events, countries, sectors and screens."
       className="rounded-none border-rule"
     >
       <CommandInput
-        placeholder="Search the graph…"
+        placeholder="Search countries, infrastructure, events, sectors…"
         className="h-11 border-b border-rule"
       />
       <CommandList className="max-h-[440px]">
@@ -166,7 +250,7 @@ export function CommandPalette({
           {entries.length} indexed entities
         </span>
         <span className="label text-muted-foreground">
-          ⌘K to toggle · esc to close
+          ⌘K or / to search · esc to close · esc anywhere clears a selection
         </span>
       </div>
     </CommandDialog>

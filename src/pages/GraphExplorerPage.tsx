@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageHead } from "@/components/viz/Shell";
@@ -7,6 +7,7 @@ import { GraphExplorer } from "@/components/viz/Flow";
 import { Bar, NoData, Panel, Skeleton } from "@/components/viz/core";
 import { getNode } from "@/lib/intel/nodes";
 import { riskColorForScore } from "@/lib/intel/visual";
+import { useFocus } from "@/lib/focus";
 
 /**
  * Graph explorer.
@@ -17,7 +18,9 @@ import { riskColorForScore } from "@/lib/intel/visual";
 export default function GraphExplorerPage() {
   const feed = useQuery(api.intel.detectionFeed, {});
   const [params, setParams] = useSearchParams();
-  const [selected, setSelected] = useState<string | null>(null);
+  const { focus, toggle } = useFocus();
+  const navigate = useNavigate();
+  const selected = focus?.kind === "node" ? focus.id : null;
 
   const eventId = params.get("event") ?? feed?.rows[0]?.id;
   const graph = useQuery(
@@ -26,6 +29,28 @@ export default function GraphExplorerPage() {
   );
 
   const nodeCount = graph?.nodes.length ?? 0;
+  const [isolate, setIsolate] = useState(false);
+
+  // Relationship filter: with a node selected, the graph can collapse to its
+  // immediate neighbourhood. Nothing is recomputed — the same edges are simply
+  // hidden, so the picture stays a subset of the real graph.
+  const view = useMemo(() => {
+    if (!graph) return { nodes: [], edges: [] };
+    if (!isolate || !selected) return { nodes: graph.nodes, edges: graph.edges };
+    const keep = new Set<string>([selected]);
+    const edges = graph.edges.filter((e) => {
+      if (e.from === selected || e.to === selected) {
+        keep.add(e.from);
+        keep.add(e.to);
+        return true;
+      }
+      return false;
+    });
+    return {
+      nodes: graph.nodes.filter((n) => keep.has(n.id)),
+      edges,
+    };
+  }, [graph, isolate, selected]);
   const kindCounts = useMemo(() => {
     const m = new Map<string, number>();
     for (const n of graph?.nodes ?? []) m.set(n.kind, (m.get(n.kind) ?? 0) + 1);
@@ -68,15 +93,42 @@ export default function GraphExplorerPage() {
         <section className="xl:col-span-9">
           <Panel
             title="Propagation graph"
-            meta={`${nodeCount} nodes · ${graph?.edges.length ?? 0} edges`}
+            meta={`${view.nodes.length} of ${nodeCount} nodes · ${view.edges.length} edges`}
+            actions={
+              <button
+                type="button"
+                onClick={() => setIsolate((v) => !v)}
+                disabled={!selected}
+                title={
+                  selected
+                    ? "Show only the selected node's immediate neighbourhood"
+                    : "Select a node first"
+                }
+                className="label flex items-center gap-1.5 border border-rule px-2 py-1 transition-colors enabled:hover:border-foreground disabled:opacity-40"
+              >
+                {isolate ? "Show all" : "Isolate selection"}
+              </button>
+            }
           >
             {graph ? (
               <GraphExplorer
-                nodes={graph.nodes}
-                edges={graph.edges}
+                nodes={view.nodes}
+                edges={view.edges}
                 height={560}
                 selected={selected}
-                onSelect={(id) => setSelected(id === selected ? null : id)}
+                onSelect={(id) => {
+                  // Graph ids are node ids, except the synthetic event and
+                  // channel hubs, which are not places and open their own page.
+                  if (id.startsWith("ch:")) {
+                    navigate("/app/risk");
+                    return;
+                  }
+                  if (id === eventId) {
+                    navigate(`/app/event/${id}`);
+                    return;
+                  }
+                  toggle({ kind: "node", id });
+                }}
               />
             ) : (
               <Skeleton className="h-[560px] w-full" />

@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
@@ -9,10 +9,13 @@ import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
 import { pct } from "@/lib/format";
 import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 import { useState } from "react";
+import { useFocus } from "@/lib/focus";
 
 export default function Countries() {
   const data = useQuery(api.intel.countryDirectory);
   const toggleWatch = useToggleWatch();
+  const { toggle } = useFocus();
+  const navigate = useNavigate();
   const [watchedOnly, setWatchedOnly] = useState(false);
 
   if (!data) {
@@ -105,8 +108,17 @@ export default function Countries() {
                         transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.25) }}
                         className="group relative border-b border-rule md:border-r xl:border-b-0"
                       >
-                        <Link
-                          to={`/app/country/${row.nodeId}`}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => toggle({ kind: "node", id: row.nodeId })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              toggle({ kind: "node", id: row.nodeId });
+                            }
+                          }}
+                          onDoubleClick={() => navigate(`/app/country/${row.nodeId}`)}
                           className="flex h-full flex-col gap-3 p-4 transition-colors hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none"
                         >
                           <div className="flex items-baseline justify-between gap-3">
@@ -118,7 +130,14 @@ export default function Countries() {
                                 {row.label}
                               </span>
                             </div>
-                            <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
+                            <Link
+                              to={`/app/country/${row.nodeId}`}
+                              title="Open the full profile"
+                              onClick={(e) => e.stopPropagation()}
+                              className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                            >
+                              <ArrowUpRight className="size-3.5" />
+                            </Link>
                           </div>
 
                           <div className="grid grid-cols-12 items-end gap-3">
@@ -155,7 +174,7 @@ export default function Countries() {
                                 : ""}
                             </p>
                           </div>
-                        </Link>
+                        </div>
 
                         <button
                           type="button"

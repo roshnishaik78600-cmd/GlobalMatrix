@@ -3,6 +3,7 @@ import { NoVerifiedData } from "@/components/viz/Unavailable";
 import { SourceNote } from "@/components/viz/Provenance";
 import { TemporalSlider, type TemporalPoint } from "@/components/viz/TemporalSlider";
 import { useAttentionData, type AttentionPoint } from "@/hooks/use-verified-data";
+import { WINDOW_MS, useFocus } from "@/lib/focus";
 
 /**
  * Step through the last hours of measured coverage.
@@ -14,7 +15,14 @@ import { useAttentionData, type AttentionPoint } from "@/hooks/use-verified-data
  */
 export function AttentionReplay({ className }: { className?: string }) {
   const attention = useAttentionData();
-  const points = hourlySeries(attention.data ?? []);
+  const { window: windowId } = useFocus();
+
+  // The window chosen on the live-change timeline narrows the replay too, so
+  // one control describes the same period in both places.
+  const span = WINDOW_MS[windowId];
+  const all = hourlySeries(attention.data ?? []);
+  const newest = all.length > 0 ? all[all.length - 1].at : 0;
+  const points = all.filter((p) => p.at >= newest - span);
 
   if (points.length < 2) {
     return (
@@ -25,13 +33,14 @@ export function AttentionReplay({ className }: { className?: string }) {
       >
         <NoVerifiedData
           title="Hourly coverage"
-          domain="an hourly attention series long enough to step through"
+          domain={`hourly attention in the last ${windowId}`}
           action={
             <SourceNote
               note={
                 attention.refreshing
                   ? "Contacting the media index now."
-                  : attention.problem ?? "Not enough hourly coverage is stored yet."
+                  : (attention.problem ??
+                    `Not enough hourly coverage is stored inside the last ${windowId}. Widen the window on the live-change timeline to see more.`)
               }
             />
           }
@@ -45,7 +54,7 @@ export function AttentionReplay({ className }: { className?: string }) {
       className={className}
       series={{
         title: "Replay the last hours",
-        axisLabel: "one step = one hour",
+        axisLabel: `one step = one hour · last ${windowId}`,
         caption:
           "How much news coverage the watched topics were receiving, hour by hour, as measured by the GDELT media index. It measures attention, not events — a spike can be a press conference.",
         format: (v) => `${Math.round(v).toLocaleString("en-GB")} mentions`,
