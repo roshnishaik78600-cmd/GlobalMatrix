@@ -1,291 +1,398 @@
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useQuery } from "convex/react";
-import { motion } from "framer-motion";
-import { ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
+import { ChevronDown, Compass, Radar as RadarIcon } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import { useToggleWatch } from "@/hooks/use-auth-action";
-import { FilterToggle, Panel, SectionHeader } from "@/components/intel/AppShell";
-import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
-import { pct } from "@/lib/format";
-import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
-import { useState } from "react";
 import { useFocus } from "@/lib/focus";
+import { CountryCard, RegionSummary, type ExecCountry } from "@/components/viz/exec/CountryCard";
+import {
+  ExecFilters,
+  ExecIconLink,
+  ExecLegend,
+  ExecStat,
+  ExecStatusBar,
+} from "@/components/viz/exec/ExecStatusBar";
+import { QuestionStrip } from "@/components/viz/Unavailable";
+import { NoVerifiedData } from "@/components/viz/Unavailable";
+import { CORPUS_LABEL } from "@/lib/intel/scenarios";
+import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
+import { pct } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
+/**
+ * Countries view — executive density.
+ *
+ * One board, three questions per card: how exposed is this place, in what
+ * shape, and what is the structural fragility underneath it. Everything is
+ * derived from the same exposure model as the rest of the console and every
+ * card carries its own drill-down; nothing is summarised away and nothing is
+ * invented to fill a column.
+ */
 export default function Countries() {
-  const data = useQuery(api.intel.countryDirectory);
-  const toggleWatch = useToggleWatch();
-  const { toggle } = useFocus();
+  const directory = useQuery(api.intel.countryDirectory);
+  const trends = useQuery(api.intel.countryTrends);
   const navigate = useNavigate();
-  const [watchedOnly, setWatchedOnly] = useState(false);
+  const { toggle } = useFocus();
 
-  if (!data) {
+  const [region, setRegion] = useState<string | null>(null);
+  const [watchedOnly, setWatchedOnly] = useState(false);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const trendByNode = useMemo(() => {
+    const map = new Map<string, number[]>();
+    for (const row of trends?.nodes ?? []) map.set(row.nodeId, row.values);
+    return map;
+  }, [trends]);
+
+  const countries: ExecCountry[] = useMemo(() => {
+    if (!directory) return [];
+    return directory.countries.map((c) => ({
+      nodeId: c.nodeId,
+      label: c.label,
+      short: c.short,
+      region: c.region,
+      load: c.load,
+      fragility: c.fragility,
+      eventCount: c.eventCount,
+      offAffinityCount: c.offAffinityCount,
+      topChannel: c.topChannel as Channel,
+      watched: c.watched,
+      byChannel: c.byChannel as { channel: Channel; load: number }[],
+      trend: trendByNode.get(c.nodeId),
+    }));
+  }, [directory, trendByNode]);
+
+  const corridors = useMemo(
+    () => (directory?.corridors ?? []).filter((c) => c.kind !== "institution"),
+    [directory],
+  );
+
+  const regions = useMemo(
+    () => [...new Set(countries.map((c) => c.region))].sort(),
+    [countries],
+  );
+
+  const visible = useMemo(
+    () =>
+      countries.filter(
+        (c) => (!region || c.region === region) && (!watchedOnly || c.watched),
+      ),
+    [countries, region, watchedOnly],
+  );
+
+  const groups = useMemo(
+    () =>
+      regions
+        .map((r) => {
+          const rows = visible.filter((c) => c.region === r);
+          const localCorridors = corridors.filter((c) => c.region === r);
+          return {
+            region: r,
+            rows,
+            corridorCount: localCorridors.length,
+            corridorLoad:
+              localCorridors.length > 0
+                ? localCorridors.reduce((s, c) => s + c.load, 0) /
+                  localCorridors.length
+                : 0,
+          };
+        })
+        .filter((g) => g.rows.length > 0),
+    [regions, visible, corridors],
+  );
+
+  if (!directory) {
     return (
-      <main className="mx-auto max-w-[1600px] px-5 py-20 lg:px-8">
-        <p className="label text-muted-foreground">Resolving country exposure…</p>
+      <main className="min-h-screen p-4" style={{ background: "var(--exec-base)" }}>
+        <p className="exec-label">Resolving country exposure…</p>
       </main>
     );
   }
 
-  const { countries: allCountries, corridors: allCorridors, watchlistSize } =
-    data;
-  const countries = watchedOnly
-    ? allCountries.filter((c) => c.watched)
-    : allCountries;
-  const corridors = watchedOnly
-    ? allCorridors.filter((c) => c.watched)
-    : allCorridors;
-  const regions = [...new Set(allCountries.map((c) => c.region))].sort();
+  const watchCount = directory.watchlistSize;
+  const hottest = countries[0];
+  const mostFragile = [...countries].sort((a, b) => b.fragility - a.fragility)[0];
+  const busiestChannel = (
+    ["trade", "energy", "finance", "diplomatic"] as Channel[]
+  )
+    .map((channel) => ({
+      channel,
+      value:
+        countries.reduce((s, c) => s + (c.byChannel.find((x) => x.channel === channel)?.load ?? 0), 0) /
+        Math.max(1, countries.length),
+    }))
+    .sort((a, b) => b.value - a.value)[0];
+  const stressedCorridor = [...corridors].sort((a, b) => b.load - a.load)[0];
 
   return (
-    <main>
-      <SectionHeader
-        index="03"
-        title="Countries"
-        lede="Every economy and bloc in the graph, ranked by live exposure derived from the current event corpus. A country appears here because a propagation pathway reaches it — not because it was assigned a score. Where the panel reads MODELLED, the figure is a structural reference parameter; where it reads OBSERVED, it is computed from the corpus."
+    <main
+      className="min-w-0"
+      style={{
+        background: "var(--exec-base)",
+        color: "var(--exec-ink)",
+      }}
+    >
+      {/* Command bar */}
+      <header className="sticky top-0 z-30 border-b border-[var(--exec-hairline)] bg-[color-mix(in_srgb,var(--exec-base)_86%,transparent)] backdrop-blur-xl">
+        <div className="flex flex-col gap-2 px-4 py-2.5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="size-2 shrink-0 bg-[var(--exec-cyan)]" aria-hidden />
+            <h1 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--exec-ink)]">
+              GlobalMatrix · Countries
+            </h1>
+            <span className="exec-label hidden sm:inline">{CORPUS_LABEL}</span>
+          </div>
+          <ExecStatusBar countryCount={countries.length} />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--exec-hairline)] px-4 py-2">
+          <ExecFilters
+            regions={regions}
+            region={region}
+            onRegion={setRegion}
+            watchedOnly={watchedOnly}
+            onWatched={setWatchedOnly}
+            watchCount={watchCount}
+            onSearch={() =>
+              // The shell owns the palette; this is the same path the
+              // keyboard shortcut takes.
+              window.dispatchEvent(new CustomEvent("gm:open-search"))
+            }
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <ExecIconLink
+              to="/app/chain"
+              label="Event → world"
+              icon={<Compass className="size-3.5" />}
+            />
+            <ExecIconLink
+              to="/app/risk"
+              label="Risk board"
+              icon={<RadarIcon className="size-3.5" />}
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* Plain-language orientation */}
+      <QuestionStrip
+        className="border-b border-[var(--exec-hairline)] [&_*]:text-[var(--exec-ink)] [&_.label]:text-[var(--exec-ink-dim)]"
+        answers={[
+          {
+            q: "What's happening?",
+            a: hottest
+              ? `${hottest.label} carries the most live exposure at ${pct(hottest.load)}.`
+              : "No country exposure resolved.",
+            href: hottest ? `/app/country/${hottest.nodeId}` : undefined,
+          },
+          {
+            q: "What's most fragile?",
+            a: mostFragile
+              ? `${mostFragile.label} at ${pct(mostFragile.fragility)} structural fragility.`
+              : "No fragility profile resolved.",
+            href: mostFragile ? `/app/country/${mostFragile.nodeId}` : undefined,
+          },
+          {
+            q: "Which channel dominates?",
+            a: busiestChannel
+              ? `${CHANNEL_LABEL[busiestChannel.channel]} at ${pct(
+                  busiestChannel.value,
+                )} mean exposure.`
+              : "No channel pressure resolved.",
+            href: "/app/risk",
+          },
+          {
+            q: "Where is it pressing?",
+            a: stressedCorridor
+              ? `${stressedCorridor.label} is the most stressed corridor at ${pct(
+                  stressedCorridor.load,
+                )}.`
+              : "No corridor load resolved.",
+            href: stressedCorridor ? `/app/country/${stressedCorridor.nodeId}` : undefined,
+          },
+          {
+            q: "Show evidence",
+            a: "Open any card for reported growth and trade, each with its source.",
+            href: "/app/data",
+          },
+        ]}
       />
 
-      <div className="border-b border-rule bg-card">
-        <dl className="mx-auto grid max-w-[1600px] grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-4 lg:px-8">
-          <Stat caption="Economies & blocs" value={String(allCountries.length)} note="Profiled nodes with structural parameters" />
-          <Stat
-            caption="Infrastructure nodes"
-            value={String(corridors.length)}
-            note="Chokepoints, corridors and settlement rails"
-          />
-          <Stat
-            caption="Most exposed"
-            value={countries[0]?.short ?? "—"}
-            note={allCountries[0] ? `${allCountries[0].label} · ${pct(allCountries[0].load)} live load` : ""}
-          />
-          <Stat
-            caption="Uncontested"
-            value={String(allCountries.filter((c) => c.load < 0.1).length)}
-            note="No current event reaches these nodes"
-          />
-        </dl>
-      </div>
-
-      <div className="border-b border-rule">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-5 py-3 lg:px-8">
-          <span className="label text-muted-foreground">
-            Showing {countries.length} of {allCountries.length} economies ·{" "}
-            {corridors.length} of {allCorridors.length} infrastructure nodes
-          </span>
-          <FilterToggle
-            active={watchedOnly}
-            onClick={() => setWatchedOnly((v) => !v)}
-          >
-            Watchlist ({watchlistSize})
-          </FilterToggle>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
-        <Panel
-          caption={`Economies & blocs · ${countries.length}`}
-          aside="Live load = Σ impact × magnitude × confidence across all pathways"
-        >
-          {countries.length === 0 ? (
-            <p className="px-4 py-16 text-center text-[13px] text-muted-foreground">
-              You are not tracking any economies yet. Turn off the watchlist
-              filter, then use the bookmark on any node.
-            </p>
-          ) : (
-          <div className="divide-y divide-rule">
-            {regions.map((region) => (
-              <section key={region}>
-                <h3 className="label border-b border-rule bg-secondary px-4 py-2 text-muted-foreground">
-                  {region}
-                </h3>
-                <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-                  {countries
-                    .filter((c) => c.region === region)
-                    .map((row, i) => (
-                      <motion.li
-                        key={row.nodeId}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: Math.min(i * 0.03, 0.25) }}
-                        className="group relative border-b border-rule md:border-r xl:border-b-0"
-                      >
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => toggle({ kind: "node", id: row.nodeId })}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              toggle({ kind: "node", id: row.nodeId });
-                            }
-                          }}
-                          onDoubleClick={() => navigate(`/app/country/${row.nodeId}`)}
-                          className="flex h-full flex-col gap-3 p-4 transition-colors hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none"
-                        >
-                          <div className="flex items-baseline justify-between gap-3">
-                            <div className="flex items-baseline gap-2.5">
-                              <span className="num text-[11px] text-signal">
-                                {row.short}
-                              </span>
-                              <span className="text-[14px] font-semibold tracking-[-0.01em]">
-                                {row.label}
-                              </span>
-                            </div>
-                            <Link
-                              to={`/app/country/${row.nodeId}`}
-                              title="Open the full profile"
-                              onClick={(e) => e.stopPropagation()}
-                              className="shrink-0 text-muted-foreground transition-colors hover:text-foreground"
-                            >
-                              <ArrowUpRight className="size-3.5" />
-                            </Link>
-                          </div>
-
-                          <div className="grid grid-cols-12 items-end gap-3">
-                            <div className="col-span-5">
-                              <Label>Live load</Label>
-                              <p className="num display mt-1 text-2xl leading-none">
-                                {pct(row.load)}
-                              </p>
-                            </div>
-                            <div className="col-span-7">
-                              <ChannelBars
-                                pressure={Object.fromEntries(
-                                  row.byChannel.map((c) => [c.channel, c.load]),
-                                ) as Record<Channel, number>}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="mt-auto space-y-2 border-t border-rule pt-3">
-                            <div className="flex items-center justify-between">
-                              <span className="label text-[9px] text-muted-foreground">
-                                Structural fragility
-                              </span>
-                              <span className="num text-[11px]">
-                                {pct(row.fragility)}
-                              </span>
-                            </div>
-                            <Meter value={row.fragility} tone="ink" />
-                            <p className="text-[11px] text-muted-foreground">
-                              {row.eventCount} events reach this node · dominant{" "}
-                              {CHANNEL_LABEL[row.topChannel]}
-                              {row.offAffinityCount > 0
-                                ? ` · ${row.offAffinityCount} off-channel`
-                                : ""}
-                            </p>
-                          </div>
-                        </div>
-
-                        <button
-                          type="button"
-                          aria-label={
-                            row.watched
-                              ? "Remove from watchlist"
-                              : "Add to watchlist"
-                          }
-                          onClick={() =>
-                            toggleWatch(`NODE:${row.nodeId}`)
-                          }
-                          className="absolute top-3 right-3 p-1.5 text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          {row.watched ? (
-                            <BookmarkCheck className="size-3.5 text-signal" />
-                          ) : (
-                            <Bookmark className="size-3.5" />
-                          )}
-                        </button>
-                      </motion.li>
-                    ))}
-                </ul>
-              </section>
-            ))}
-          </div>
+      {/* Board summary tiles */}
+      <section className="grid grid-cols-2 gap-2 px-4 py-3 lg:grid-cols-5">
+        <ExecStat
+          label="Economies tracked"
+          value={String(countries.length)}
+          note={`${corridors.length} corridors and rails`}
+        />
+        <ExecStat
+          label="Highest exposure"
+          value={hottest ? pct(hottest.load) : "—"}
+          tone="var(--exec-crimson)"
+          note={hottest?.label}
+        />
+        <ExecStat
+          label="Mean fragility"
+          value={pct(
+            countries.reduce((s, c) => s + c.fragility, 0) /
+              Math.max(1, countries.length),
           )}
-        </Panel>
-      </div>
+          tone="var(--exec-amber)"
+          note="structural parameter"
+        />
+        <ExecStat
+          label="Events in corpus"
+          value={String(
+            new Set(corridors.map((c) => c.eventCount)).size > 0
+              ? countries.reduce((s, c) => s + c.eventCount, 0)
+              : 0,
+          )}
+          note="event arrivals summed"
+        />
+        <ExecStat
+          label="Off-channel arrivals"
+          value={String(
+            countries.reduce((s, c) => s + c.offAffinityCount, 0),
+          )}
+          tone="var(--exec-cyan)"
+          note="shocks arriving off the expected channel"
+        />
+      </section>
 
-      <div>
-        <div className="mx-auto max-w-[1600px] px-5 pb-12 lg:px-8">
-          <Panel
-            caption={`Infrastructure · ${corridors.length}`}
-            aside="Nodes that transmit rather than absorb"
-          >
-            {corridors.length === 0 ? (
-              <p className="px-4 py-10 text-center text-[13px] text-muted-foreground">
-                No infrastructure nodes in this view.
-              </p>
-            ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-rule">
-                    {["Node", "Type", "Region", "Criticality", "Live load", "Events"].map((h) => (
-                      <th key={h} className="label px-4 py-2.5 text-muted-foreground">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {corridors.map((row) => (
-                    <tr key={row.nodeId} className="border-b border-rule last:border-b-0">
-                      <td className="px-4 py-3">
-                        <Link
-                          to={`/app/country/${row.nodeId}`}
-                          className="text-[13px] font-medium transition-colors hover:text-signal"
-                        >
-                          {row.label}
-                        </Link>
-                      </td>
-                      <td className="label px-4 py-3 text-[9px] text-muted-foreground">
-                        {row.kind}
-                      </td>
-                      <td className="px-4 py-3 text-[12px] text-muted-foreground">
-                        {row.region}
-                      </td>
-                      <td className="num px-4 py-3 text-[12px]">
-                        {pct(row.criticality)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <Meter
-                            value={row.load}
-                            tone={row.load > 0.5 ? "signal" : "ink"}
-                            className="max-w-[160px]"
-                          />
-                          <span className="num text-[11px]">{pct(row.load)}</span>
-                        </div>
-                      </td>
-                      <td className="num px-4 py-3 text-[12px]">
-                        {row.eventCount}
-                      </td>
-                    </tr>
+      {/* Regional boards */}
+      <div className="space-y-4 px-4 pb-8">
+        {groups.length === 0 ? (
+          <div className="glass p-4">
+            <NoVerifiedData
+              title="Countries"
+              domain="a country exposure profile matching this filter"
+            />
+          </div>
+        ) : null}
+
+        {groups.map((group) => {
+          const isCollapsed = collapsed[group.region] ?? false;
+          return (
+            <section key={group.region} className="min-w-0">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <RegionSummary
+                  region={group.region}
+                  rows={group.rows}
+                  corridorCount={group.corridorCount}
+                  corridorLoad={group.corridorLoad}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsed((prev) => ({
+                      ...prev,
+                      [group.region]: !isCollapsed,
+                    }))
+                  }
+                  aria-expanded={!isCollapsed}
+                  className="glass glass-hover flex h-7 items-center gap-1.5 px-2"
+                >
+                  <span className="exec-label">
+                    {isCollapsed ? "Expand" : "Collapse"}
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "size-3 transition-transform",
+                      isCollapsed && "-rotate-90",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+              </div>
+
+              {!isCollapsed ? (
+                <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+                  {group.rows.map((row, i) => (
+                    <CountryCard key={row.nodeId} row={row} index={i} />
                   ))}
-                </tbody>
-              </table>
+                </div>
+              ) : null}
+            </section>
+          );
+        })}
+
+        {/* Infrastructure: the layer countries depend on but are not. */}
+        {corridors.length > 0 ? (
+          <section className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              <div className="glass flex flex-wrap items-center gap-x-5 gap-y-2 px-3 py-2">
+                <span className="exec-label">Chokepoints &amp; corridors</span>
+                <span className="exec-num text-[12px] font-semibold text-[var(--exec-ink)]">
+                  {corridors.length} nodes
+                </span>
+                <span className="exec-label">
+                  Transmit shocks rather than absorbing them
+                </span>
+              </div>
+              <ExecLegend />
             </div>
-            )}
-          </Panel>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {corridors.map((c) => (
+                <button
+                  key={c.nodeId}
+                  type="button"
+                  onClick={() => toggle({ kind: "node", id: c.nodeId })}
+                  onDoubleClick={() => navigate(`/app/country/${c.nodeId}`)}
+                  className="glass glass-hover flex items-center gap-3 px-3 py-2 text-left"
+                >
+                  <span className="exec-num w-9 shrink-0 text-[11px] font-bold text-[var(--exec-cyan)]">
+                    {c.short}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[12.5px] font-medium text-[var(--exec-ink)]">
+                      {c.label}
+                    </span>
+                    <span className="exec-label mt-0.5 block truncate">
+                      {c.region} · {c.eventCount} events
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span
+                      className="exec-num block text-[14px] leading-none font-bold"
+                      style={{
+                        color:
+                          c.load >= 0.75
+                            ? "var(--exec-crimson)"
+                            : c.load >= 0.4
+                              ? "var(--exec-amber)"
+                              : "var(--exec-emerald)",
+                      }}
+                    >
+                      {pct(c.load)}
+                    </span>
+                    <span className="exec-label mt-1 block">load</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {trends ? (
+          <p className="exec-label max-w-3xl normal-case leading-relaxed">
+            The 14-day trace on each card is corpus observation pressure for that
+            node, measured over the last 14 days of the corpus timeline
+            (latest observation {trends.latest}). It is scenario material, not a
+            live news feed, and it is labelled as such wherever it appears.
+          </p>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <Link
+            to="/app/data"
+            className="exec-label transition-colors hover:text-[var(--exec-ink)]"
+          >
+            Source register &amp; freshness →
+          </Link>
+          <span className="exec-label">
+            Click a card to inspect · double-click to open the profile · Esc clears
+          </span>
         </div>
       </div>
     </main>
-  );
-}
-
-function Stat({
-  caption,
-  value,
-  note,
-}: {
-  caption: string;
-  value: string;
-  note: string;
-}) {
-  return (
-    <div className="border-b border-rule py-5 last:border-b-0 lg:border-b-0 lg:px-6 lg:first:pl-0">
-      <dt className="label text-muted-foreground">{caption}</dt>
-      <dd className="num display mt-2 text-2xl leading-none">{value}</dd>
-      <dd className="mt-1.5 text-[11px] leading-snug text-muted-foreground">{note}</dd>
-    </div>
   );
 }

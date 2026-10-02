@@ -104,6 +104,21 @@
   --sidebar-accent-foreground: oklch(0.96 0 0);
   --sidebar-border: oklch(0.27 0.007 264);
   --sidebar-ring: oklch(0.6 0.19 25);
+
+  /* Executive risk-surface tokens.
+     A deeper, colder base for the high-density screens, plus the three
+     indicator accents they use. Kept separate from the console tokens above
+     so a dense analyst surface can be tuned without disturbing the rest. */
+  --exec-base: #090d16;
+  --exec-surface: rgba(255, 255, 255, 0.035);
+  --exec-surface-strong: rgba(255, 255, 255, 0.06);
+  --exec-hairline: rgba(255, 255, 255, 0.12);
+  --exec-ink: #ffffff;
+  --exec-ink-dim: #94a3b8;
+  --exec-cyan: #00f5ff;
+  --exec-amber: #ff9f1c;
+  --exec-crimson: #ff2e63;
+  --exec-emerald: #00e676;
 }
 
 /* The workstation is dark by default. This class exists so components that
@@ -199,6 +214,71 @@
   .chip {
     @apply inline-flex items-center gap-1 border px-1.5 py-0.5 text-[9px] font-medium tracking-[0.14em] uppercase;
   }
+
+  /* Executive surfaces: one hairline, one fill, no drop shadows. Depth comes
+     from the border and the backdrop, never from blur stacked on blur. */
+  .glass {
+    background: var(--exec-surface);
+    border: 1px solid var(--exec-hairline);
+    backdrop-filter: blur(14px) saturate(120%);
+  }
+  .glass-strong {
+    background: var(--exec-surface-strong);
+    border: 1px solid var(--exec-hairline);
+    backdrop-filter: blur(18px) saturate(130%);
+  }
+  .glass-hover {
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease,
+      transform 160ms ease;
+  }
+  .glass-hover:hover {
+    background: var(--exec-surface-strong);
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+  .exec-num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+  .exec-label {
+    @apply text-[9px] font-semibold uppercase tracking-[0.16em];
+    color: var(--exec-ink-dim);
+  }
+
+  /* Alert rings for cards carrying live pressure. One slow pulse, no colour
+     cycling — the colour means a band, so it must not move. */
+  .alert-ring {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--ring-color) 55%, transparent),
+      0 0 22px -6px color-mix(in srgb, var(--ring-color) 60%, transparent);
+    animation: alert-breathe 3.6s ease-in-out infinite;
+  }
+  @keyframes alert-breathe {
+    0%,
+    100% {
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--ring-color) 55%, transparent),
+        0 0 18px -8px color-mix(in srgb, var(--ring-color) 45%, transparent);
+    }
+    50% {
+      box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--ring-color) 75%, transparent),
+        0 0 28px -4px color-mix(in srgb, var(--ring-color) 70%, transparent);
+    }
+  }
+  .live-dot {
+    animation: live-pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes live-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
 }
 
 @layer utilities {
@@ -268,6 +348,8 @@
     .animate-fade,
     .animate-draw,
     .flow-arc,
+    .alert-ring,
+    .live-dot,
     .shimmer {
       animation: none;
     }

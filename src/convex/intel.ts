@@ -446,6 +446,76 @@ export const eventChain = query({
   },
 });
 
+/**
+ * Per-node daily pressure over the last 14 days of the corpus timeline.
+ *
+ * The corpus is a fixed scenario set with its own dated observations, so the
+ * window is anchored to the corpus's latest observation rather than to today —
+ * a scenario from 2026 does not acquire a trend by ageing. Each day's value is
+ * the sum of exposure impact × pathway magnitude × confidence for every
+ * observation recorded that day, which is the same term the exposure model
+ * already sums, broken out by date.
+ */
+export const countryTrends = query({
+  args: {},
+  handler: async (): Promise<{
+    days: string[];
+    latest: string;
+    nodes: { nodeId: string; values: number[] }[];
+  }> => {
+    const all = allAssessments(SCENARIOS);
+
+    // The corpus's own "today" is its latest observation date.
+    let latest = "";
+    for (const a of all) {
+      for (const s of a.scenario.signals) {
+        if (s.observedAt > latest) latest = s.observedAt;
+      }
+    }
+    if (latest === "") return { days: [], latest: "", nodes: [] };
+
+    const dayMs = 24 * 60 * 60 * 1000;
+    const end = Date.parse(latest);
+    const days: string[] = [];
+    for (let i = 13; i >= 0; i--) {
+      days.push(new Date(end - i * dayMs).toISOString().slice(0, 10));
+    }
+    const index = new Map(days.map((d, i) => [d, i]));
+
+    const byNode = new Map<string, number[]>();
+    for (const a of all) {
+      // Weight per node, once per scenario.
+      const weights = new Map<string, number>();
+      for (const pathway of a.scenario.pathways) {
+        for (const exposure of pathway.exposures) {
+          const term =
+            exposure.impact * pathway.magnitude * pathway.confidence;
+          weights.set(exposure.nodeId, (weights.get(exposure.nodeId) ?? 0) + term);
+        }
+      }
+      for (const signal of a.scenario.signals) {
+        const day = signal.observedAt.slice(0, 10);
+        const slot = index.get(day);
+        if (slot === undefined) continue;
+        for (const [nodeId, weight] of weights) {
+          const series = byNode.get(nodeId) ?? days.map(() => 0);
+          series[slot] += weight;
+          byNode.set(nodeId, series);
+        }
+      }
+    }
+
+    return {
+      days,
+      latest,
+      nodes: [...byNode.entries()].map(([nodeId, values]) => ({
+        nodeId,
+        values,
+      })),
+    };
+  },
+});
+
 /** Full profile for one country, bloc, chokepoint or institution. */
 export const countryProfile = query({
   args: { nodeId: v.string() },

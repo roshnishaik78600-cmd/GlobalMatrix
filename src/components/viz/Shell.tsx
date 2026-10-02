@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 import { X } from "lucide-react";
 import { useQuery } from "convex/react";
@@ -70,6 +70,15 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const stats = useQuery(api.intel.corpusStats);
   const health = useQuery(api.observations.sourceHealth);
+
+  // Any surface can raise the command palette without owning it.
+  useEffect(() => {
+    function onOpenSearch() {
+      setSearchOpen(true);
+    }
+    window.addEventListener("gm:open-search", onOpenSearch);
+    return () => window.removeEventListener("gm:open-search", onOpenSearch);
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-background">
