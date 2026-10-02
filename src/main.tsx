@@ -26,6 +26,7 @@ const GraphExplorerPage = lazy(() => import("./pages/GraphExplorerPage.tsx"));
 const Scenarios = lazy(() => import("./pages/Scenarios.tsx"));
 const Analyst = lazy(() => import("./pages/Analyst.tsx"));
 const NotAvailable = lazy(() => import("./pages/NotAvailable.tsx"));
+const DataSources = lazy(() => import("./pages/DataSources.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 /** Every console surface is publicly readable. Only the write actions
@@ -155,6 +156,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/app/industries" element={console_(<Industries />)} />
               <Route path="/app/industry/:industryId" element={console_(<IndustryProfile />)} />
               <Route path="/app/event/:eventId" element={console_(<EventAnalysis />)} />
+              <Route path="/app/data" element={console_(<DataSources />)} />
               <Route path="/app/companies" element={console_(<NotAvailable />)} />
               <Route path="/app/trade" element={console_(<NotAvailable />)} />
               <Route path="/app/markets" element={console_(<NotAvailable />)} />

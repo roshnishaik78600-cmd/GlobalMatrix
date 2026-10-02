@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { CHANNELS, CHANNEL_LABEL, CHANNEL_CODE } from "@/lib/intel/types";
 import { CORPUS_LABEL } from "@/lib/intel/scenarios";
+import { SOURCE_LIST } from "@/lib/sources";
 
 const STEPS = [
   {
@@ -221,12 +222,36 @@ export default function Landing() {
                 on the same screen as the conclusion it supports.
               </p>
               <div className="mt-8 border border-rule bg-card p-5">
+                <p className="label text-muted-foreground">Verified sources</p>
+                <ul className="mt-3 space-y-2">
+                  {SOURCE_LIST.map((s) => (
+                    <li key={s.id} className="flex items-baseline gap-2">
+                      <span className="size-1.5 shrink-0 translate-y-[-1px] rounded-full bg-stable" aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        <span className="text-[12px]">{s.label}</span>
+                        <span className="mt-0.5 block text-[10.5px] text-muted-foreground">
+                          {s.publisher}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  to="/app/data"
+                  className="label mt-4 inline-flex items-center gap-1.5 text-foreground"
+                >
+                  See sources and freshness
+                  <ArrowRight className="size-3" />
+                </Link>
+              </div>
+              <div className="mt-3 border border-rule bg-card p-5">
                 <p className="label text-muted-foreground">Corpus</p>
                 <p className="num display mt-2 text-2xl">{CORPUS_LABEL}</p>
                 <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
-                  A synthetic, internally-consistent scenario set — not a live
-                  intelligence feed. Every figure is deterministic, so the
-                  arithmetic can be re-derived end to end.
+                  The event corpus behind the model is a scenario set, not a
+                  newswire. Labelled{" "}
+                  <span className="text-foreground/80">Scenario</span> everywhere
+                  it appears so it is never mistaken for something that happened.
                 </p>
               </div>
             </div>

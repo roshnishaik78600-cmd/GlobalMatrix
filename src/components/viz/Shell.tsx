@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Boxes,
   ChevronLeft,
+  Database,
   Factory,
   Globe2,
   LayoutGrid,
@@ -32,6 +33,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { to: "/app", label: "Overview", icon: LayoutGrid, end: true },
+  { to: "/app/data", label: "Sources", icon: Database },
   { to: "/app/events", label: "Events", icon: Activity },
   { to: "/app/world", label: "World", icon: Globe2 },
   { to: "/app/countries", label: "Countries", icon: Globe2 },

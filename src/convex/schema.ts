@@ -69,6 +69,27 @@ const schema = defineSchema(
       .index("by_user", ["userId"])
       .index("by_user_event", ["userId", "eventId"]),
 
+    // Verbatim readings pulled from named external sources, cached with the
+    // provenance needed to display them honestly. `payload` is the validated,
+    // JSON-serialised reading list; it is only ever written by the source
+    // connectors, which refuse to store anything they could not attribute.
+    observations: defineTable({
+      sourceId: v.string(),
+      // Connector-specific identity, e.g. "NY.GDP.MKTP.KD.ZG" or "comtrade:2023:M".
+      key: v.string(),
+      // Dataset revision date reported by the source, where it publishes one.
+      asOf: v.string(),
+      retrievedAt: v.number(),
+      // DataStatus: observed | stale | unavailable
+      status: v.string(),
+      note: v.optional(v.string()),
+      ok: v.boolean(),
+      problem: v.optional(v.string()),
+      payload: v.string(),
+    })
+      .index("by_source", ["sourceId"])
+      .index("by_source_key", ["sourceId", "key"]),
+
     // tableName: defineTable({
     //   ...
     //   // table fields

@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api";
 import { PageHead } from "@/components/viz/Shell";
 import { Bar, Gauge, Panel, Radar, Skeleton, Timeline } from "@/components/viz/core";
 import { NoVerifiedData, QuestionStrip } from "@/components/viz/Unavailable";
+import { MacroPanel, TradePanel, AttentionSection } from "@/components/viz/VerifiedPanels";
 import { MapLegend, MapSelection, WorldMap } from "@/components/viz/WorldMap";
 import { CHANNEL_COLOR, riskColorForScore } from "@/lib/intel/visual";
 import { bandOf } from "@/lib/intel/engine";
@@ -418,40 +419,21 @@ export default function Overview() {
               )}
             </Panel>
 
-            <Panel title="Trade activity" meta="flows" className="h-full">
-              <NoVerifiedData
-                title="Trade"
-                domain="bilateral trade-flow values"
-                action={
-                  <Link
-                    to="/app/trade"
-                    className="label text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    Why this is empty →
-                  </Link>
-                }
-              />
-            </Panel>
+            {/* Backed by live public sources, with source and fetch time on
+                the panel itself. */}
+            <div className="h-full">
+              <TradePanel />
+            </div>
 
-            <Panel
-              title="Economic &amp; market indicators"
-              meta="prices, macro"
-              className="h-full"
-            >
-              <NoVerifiedData
-                title="Markets"
-                domain="price, index, FX and macro series"
-                action={
-                  <Link
-                    to="/app/markets"
-                    className="label text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    Why this is empty →
-                  </Link>
-                }
-              />
-            </Panel>
+            <div className="h-full">
+              <MacroPanel />
+            </div>
           </div>
+        </section>
+
+        {/* Public attention and live coverage, straight from the news index */}
+        <section className="bg-background p-3 pt-0 xl:col-span-12">
+          <AttentionSection />
         </section>
       </div>
     </main>
