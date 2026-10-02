@@ -336,12 +336,20 @@ export const overview = query({
     flows.sort((a, b) => b.weight - a.weight);
 
     return {
-      mapNodes: [...countries, ...corridors].map((r) => ({
+      mapNodes: [
+        ...countries.map((r) => ({
+          ...r,
+          kind: "economy" as const,
+          criticality: getNode(r.nodeId).criticality,
+        })),
+        ...corridors,
+      ].map((r) => ({
         nodeId: r.nodeId,
         label: r.label,
+        kind: r.kind,
         load: r.load,
         eventCount: r.eventCount,
-        criticality: "criticality" in r ? r.criticality : 0,
+        criticality: r.criticality,
       })),
       flows: flows.slice(0, 60),
       domains,
@@ -360,6 +368,28 @@ export const overview = query({
         topNodes: topNodesOf(a, 3),
       })),
       hottestCountries: countries.slice(0, 6),
+      // Supply-chain pressure: the infrastructure nodes currently carrying the
+      // most weighted exposure. Real, derived, and distinct from country load.
+      supplyPressure: corridors
+        .filter((c) => c.kind === "chokepoint" || c.kind === "corridor")
+        .slice(0, 6),
+      // Policy-linked events, filtered from real corpus tags rather than a
+      // separate policy registry, which this build does not have.
+      policyEvents: all
+        .filter((a) =>
+          a.scenario.tags.some((t) =>
+            /export control|tariff|sanction|carbon|regulation|industrial policy/i.test(
+              t,
+            ),
+          ),
+        )
+        .slice(0, 6)
+        .map((a) => ({
+          id: a.scenario.id,
+          title: a.scenario.title,
+          tags: a.scenario.tags,
+          score: a.risk[30].score,
+        })),
       hottestIndustries: industryIndex(all).slice(0, 6),
       summary: networkSummary(all),
       stats: {

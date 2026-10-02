@@ -1,6 +1,5 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
-import { RequireAuth } from "@/components/RequireAuth";
 import { Shell } from "@/components/viz/Shell";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
@@ -29,15 +28,10 @@ const Analyst = lazy(() => import("./pages/Analyst.tsx"));
 const NotAvailable = lazy(() => import("./pages/NotAvailable.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
-/** Every console route shares one protected shell wrapper. */
-const console_ = (element: React.ReactNode) => (
-  <RequireAuth
-    title="Sign in to open the console"
-    description="GlobalMatrix console surfaces are available to signed-in researchers."
-  >
-    <Shell>{element}</Shell>
-  </RequireAuth>
-);
+/** Every console surface is publicly readable. Only the write actions
+ *  (watchlists, annotations, saved briefs) require an account, and those
+ *  redirect to sign-in themselves via useAuthAction. */
+const console_ = (element: React.ReactNode) => <Shell>{element}</Shell>;
 
 // Simple loading fallback for route transitions
 function RouteLoading() {

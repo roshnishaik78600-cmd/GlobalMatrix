@@ -37,6 +37,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const { isLoading: authLoading, isAuthenticated, signIn } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const reason = searchParams.get("reason");
   const redirect = resolveRedirectAfterAuth(
     searchParams.get("returnTo"),
     redirectAfterAuth,
@@ -119,7 +120,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           >
             <span className="block size-2.5 bg-signal" aria-hidden="true" />
             <span className="text-[13px] font-semibold tracking-[0.16em] uppercase">
-              Meridian
+              GlobalMatrix
             </span>
           </button>
           <span className="label text-muted-foreground">
@@ -137,10 +138,12 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
               <CardHeader className="text-left">
                 <span className="label text-signal">Access</span>
                 <CardTitle className="text-2xl tracking-[-0.02em]">
-                  Sign in to the console
+                  {reason ? "Sign in to continue" : "Create your free account"}
                 </CardTitle>
                 <CardDescription>
-                  Enter your email to sign in or create a research account.
+                  {reason
+                    ? `${reason}. Browsing GlobalMatrix stays free and needs no account.`
+                    : "Browsing every dashboard, map and report on GlobalMatrix is free. An account only saves your own watchlists, notes and scenarios."}
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleEmailSubmit}>
@@ -195,7 +198,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                       disabled={isLoading}
                     >
                       <UserX className="mr-2 h-4 w-4" />
-                      Continue as Guest
+                      Explore without an account
                     </Button>
                   </div>
                 </CardContent>
@@ -286,7 +289,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           )}
 
           <div className="py-4 px-6 text-xs text-center text-muted-foreground bg-secondary border-t">
-            Detection, propagation analysis and the risk board
+            Public browsing needs no account
           </div>
         </Card>
         </div>

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
+import { useAuthAction } from "@/hooks/use-auth-action";
 import { CORPUS_LABEL } from "@/lib/intel/scenarios";
 import { CommandPalette } from "@/components/intel/CommandPalette";
 import { cn } from "@/lib/utils";
@@ -49,9 +50,15 @@ const NAV: NavItem[] = [
 
 export function Shell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
+  const { isAuthenticated } = useAuthAction();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   const stats = useQuery(api.intel.corpusStats);
 
@@ -71,7 +78,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <span className="size-2 shrink-0 bg-signal" aria-hidden />
           {!collapsed ? (
             <span className="truncate text-[12px] font-semibold tracking-[0.18em] uppercase">
-              Globalmatrix
+              GlobalMatrix
             </span>
           ) : null}
         </Link>
@@ -160,19 +167,32 @@ export function Shell({ children }: { children: ReactNode }) {
             <div className="ml-auto flex items-center gap-3 overflow-x-auto">
               <StatusStrip stats={stats} />
               <div className="hidden items-center gap-2 border-l border-rule pl-3 sm:flex">
-                <span className="hidden max-w-[14ch] truncate text-[11px] text-muted-foreground lg:block">
-                  {user?.name ?? user?.email ?? "Researcher"}
-                </span>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    await signOut();
-                    navigate("/");
-                  }}
-                  className="label border border-rule px-2 py-1 transition-colors hover:border-foreground hover:bg-foreground hover:text-background"
-                >
-                  Exit
-                </button>
+                {isAuthenticated ? (
+                  <>
+                    <span className="hidden max-w-[14ch] truncate text-[11px] text-muted-foreground lg:block">
+                      {user?.name ?? user?.email ?? "Member"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      className="label border border-rule px-2 py-1 transition-colors hover:border-foreground hover:bg-foreground hover:text-background"
+                    >
+                      Sign out
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      navigate(
+                        `/auth?returnTo=${encodeURIComponent(window.location.pathname)}`,
+                      )
+                    }
+                    className="label bg-foreground px-2.5 py-1 text-background transition-opacity hover:opacity-85"
+                  >
+                    Sign in to save
+                  </button>
+                )}
               </div>
             </div>
           </div>

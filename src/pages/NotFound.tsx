@@ -10,7 +10,7 @@ export default function NotFound() {
           <Link to="/" className="flex items-center gap-2.5">
             <span className="block size-2.5 bg-signal" aria-hidden="true" />
             <span className="text-[13px] font-semibold tracking-[0.16em] uppercase">
-              Meridian
+              GlobalMatrix
             </span>
           </Link>
         </div>

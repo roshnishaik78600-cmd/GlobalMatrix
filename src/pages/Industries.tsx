@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
+import { useToggleWatch } from "@/hooks/use-auth-action";
 import { FilterToggle, Panel, SectionHeader } from "@/components/intel/AppShell";
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
 import { pct } from "@/lib/format";
@@ -11,7 +12,7 @@ import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 
 export default function Industries() {
   const data = useQuery(api.intel.industryDirectory);
-  const toggleWatch = useMutation(api.research.toggleWatch);
+  const toggleWatch = useToggleWatch();
   const [watchedOnly, setWatchedOnly] = useState(false);
 
   if (!data) {
@@ -206,7 +207,7 @@ export default function Industries() {
                       row.watched ? "Remove from watchlist" : "Add to watchlist"
                     }
                     onClick={() =>
-                      toggleWatch({ eventId: `SECTOR:${row.id}` })
+                      toggleWatch(`SECTOR:${row.id}`)
                     }
                     className="absolute top-4 right-3 p-1.5 text-muted-foreground transition-colors hover:text-foreground"
                   >

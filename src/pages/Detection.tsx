@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
+import { useToggleWatch } from "@/hooks/use-auth-action";
 import { FilterToggle, Panel, SectionHeader } from "@/components/intel/AppShell";
 import {
   BandChip,
@@ -33,7 +34,7 @@ export default function Detection() {
 
   const data = useQuery(api.intel.detectionFeed, args);
   const stats = useQuery(api.intel.corpusStats);
-  const toggleWatch = useMutation(api.research.toggleWatch);
+  const toggleWatch = useToggleWatch();
 
   const rows = data?.rows ?? [];
 
@@ -252,7 +253,7 @@ export default function Detection() {
                   <button
                     type="button"
                     aria-label={row.watched ? "Remove from watchlist" : "Add to watchlist"}
-                    onClick={() => toggleWatch({ eventId: row.id })}
+                    onClick={() => toggleWatch(row.id)}
                     className="absolute top-4 right-3 p-1.5 text-muted-foreground transition-colors hover:text-foreground lg:right-4"
                   >
                     {row.watched ? (

@@ -65,7 +65,8 @@ export const generateBrief = action({
         model: MODEL,
         max_tokens: 1400,
         system:
-          "You are a geopolitical risk analyst supporting academic researchers. " +
+          "You are a geopolitical risk analyst briefing business, investment, " +
+          "supply-chain and policy teams. " +
           "You write in plain, calibrated prose. You never introduce facts that are " +
           "not present in the supplied evidence set, and you always state what would " +
           "falsify your reading.",

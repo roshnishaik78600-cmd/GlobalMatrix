@@ -1,8 +1,9 @@
 import { Link } from "react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
+import { useToggleWatch } from "@/hooks/use-auth-action";
 import { FilterToggle, Panel, SectionHeader } from "@/components/intel/AppShell";
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
 import { pct } from "@/lib/format";
@@ -11,7 +12,7 @@ import { useState } from "react";
 
 export default function Countries() {
   const data = useQuery(api.intel.countryDirectory);
-  const toggleWatch = useMutation(api.research.toggleWatch);
+  const toggleWatch = useToggleWatch();
   const [watchedOnly, setWatchedOnly] = useState(false);
 
   if (!data) {
@@ -164,7 +165,7 @@ export default function Countries() {
                               : "Add to watchlist"
                           }
                           onClick={() =>
-                            toggleWatch({ eventId: `NODE:${row.nodeId}` })
+                            toggleWatch(`NODE:${row.nodeId}`)
                           }
                           className="absolute top-3 right-3 p-1.5 text-muted-foreground transition-colors hover:text-foreground"
                         >

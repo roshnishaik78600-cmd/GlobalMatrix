@@ -120,8 +120,15 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* `clip` rather than `hidden`: stops accidental horizontal scroll from wide
+       maps/graphs without turning the root into a scroll container, which would
+       break `position: sticky` headers. */
+    overflow-x: clip;
+  }
   body {
     @apply bg-background text-foreground;
+    overflow-x: clip;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "tnum" 0;

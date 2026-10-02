@@ -1,7 +1,8 @@
 import { Link, useParams } from "react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { ArrowLeft, ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
+import { useToggleWatch } from "@/hooks/use-auth-action";
 import { Panel } from "@/components/intel/AppShell";
 import { PathTrace } from "@/components/intel/PathTrace";
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
@@ -21,7 +22,7 @@ export default function IndustryProfile() {
     api.intel.industryProfile,
     industryId ? { industryId } : "skip",
   );
-  const toggleWatch = useMutation(api.research.toggleWatch);
+  const toggleWatch = useToggleWatch();
 
   if (!industryId || !data) {
     return (
@@ -59,7 +60,7 @@ export default function IndustryProfile() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => toggleWatch({ eventId: `SECTOR:${industry.id}` })}
+                  onClick={() => toggleWatch(`SECTOR:${industry.id}`)}
                   className="label ml-auto flex items-center gap-1.5 border border-foreground px-2.5 py-1 transition-colors hover:bg-foreground hover:text-background lg:ml-0"
                 >
                   {watched ? (

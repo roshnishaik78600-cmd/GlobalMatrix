@@ -1,7 +1,8 @@
 import { Link, useParams } from "react-router";
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import { ArrowLeft, ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
+import { useToggleWatch } from "@/hooks/use-auth-action";
 import { Panel } from "@/components/intel/AppShell";
 import { PathTrace } from "@/components/intel/PathTrace";
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
@@ -14,7 +15,7 @@ export default function CountryProfile() {
     api.intel.countryProfile,
     nodeId ? { nodeId } : "skip",
   );
-  const toggleWatch = useMutation(api.research.toggleWatch);
+  const toggleWatch = useToggleWatch();
 
   if (!nodeId || !data) {
     return (
@@ -51,7 +52,7 @@ export default function CountryProfile() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => toggleWatch({ eventId: `NODE:${nodeId}` })}
+                  onClick={() => toggleWatch(`NODE:${nodeId}`)}
                   className="label ml-auto flex items-center gap-1.5 border border-foreground px-2.5 py-1 transition-colors hover:bg-foreground hover:text-background lg:ml-0"
                 >
                   {watched ? (

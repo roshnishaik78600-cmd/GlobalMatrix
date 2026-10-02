@@ -74,7 +74,7 @@ export default function Landing() {
           <div className="flex items-center gap-2.5">
             <span className="block size-2.5 bg-signal" aria-hidden="true" />
             <span className="text-[13px] font-semibold tracking-[0.16em] uppercase">
-              Meridian
+              GlobalMatrix
             </span>
           </div>
           <nav className="flex items-center gap-6">
@@ -116,7 +116,7 @@ export default function Landing() {
                   </span>
                   <span className="h-px w-10 bg-rule" />
                   <span className="label text-muted-foreground">
-                    Applied research instrument · v1
+                    Global risk intelligence · v1
                   </span>
                 </div>
 
@@ -140,24 +140,27 @@ export default function Landing() {
             >
               <div className="border-l-2 border-signal pl-5">
                 <p className="text-[14px] leading-relaxed text-muted-foreground">
-                  Meridian detects emerging geopolitical events, resolves how
-                  each propagates through trade, energy, finance and diplomatic
-                  networks, and estimates near-term risk as a number you can
-                  audit — with its uncertainty stated rather than hidden.
+                  When something happens in the world, GlobalMatrix shows you
+                  what it was, where it happened, who is exposed, and how it
+                  travels through trade, energy, finance and diplomacy.
+                </p>
+                <p className="mt-3 text-[13px] leading-relaxed text-muted-foreground/80">
+                  Every map, chart and board is open to anyone. No account, no
+                  email verification, no card.
                 </p>
                 <div className="mt-7 flex flex-col gap-3">
                   <Link
-                    to="/auth"
-                    className="group flex items-center justify-between border border-foreground bg-foreground px-5 py-4 text-background transition-opacity hover:opacity-88"
+                    to="/app"
+                    className="group flex items-center justify-between bg-foreground px-5 py-4 text-background transition-opacity hover:opacity-85"
                   >
-                    <span className="label">Open the console</span>
+                    <span className="label">Open the dashboard</span>
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                   </Link>
                   <Link
-                    to="/auth?returnTo=%2Fapp%2Fevent%2FMER-4130"
+                    to="/auth"
                     className="group flex items-center justify-between border border-foreground px-5 py-4 transition-colors hover:bg-foreground hover:text-background"
                   >
-                    <span className="label">Inspect a worked event</span>
+                    <span className="label">Create a free account</span>
                     <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                   </Link>
                 </div>
@@ -270,7 +273,7 @@ export default function Landing() {
           </div>
 
           <h2 className="display mt-6 max-w-3xl text-[2.2rem] sm:text-[3rem]">
-            Five screens. Nothing else in version one.
+            One board, answered five ways.
           </h2>
 
           <div className="mt-12 grid grid-cols-1 gap-px bg-rule md:grid-cols-3 xl:grid-cols-5">
@@ -296,7 +299,7 @@ export default function Landing() {
                   </p>
                 </div>
                 <Link
-                  to={`/auth?returnTo=${encodeURIComponent(output.route)}`}
+                  to={output.route}
                   className="label mt-8 inline-flex items-center gap-2 text-foreground"
                 >
                   Open
@@ -455,31 +458,51 @@ export default function Landing() {
             <div className="col-span-12 lg:col-span-8">
               <p className="label text-background/50">05 — Access</p>
               <h2 className="display mt-6 text-[2.4rem] sm:text-[3.6rem]">
-                Built for researchers
+                Read the whole board
                 <br />
-                who have to show their work.
+                without signing up.
               </h2>
               <p className="mt-6 max-w-xl text-[14px] leading-relaxed text-background/60">
-                An account gives you the full console, a watchlist that spans
-                events, countries and sectors, and per-event annotations. Nothing
-                is published, nothing is shared, and every score remains
-                traceable to its evidence.
+                Every map, chart, risk board and supply-chain graph is open to
+                anyone. No account, no email verification, no card. Create a
+                free account only when you want to keep something — a watchlist
+                spanning events, countries and sectors, and your own notes on
+                any event.
               </p>
+              <div className="mt-8 flex flex-wrap gap-2">
+                {[
+                  "Businesses",
+                  "Investors",
+                  "Financial teams",
+                  "Supply chain",
+                  "Government",
+                  "Trade",
+                  "Analysts",
+                ].map((audience) => (
+                  <span
+                    key={audience}
+                    className="num border border-background/25 px-3 py-1.5 text-[11px] tracking-[0.1em] uppercase"
+                  >
+                    {audience}
+                  </span>
+                ))}
+              </div>
             </div>
             <div className="col-span-12 lg:col-span-4 lg:flex lg:items-end">
               <div className="flex flex-col gap-3">
                 <Link
-                  to="/auth"
+                  to="/app"
                   className="group flex items-center justify-between border border-background px-5 py-4 transition-colors hover:bg-background hover:text-foreground"
                 >
-                  <span className="label">Create an account</span>
+                  <span className="label">Browse without an account</span>
                   <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link
                   to="/auth"
-                  className="label px-1 py-2 text-background/60 transition-colors hover:text-background"
+                  className="group flex items-center justify-between border border-background/40 px-5 py-4 transition-colors hover:border-background"
                 >
-                  Already registered — sign in
+                  <span className="label">Create a free account</span>
+                  <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
               </div>
             </div>
@@ -490,7 +513,7 @@ export default function Landing() {
       <footer className="border-t border-rule">
         <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-5 py-6 sm:flex-row sm:items-center sm:justify-between lg:px-8">
           <span className="label text-muted-foreground">
-            Meridian · Geopolitical propagation model
+            GlobalMatrix · Geopolitical propagation model
           </span>
           <span className="label text-muted-foreground">{CORPUS_LABEL}</span>
         </div>

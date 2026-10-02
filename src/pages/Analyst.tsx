@@ -4,6 +4,7 @@ import { useConvex, useQuery } from "convex/react";
 import { Sparkles } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { PageHead } from "@/components/viz/Shell";
+import { useAuthAction } from "@/hooks/use-auth-action";
 import { Bar, NoData, Panel, Skeleton } from "@/components/viz/core";
 import { CHANNEL_LABEL, SOURCE_CLASS_LABEL, type Channel } from "@/lib/intel/types";
 import { dayMonth, timestamp } from "@/lib/format";
@@ -19,6 +20,7 @@ import { riskColorForScore } from "@/lib/intel/visual";
 export default function Analyst() {
   const feed = useQuery(api.intel.detectionFeed, {});
   const convex = useConvex();
+  const { isAuthenticated, requireAuth } = useAuthAction();
   const [eventId, setEventId] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +33,8 @@ export default function Analyst() {
 
   const run = async () => {
     if (!active) return;
+    // Generating a brief stores it against the user, so it is a signed-in action.
+    if (!requireAuth("Generate and save AI briefs")) return;
     setPending(true);
     setError(null);
     try {
@@ -38,8 +42,11 @@ export default function Analyst() {
         eventId: active,
       });
       if (!res.ok) setError(res.message);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Generation failed.");
+    } catch {
+      // Never surface raw transport/auth text to the reader.
+      setError(
+        "The brief service is not responding right now. Your evidence below is unaffected — try again in a moment.",
+      );
     } finally {
       setPending(false);
     }
@@ -85,7 +92,13 @@ export default function Analyst() {
               className="label flex h-8 items-center gap-2 bg-foreground px-3 text-background transition-opacity hover:opacity-85 disabled:opacity-50"
             >
               <Sparkles className="size-3.5" />
-              {pending ? "Generating" : brief ? "Regenerate" : "Generate"}
+              {pending
+                ? "Generating"
+                : !isAuthenticated
+                  ? "Sign in to generate"
+                  : brief
+                    ? "Regenerate"
+                    : "Generate"}
             </button>
           </>
         }

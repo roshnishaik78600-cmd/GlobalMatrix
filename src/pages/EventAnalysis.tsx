@@ -5,6 +5,7 @@ import { useConvex } from "convex/react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowUpRight, Bookmark, BookmarkCheck, Sparkles, Trash2 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
+import { useToggleWatch, useAuthAction } from "@/hooks/use-auth-action";
 import { Panel } from "@/components/intel/AppShell";
 import {
   BandChip,
@@ -30,10 +31,11 @@ export default function EventAnalysis() {
     api.intel.eventDetail,
     eventId ? { eventId } : "skip",
   );
-  const toggleWatch = useMutation(api.research.toggleWatch);
+  const toggleWatch = useToggleWatch();
   const addAnnotation = useMutation(api.research.addAnnotation);
   const deleteAnnotation = useMutation(api.research.deleteAnnotation);
   const convex = useConvex();
+  const { requireAuth, isAuthenticated } = useAuthAction();
 
   const [draft, setDraft] = useState("");
   const [pending, setPending] = useState(false);
@@ -60,6 +62,7 @@ export default function EventAnalysis() {
   const s = assessment.scenario;
 
   const onGenerateBrief = async () => {
+    if (!requireAuth("Generate and save analyst briefs")) return;
     setPending(true);
     setBriefError(null);
     try {
@@ -77,6 +80,7 @@ export default function EventAnalysis() {
   const onSaveAnnotation = async () => {
     const body = draft.trim();
     if (!body) return;
+    if (!requireAuth("Save research notes")) return;
     await addAnnotation({ eventId, body });
     setDraft("");
   };
@@ -147,7 +151,7 @@ export default function EventAnalysis() {
                   <BandScale band={assessment.band} />
                   <button
                     type="button"
-                    onClick={() => toggleWatch({ eventId })}
+                    onClick={() => toggleWatch(eventId)}
                     className="label flex items-center gap-1.5 border border-foreground px-3 py-2 transition-colors hover:bg-foreground hover:text-background"
                   >
                     {watched ? (
@@ -550,8 +554,13 @@ export default function EventAnalysis() {
                 onChange={(e) => setDraft(e.target.value)}
                 rows={3}
                 maxLength={2000}
-                placeholder="Record a reading, a caveat, or a falsification test…"
-                className="w-full resize-none border border-rule bg-background px-3 py-2 text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground focus:border-foreground"
+                placeholder={
+                  isAuthenticated
+                    ? "Record a reading, a caveat, or a falsification test…"
+                    : "Sign in to write private research notes…"
+                }
+                disabled={!isAuthenticated}
+                className="w-full resize-none border border-rule bg-background px-3 py-2 text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground focus:border-foreground disabled:opacity-60"
               />
               <div className="mt-2 flex items-center justify-between">
                 <span className="num text-[10px] text-muted-foreground">

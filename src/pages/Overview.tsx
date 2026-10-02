@@ -5,6 +5,7 @@ import { ArrowUpRight } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { PageHead } from "@/components/viz/Shell";
 import { Bar, Gauge, Panel, Radar, Skeleton, Timeline } from "@/components/viz/core";
+import { NoVerifiedData, QuestionStrip } from "@/components/viz/Unavailable";
 import { MapLegend, MapSelection, WorldMap } from "@/components/viz/WorldMap";
 import { CHANNEL_COLOR, riskColorForScore } from "@/lib/intel/visual";
 import { bandOf } from "@/lib/intel/engine";
@@ -26,22 +27,77 @@ export default function Overview() {
     topEvents,
     hottestCountries,
     hottestIndustries,
+    supplyPressure,
+    policyEvents,
     stats,
   } = data;
+
+  const top = topEvents[0];
+  const hottestNode = mapNodes.reduce(
+    (best, n) => (n.load > best.load ? n : best),
+    mapNodes[0] ?? { nodeId: "", label: "", load: 0, eventCount: 0, criticality: 0 },
+  );
 
   return (
     <main className="min-w-0">
       <PageHead
-        title="Global intelligence"
-        lede="Every figure here is computed from the current event corpus. Open any entity to see the derivation."
+        title="What is happening in the world"
+        lede="Live risk signals, events and economic exposure across the global network. Every number links to its source."
         actions={
-          <Link
-            to="/app/scenarios"
-            className="label flex items-center gap-2 border border-rule px-3 py-2 transition-colors hover:border-foreground hover:bg-foreground hover:text-background"
-          >
-            Run a scenario <ArrowUpRight className="size-3" />
-          </Link>
+          <>
+            <Link
+              to="/app/scenarios"
+              className="label flex items-center gap-2 border border-rule px-3 py-2 transition-colors hover:border-foreground"
+            >
+              Test a scenario <ArrowUpRight className="size-3" />
+            </Link>
+            <Link
+              to="/app/events"
+              className="label flex items-center gap-2 bg-foreground px-3 py-2 text-background transition-opacity hover:opacity-85"
+            >
+              All events <ArrowUpRight className="size-3" />
+            </Link>
+          </>
         }
+      />
+
+      {/* The five questions, answered first */}
+      <QuestionStrip
+        className="border-b border-rule"
+        answers={[
+          {
+            q: "What happened",
+            a: top ? top.title : "No events in the current corpus.",
+            href: top ? `/app/event/${top.id}` : undefined,
+          },
+          {
+            q: "Where",
+            a: hottestNode?.nodeId
+              ? `Most exposed node is ${hottestNode.label}, at ${(hottestNode.load * 100).toFixed(0)}% live load.`
+              : "No exposure resolved.",
+            href: "/app/world",
+          },
+          {
+            q: "What changed",
+            a: observations[0]
+              ? `${observations[0].title} — ${dayMonth(observations[0].at)}.`
+              : "No recent observations.",
+          },
+          {
+            q: "Who is affected",
+            a: hottestCountries[0]
+              ? `${hottestCountries[0].label} leads on live exposure.`
+              : "No country exposure resolved.",
+            href: hottestCountries[0] ? `/app/country/${hottestCountries[0].nodeId}` : undefined,
+          },
+          {
+            q: "Why it matters",
+            a: top
+              ? `${top.score.toFixed(1)} / 100 composite risk on ${CHANNEL_LABEL[top.dominantChannel].toLowerCase()} transmission.`
+              : "—",
+            href: "/app/risk",
+          },
+        ]}
       />
 
       <div className="grid grid-cols-1 gap-px bg-rule xl:grid-cols-12">
@@ -292,6 +348,110 @@ export default function Overview() {
               ))}
             </ul>
           </Panel>
+        </section>
+
+        {/* Domain coverage — real where measured, explicit where not */}
+        <section className="bg-background p-3 xl:col-span-12">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-4">
+            <Panel
+              title="Supply-chain pressure"
+              meta="chokepoints &amp; corridors"
+              className="h-full"
+            >
+              {supplyPressure.length === 0 ? (
+                <NoVerifiedData
+                  title="Supply chains"
+                  domain="supply-chain telemetry"
+                />
+              ) : (
+                <ul className="divide-y divide-rule">
+                  {supplyPressure.map((row) => (
+                    <li key={row.nodeId}>
+                      <Link
+                        to={`/app/country/${row.nodeId}`}
+                        className="flex items-center gap-2.5 px-3 py-2 transition-colors hover:bg-white/4"
+                      >
+                        <span className="min-w-0 flex-1 truncate text-[12px]">
+                          {row.label}
+                        </span>
+                        <span className="w-14 shrink-0">
+                          <Bar
+                            value={row.load}
+                            tone={riskColorForScore(row.load * 100)}
+                            height={4}
+                          />
+                        </span>
+                        <span className="num w-8 shrink-0 text-right text-[10px]">
+                          {(row.load * 100).toFixed(0)}%
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+
+            <Panel title="Policy changes" meta="linked events" className="h-full">
+              {policyEvents.length === 0 ? (
+                <NoVerifiedData
+                  title="Policy"
+                  domain="policy registry with lifecycle status"
+                />
+              ) : (
+                <ul className="divide-y divide-rule">
+                  {policyEvents.map((row) => (
+                    <li key={row.id}>
+                      <Link
+                        to={`/app/event/${row.id}`}
+                        className="block px-3 py-2 transition-colors hover:bg-white/4"
+                      >
+                        <p className="line-clamp-2 text-[12px] leading-snug">
+                          {row.title}
+                        </p>
+                        <p className="num mt-0.5 text-[9px] text-muted-foreground">
+                          {row.tags.join(" · ")} · {row.score.toFixed(1)}
+                        </p>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+
+            <Panel title="Trade activity" meta="flows" className="h-full">
+              <NoVerifiedData
+                title="Trade"
+                domain="bilateral trade-flow values"
+                action={
+                  <Link
+                    to="/app/trade"
+                    className="label text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Why this is empty →
+                  </Link>
+                }
+              />
+            </Panel>
+
+            <Panel
+              title="Economic &amp; market indicators"
+              meta="prices, macro"
+              className="h-full"
+            >
+              <NoVerifiedData
+                title="Markets"
+                domain="price, index, FX and macro series"
+                action={
+                  <Link
+                    to="/app/markets"
+                    className="label text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Why this is empty →
+                  </Link>
+                }
+              />
+            </Panel>
+          </div>
         </section>
       </div>
     </main>
