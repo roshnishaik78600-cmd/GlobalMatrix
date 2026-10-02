@@ -138,7 +138,7 @@ export function CommandPalette({
                       onOpenChange(false);
                       navigate(entry.to);
                     }}
-                    className="cursor-pointer gap-3 rounded-none px-3 py-2.5 data-[selected=true]:bg-ink data-[selected=true]:text-paper"
+                    className="cursor-pointer gap-3 rounded-none px-3 py-2.5 data-[selected=true]:bg-foreground data-[selected=true]:text-background"
                   >
                     <span className="label w-[42px] shrink-0 text-[9px] text-signal">
                       {group.tag}

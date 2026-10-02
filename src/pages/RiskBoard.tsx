@@ -134,7 +134,7 @@ export default function RiskBoard() {
                       </td>
 
                       <td className="pr-3">
-                        <ArrowUpRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink" />
+                        <ArrowUpRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
                       </td>
                     </motion.tr>
                   ))}

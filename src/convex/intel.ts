@@ -6,12 +6,22 @@ import {
   corridorIndex,
   countryIndex,
   countryProfilePayload,
+  industryExposure,
   industryIndex,
   industryProfilePayload,
+  nodeExposure,
 } from "../lib/intel/exposure";
 import { SCENARIOS } from "../lib/intel/scenarios";
 import { getNode } from "../lib/intel/nodes";
-import { CHANNELS, type Channel, type Stage } from "../lib/intel/types";
+import { getIndustry } from "../lib/intel/industries";
+import { runScenario, SHOCK_LABEL, SHOCK_DESCRIPTION } from "../lib/intel/scenario";
+import {
+  CHANNELS,
+  CHANNEL_LABEL,
+  SOURCE_CLASS_LABEL,
+  type Channel,
+  type Stage,
+} from "../lib/intel/types";
 import { query, type QueryCtx } from "./_generated/server";
 
 /**
@@ -271,6 +281,279 @@ export const industryProfile = query({
     if (!payload) return null;
     const watched = await watchedKeys(ctx);
     return { ...payload, watched: watched.has(`SECTOR:${args.industryId}`) };
+  },
+});
+
+/**
+ * Everything the Overview needs in one payload, so the dashboard is a single
+ * round trip rather than eight independent subscriptions.
+ */
+export const overview = query({
+  args: {},
+  handler: async () => {
+    const all = allAssessments(SCENARIOS);
+
+    const countries = countryIndex(all);
+    const corridors = corridorIndex(all);
+
+    // Radar axes: real aggregates of channel pressure across the corpus.
+    const domains = CHANNELS.map((channel) => ({
+      label: CHANNEL_LABEL[channel],
+      value: Math.min(
+        1,
+        all.reduce((s, a) => s + a.channelPressure[channel], 0) / all.length,
+      ),
+      count: all.filter((a) => a.scenario.pathways.some((p) => p.channel === channel))
+        .length,
+    })).sort((a, b) => b.value - a.value);
+
+    // Timeline: real observation timestamps, newest first.
+    const observations = all
+      .flatMap((a) =>
+        a.scenario.signals.map((sig) => ({
+          eventId: a.scenario.id,
+          title: sig.headline,
+          detail: `${sig.source} · ${SOURCE_CLASS_LABEL[sig.sourceClass]}`,
+          at: sig.observedAt,
+          channel: sig.channel,
+          stage: a.scenario.stage,
+        })),
+      )
+      .sort((a, b) => b.at.localeCompare(a.at))
+      .slice(0, 14);
+
+    // Map flows: chokepoint → the economies most dependent on it.
+    const flows: { from: string; to: string; weight: number }[] = [];
+    for (const corridor of corridors) {
+      for (const row of countries) {
+        const exposure = nodeExposure(all, row.nodeId);
+        const via = exposure.contributions.find(
+          (c) => c.viaNodeId === corridor.nodeId,
+        );
+        if (via) flows.push({ from: corridor.nodeId, to: row.nodeId, weight: via.contribution });
+      }
+    }
+    flows.sort((a, b) => b.weight - a.weight);
+
+    return {
+      mapNodes: [...countries, ...corridors].map((r) => ({
+        nodeId: r.nodeId,
+        label: r.label,
+        load: r.load,
+        eventCount: r.eventCount,
+        criticality: "criticality" in r ? r.criticality : 0,
+      })),
+      flows: flows.slice(0, 60),
+      domains,
+      observations,
+      topEvents: all.slice(0, 5).map((a) => ({
+        id: a.scenario.id,
+        reference: a.scenario.reference,
+        title: a.scenario.title,
+        stage: a.scenario.stage,
+        score: a.risk[30].score,
+        low: a.risk[30].low,
+        high: a.risk[30].high,
+        band: a.band,
+        dominantChannel: a.dominantChannel,
+        channelPressure: a.channelPressure,
+        topNodes: topNodesOf(a, 3),
+      })),
+      hottestCountries: countries.slice(0, 6),
+      hottestIndustries: industryIndex(all).slice(0, 6),
+      summary: networkSummary(all),
+      stats: {
+        events: all.length,
+        signals: all.reduce((s, a) => s + a.scenario.signals.length, 0),
+        actors: new Set(all.flatMap((a) => a.scenario.actors)).size,
+        nodes: new Set(
+          all.flatMap((a) =>
+            a.scenario.pathways.flatMap((p) => p.exposures.map((e) => e.nodeId)),
+          ),
+        ).size,
+      },
+    };
+  },
+});
+
+function topNodesOf(a: ReturnType<typeof allAssessments>[number], limit: number) {
+  const byNode = new Map<string, number>();
+  for (const pathway of a.scenario.pathways) {
+    for (const exposure of pathway.exposures) {
+      byNode.set(
+        exposure.nodeId,
+        (byNode.get(exposure.nodeId) ?? 0) +
+          exposure.impact * pathway.magnitude * pathway.confidence,
+      );
+    }
+  }
+  return [...byNode.entries()]
+    .sort((x, y) => y[1] - x[1])
+    .slice(0, limit)
+    .map(([nodeId, weight]) => ({
+      nodeId,
+      label: getNode(nodeId).label,
+      short: getNode(nodeId).short,
+      weight,
+    }));
+}
+
+/** Relationship graph for one event: channels → countries. */
+export const eventGraph = query({
+  args: { eventId: v.string() },
+  handler: async (ctx, args) => {
+    const assessment = allAssessments(SCENARIOS).find(
+      (a) => a.scenario.id === args.eventId,
+    );
+    if (!assessment) return null;
+
+    const nodes = [
+      {
+        id: assessment.scenario.id,
+        label: "Event",
+        kind: "Event",
+        weight: 1,
+      },
+    ];
+    const edges: { from: string; to: string; weight: number; label: string }[] = [];
+
+    for (const pathway of assessment.scenario.pathways) {
+      const channelId = `ch:${pathway.channel}`;
+      nodes.push({
+        id: channelId,
+        label: CHANNEL_LABEL[pathway.channel],
+        kind: "Channel",
+        weight: pathway.magnitude,
+      });
+      edges.push({
+        from: assessment.scenario.id,
+        to: channelId,
+        weight: pathway.magnitude,
+        label: "propagates via",
+      });
+      for (const exposure of pathway.exposures) {
+        nodes.push({
+          id: exposure.nodeId,
+          label: getNode(exposure.nodeId).label,
+          kind:
+            getNode(exposure.nodeId).kind === "chokepoint"
+              ? "Corridor"
+              : "Country",
+          weight: exposure.impact,
+        });
+        edges.push({
+          from: channelId,
+          to: exposure.nodeId,
+          weight: exposure.impact * pathway.magnitude,
+          label: "exposes",
+        });
+      }
+    }
+
+    // Deduplicate nodes while keeping the strongest weight.
+    const merged = new Map<string, (typeof nodes)[number]>();
+    for (const n of nodes) {
+      const prev = merged.get(n.id);
+      if (!prev || n.weight > prev.weight) merged.set(n.id, n);
+    }
+
+    return { nodes: [...merged.values()], edges };
+  },
+});
+
+/** Supply-chain stages and edges for one industry, from real structure. */
+export const supplyFlow = query({
+  args: { industryId: v.string() },
+  handler: async (ctx, args) => {
+    const industry = getIndustry(args.industryId);
+    if (!industry) return null;
+    const all = allAssessments(SCENARIOS);
+    const exposure = industryExposure(all, industry);
+
+    const weightOf = (nodeId: string) =>
+      exposure.contributions
+        .filter((c) => c.viaNodeId === nodeId)
+        .reduce((s, c) => s + c.contribution, 0);
+
+    const stages = [
+      { id: "input", label: "Input", nodeIds: industry.inputs.map((i) => i.nodeId) },
+      { id: "route", label: "Route", nodeIds: industry.routes.map((r) => r.nodeId) },
+      {
+        id: "producer",
+        label: "Producer",
+        nodeIds: industry.producers.map((p) => p.nodeId),
+      },
+      {
+        id: "consumer",
+        label: "Consumer",
+        nodeIds: industry.consumers.map((c) => c.nodeId),
+      },
+    ].filter((s) => s.nodeIds.length > 0);
+
+    // Edges follow the declared structural chain: inputs and routes feed
+    // producers, producers feed consumers. Weight is the live corpus term.
+    const edges: { from: string; to: string; weight: number }[] = [];
+    for (const producer of industry.producers) {
+      for (const input of industry.inputs) {
+        const w = weightOf(producer.nodeId) + weightOf(input.nodeId);
+        if (w > 0) edges.push({ from: "input", to: "producer", weight: w });
+      }
+      for (const route of industry.routes) {
+        const w = weightOf(producer.nodeId) + weightOf(route.nodeId);
+        if (w > 0) edges.push({ from: "route", to: "producer", weight: w });
+      }
+      for (const consumer of industry.consumers) {
+        const w = weightOf(producer.nodeId) + weightOf(consumer.nodeId);
+        if (w > 0) edges.push({ from: "producer", to: "consumer", weight: w });
+      }
+    }
+
+    return {
+      industry: { id: industry.id, label: industry.label },
+      stages,
+      edges: edges.sort((a, b) => b.weight - a.weight).slice(0, 40),
+    };
+  },
+});
+
+/** Scenario metadata for the lab UI. */
+export const scenarioMeta = query({
+  args: {},
+  handler: async () => {
+    return {
+      events: allAssessments(SCENARIOS)
+        .slice(0, 12)
+        .map((a) => ({
+          id: a.scenario.id,
+          reference: a.scenario.reference,
+          title: a.scenario.title,
+          stage: a.scenario.stage,
+          score: a.risk[30].score,
+        })),
+      modes: (Object.keys(SHOCK_LABEL) as (keyof typeof SHOCK_LABEL)[]).map(
+        (mode) => ({ mode, label: SHOCK_LABEL[mode], description: SHOCK_DESCRIPTION[mode] }),
+      ),
+    };
+  },
+});
+
+/** Re-scores the corpus under a stated perturbation. Deterministic. */
+export const runScenarioQuery = query({
+  args: {
+    eventId: v.string(),
+    mode: v.union(v.literal("amplify"), v.literal("suppress"), v.literal("remove_node"), v.literal("decay")),
+    magnitude: v.number(),
+    nodeId: v.optional(v.string()),
+    horizonDays: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    return runScenario({
+      eventId: args.eventId,
+      mode: args.mode,
+      magnitude: args.magnitude,
+      nodeId: args.nodeId,
+      horizonDays: args.horizonDays ?? 30,
+    });
   },
 });
 

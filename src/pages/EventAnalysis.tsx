@@ -48,7 +48,7 @@ export default function EventAnalysis() {
         <button
           type="button"
           onClick={() => navigate("/app")}
-          className="label mt-6 border border-ink px-3 py-2 hover:bg-ink hover:text-paper"
+          className="label mt-6 border border-foreground px-3 py-2 hover:bg-foreground hover:text-background"
         >
           ← Back to detection
         </button>
@@ -88,7 +88,7 @@ export default function EventAnalysis() {
         <div className="mx-auto max-w-[1600px] px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10">
           <Link
             to="/app"
-            className="label inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-ink"
+            className="label inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-3" /> Detection feed
           </Link>
@@ -148,7 +148,7 @@ export default function EventAnalysis() {
                   <button
                     type="button"
                     onClick={() => toggleWatch({ eventId })}
-                    className="label flex items-center gap-1.5 border border-ink px-3 py-2 transition-colors hover:bg-ink hover:text-paper"
+                    className="label flex items-center gap-1.5 border border-foreground px-3 py-2 transition-colors hover:bg-foreground hover:text-background"
                   >
                     {watched ? (
                       <BookmarkCheck className="size-3.5" />
@@ -524,7 +524,7 @@ export default function EventAnalysis() {
                   type="button"
                   disabled={pending}
                   onClick={onGenerateBrief}
-                  className="label flex items-center gap-2 border border-ink bg-ink px-4 py-2.5 text-paper transition-opacity hover:opacity-85 disabled:opacity-50"
+                  className="label flex items-center gap-2 border border-foreground bg-foreground px-4 py-2.5 text-background transition-opacity hover:opacity-85 disabled:opacity-50"
                 >
                   <Sparkles className="size-3.5" />
                   {pending ? "Generating…" : brief ? "Regenerate brief" : "Generate brief"}
@@ -551,7 +551,7 @@ export default function EventAnalysis() {
                 rows={3}
                 maxLength={2000}
                 placeholder="Record a reading, a caveat, or a falsification test…"
-                className="w-full resize-none border border-rule bg-background px-3 py-2 text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground focus:border-ink"
+                className="w-full resize-none border border-rule bg-background px-3 py-2 text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground focus:border-foreground"
               />
               <div className="mt-2 flex items-center justify-between">
                 <span className="num text-[10px] text-muted-foreground">
@@ -561,7 +561,7 @@ export default function EventAnalysis() {
                   type="button"
                   onClick={onSaveAnnotation}
                   disabled={!draft.trim()}
-                  className="label border border-ink px-3 py-2 transition-colors hover:bg-ink hover:text-paper disabled:opacity-40"
+                  className="label border border-foreground px-3 py-2 transition-colors hover:bg-foreground hover:text-background disabled:opacity-40"
                 >
                   Save note
                 </button>

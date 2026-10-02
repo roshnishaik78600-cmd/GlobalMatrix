@@ -80,19 +80,19 @@ export default function Landing() {
           <nav className="flex items-center gap-6">
             <a
               href="#model"
-              className="label hidden text-muted-foreground transition-colors hover:text-ink sm:block"
+              className="label hidden text-muted-foreground transition-colors hover:text-foreground sm:block"
             >
               Model
             </a>
             <a
               href="#outputs"
-              className="label hidden text-muted-foreground transition-colors hover:text-ink sm:block"
+              className="label hidden text-muted-foreground transition-colors hover:text-foreground sm:block"
             >
               Outputs
             </a>
             <Link
               to="/auth"
-              className="label border border-ink px-3.5 py-2 transition-colors hover:bg-ink hover:text-paper"
+              className="label border border-foreground px-3.5 py-2 transition-colors hover:bg-foreground hover:text-background"
             >
               Sign in
             </Link>
@@ -148,14 +148,14 @@ export default function Landing() {
                 <div className="mt-7 flex flex-col gap-3">
                   <Link
                     to="/auth"
-                    className="group flex items-center justify-between border border-ink bg-ink px-5 py-4 text-paper transition-opacity hover:opacity-88"
+                    className="group flex items-center justify-between border border-foreground bg-foreground px-5 py-4 text-background transition-opacity hover:opacity-88"
                   >
                     <span className="label">Open the console</span>
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                   </Link>
                   <Link
                     to="/auth?returnTo=%2Fapp%2Fevent%2FMER-4130"
-                    className="group flex items-center justify-between border border-ink px-5 py-4 transition-colors hover:bg-ink hover:text-paper"
+                    className="group flex items-center justify-between border border-foreground px-5 py-4 transition-colors hover:bg-foreground hover:text-background"
                   >
                     <span className="label">Inspect a worked event</span>
                     <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -281,14 +281,14 @@ export default function Landing() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-60px" }}
                 transition={{ duration: 0.45, delay: i * 0.08 }}
-                className="group flex flex-col justify-between bg-card p-7 transition-colors hover:bg-paper"
+                className="group flex flex-col justify-between bg-card p-7 transition-colors hover:bg-background"
               >
                 <div>
                   <div className="flex items-baseline justify-between">
                     <span className="num text-[11px] text-signal">
                       {output.index}
                     </span>
-                    <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink" />
+                    <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
                   </div>
                   <h3 className="display mt-6 text-2xl">{output.name}</h3>
                   <p className="mt-4 text-[13.5px] leading-relaxed text-muted-foreground">
@@ -297,7 +297,7 @@ export default function Landing() {
                 </div>
                 <Link
                   to={`/auth?returnTo=${encodeURIComponent(output.route)}`}
-                  className="label mt-8 inline-flex items-center gap-2 text-ink"
+                  className="label mt-8 inline-flex items-center gap-2 text-foreground"
                 >
                   Open
                   <ArrowRight className="size-3.5" />
@@ -449,17 +449,17 @@ export default function Landing() {
       </section>
 
       {/* CTA */}
-      <section className="bg-ink text-paper">
+      <section className="bg-foreground text-background">
         <div className="mx-auto max-w-[1600px] px-5 py-16 lg:px-8 lg:py-24">
           <div className="grid grid-cols-12 gap-x-4 gap-y-10">
             <div className="col-span-12 lg:col-span-8">
-              <p className="label text-paper/50">05 — Access</p>
+              <p className="label text-background/50">05 — Access</p>
               <h2 className="display mt-6 text-[2.4rem] sm:text-[3.6rem]">
                 Built for researchers
                 <br />
                 who have to show their work.
               </h2>
-              <p className="mt-6 max-w-xl text-[14px] leading-relaxed text-paper/60">
+              <p className="mt-6 max-w-xl text-[14px] leading-relaxed text-background/60">
                 An account gives you the full console, a watchlist that spans
                 events, countries and sectors, and per-event annotations. Nothing
                 is published, nothing is shared, and every score remains
@@ -470,14 +470,14 @@ export default function Landing() {
               <div className="flex flex-col gap-3">
                 <Link
                   to="/auth"
-                  className="group flex items-center justify-between border border-paper px-5 py-4 transition-colors hover:bg-paper hover:text-ink"
+                  className="group flex items-center justify-between border border-background px-5 py-4 transition-colors hover:bg-background hover:text-foreground"
                 >
                   <span className="label">Create an account</span>
                   <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </Link>
                 <Link
                   to="/auth"
-                  className="label px-1 py-2 text-paper/60 transition-colors hover:text-paper"
+                  className="label px-1 py-2 text-background/60 transition-colors hover:text-background"
                 >
                   Already registered — sign in
                 </Link>

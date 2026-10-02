@@ -244,7 +244,7 @@ export default function Detection() {
                       </div>
 
                       <div className="col-span-1 hidden justify-end pt-1 lg:flex">
-                        <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink" />
+                        <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
                       </div>
                     </div>
                   </Link>
@@ -253,7 +253,7 @@ export default function Detection() {
                     type="button"
                     aria-label={row.watched ? "Remove from watchlist" : "Add to watchlist"}
                     onClick={() => toggleWatch({ eventId: row.id })}
-                    className="absolute top-4 right-3 p-1.5 text-muted-foreground transition-colors hover:text-ink lg:right-4"
+                    className="absolute top-4 right-3 p-1.5 text-muted-foreground transition-colors hover:text-foreground lg:right-4"
                   >
                     {row.watched ? (
                       <BookmarkCheck className="size-4 text-signal" />

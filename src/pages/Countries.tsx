@@ -117,7 +117,7 @@ export default function Countries() {
                                 {row.label}
                               </span>
                             </div>
-                            <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink" />
+                            <ArrowUpRight className="size-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
                           </div>
 
                           <div className="grid grid-cols-12 items-end gap-3">
@@ -166,7 +166,7 @@ export default function Countries() {
                           onClick={() =>
                             toggleWatch({ eventId: `NODE:${row.nodeId}` })
                           }
-                          className="absolute top-3 right-3 p-1.5 text-muted-foreground transition-colors hover:text-ink"
+                          className="absolute top-3 right-3 p-1.5 text-muted-foreground transition-colors hover:text-foreground"
                         >
                           {row.watched ? (
                             <BookmarkCheck className="size-3.5 text-signal" />

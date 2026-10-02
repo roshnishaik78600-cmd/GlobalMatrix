@@ -44,7 +44,7 @@ export default function IndustryProfile() {
         <div className="mx-auto max-w-[1600px] px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10">
           <Link
             to="/app/industries"
-            className="label inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-ink"
+            className="label inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="size-3" /> Industries
           </Link>
@@ -60,7 +60,7 @@ export default function IndustryProfile() {
                 <button
                   type="button"
                   onClick={() => toggleWatch({ eventId: `SECTOR:${industry.id}` })}
-                  className="label ml-auto flex items-center gap-1.5 border border-ink px-2.5 py-1 transition-colors hover:bg-ink hover:text-paper lg:ml-0"
+                  className="label ml-auto flex items-center gap-1.5 border border-foreground px-2.5 py-1 transition-colors hover:bg-foreground hover:text-background lg:ml-0"
                 >
                   {watched ? (
                     <BookmarkCheck className="size-3" />
@@ -255,13 +255,13 @@ export default function IndustryProfile() {
           <div className="mt-6 flex items-center justify-between gap-4">
             <Link
               to="/app/industries"
-              className="label inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-ink"
+              className="label inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="size-3" /> Industries
             </Link>
             <Link
               to="/app/countries"
-              className="label inline-flex items-center gap-2 text-ink"
+              className="label inline-flex items-center gap-2 text-foreground"
             >
               Countries <ArrowUpRight className="size-3.5" />
             </Link>

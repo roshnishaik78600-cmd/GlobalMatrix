@@ -79,6 +79,14 @@ export interface GraphNode {
   region: string;
   /** How hard a shock to this node propagates outward, 0..1. */
   criticality: number;
+  /**
+   * Geographic position in degrees, used only for map placement. These are
+   * real coordinates, not modelled data. Institutions are abstractions rather
+   * than places and are deliberately left undefined so the map excludes them
+   * instead of inventing a point for them.
+   */
+  lat?: number;
+  lon?: number;
 }
 
 /** One exposed node on one channel, for one event. */

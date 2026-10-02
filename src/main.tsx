@@ -1,7 +1,7 @@
 import '@vly-ai/integrations';
 import { Toaster } from "@/components/ui/sonner";
 import { RequireAuth } from "@/components/RequireAuth";
-import { AppShell } from "@/components/intel/AppShell";
+import { Shell } from "@/components/viz/Shell";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
@@ -13,6 +13,7 @@ import "./index.css";
 // Lazy load route components for better code splitting
 const Landing = lazy(() => import("./pages/Landing.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
+const Overview = lazy(() => import("./pages/Overview.tsx"));
 const Detection = lazy(() => import("./pages/Detection.tsx"));
 const EventAnalysis = lazy(() => import("./pages/EventAnalysis.tsx"));
 const RiskBoard = lazy(() => import("./pages/RiskBoard.tsx"));
@@ -20,7 +21,23 @@ const Countries = lazy(() => import("./pages/Countries.tsx"));
 const CountryProfile = lazy(() => import("./pages/CountryProfile.tsx"));
 const Industries = lazy(() => import("./pages/Industries.tsx"));
 const IndustryProfile = lazy(() => import("./pages/IndustryProfile.tsx"));
+const World = lazy(() => import("./pages/World.tsx"));
+const Supply = lazy(() => import("./pages/Supply.tsx"));
+const GraphExplorerPage = lazy(() => import("./pages/GraphExplorerPage.tsx"));
+const Scenarios = lazy(() => import("./pages/Scenarios.tsx"));
+const Analyst = lazy(() => import("./pages/Analyst.tsx"));
+const NotAvailable = lazy(() => import("./pages/NotAvailable.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
+
+/** Every console route shares one protected shell wrapper. */
+const console_ = (element: React.ReactNode) => (
+  <RequireAuth
+    title="Sign in to open the console"
+    description="GlobalMatrix console surfaces are available to signed-in researchers."
+  >
+    <Shell>{element}</Shell>
+  </RequireAuth>
+);
 
 // Simple loading fallback for route transitions
 function RouteLoading() {
@@ -131,97 +148,24 @@ createRoot(document.getElementById("root")!).render(
                 path="/auth"
                 element={<AuthPage redirectAfterAuth="/app" />}
               />
-              <Route
-                path="/app"
-                element={
-                  <RequireAuth
-                    title="Sign in to open the console"
-                    description="Detection, propagation analysis and the risk board are available to signed-in researchers."
-                  >
-                    <AppShell>
-                      <Detection />
-                    </AppShell>
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/app/risk"
-                element={
-                  <RequireAuth
-                    title="Sign in to open the risk board"
-                    description="The cross-event channel matrix is available to signed-in researchers."
-                  >
-                    <AppShell>
-                      <RiskBoard />
-                    </AppShell>
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/app/countries"
-                element={
-                  <RequireAuth
-                    title="Sign in to open country intelligence"
-                    description="Country and infrastructure profiles are available to signed-in researchers."
-                  >
-                    <AppShell>
-                      <Countries />
-                    </AppShell>
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/app/country/:nodeId"
-                element={
-                  <RequireAuth
-                    title="Sign in to open this profile"
-                    description="Country exposure and dependency structure are available to signed-in researchers."
-                  >
-                    <AppShell>
-                      <CountryProfile />
-                    </AppShell>
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/app/industries"
-                element={
-                  <RequireAuth
-                    title="Sign in to open industry intelligence"
-                    description="Sector exposure and structure are available to signed-in researchers."
-                  >
-                    <AppShell>
-                      <Industries />
-                    </AppShell>
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/app/industry/:industryId"
-                element={
-                  <RequireAuth
-                    title="Sign in to open this sector profile"
-                    description="Sector structure and live exposure are available to signed-in researchers."
-                  >
-                    <AppShell>
-                      <IndustryProfile />
-                    </AppShell>
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/app/event/:eventId"
-                element={
-                  <RequireAuth
-                    title="Sign in to open this analysis"
-                    description="Propagation mapping and evidence ledgers are available to signed-in researchers."
-                  >
-                    <AppShell>
-                      <EventAnalysis />
-                    </AppShell>
-                  </RequireAuth>
-                }
-              />
+              <Route path="/app" element={console_(<Overview />)} />
+              <Route path="/app/events" element={console_(<Detection />)} />
+              <Route path="/app/world" element={console_(<World />)} />
+              <Route path="/app/supply" element={console_(<Supply />)} />
+              <Route path="/app/risk" element={console_(<RiskBoard />)} />
+              <Route path="/app/graph" element={console_(<GraphExplorerPage />)} />
+              <Route path="/app/scenarios" element={console_(<Scenarios />)} />
+              <Route path="/app/analyst" element={console_(<Analyst />)} />
+              <Route path="/app/countries" element={console_(<Countries />)} />
+              <Route path="/app/country/:nodeId" element={console_(<CountryProfile />)} />
+              <Route path="/app/industries" element={console_(<Industries />)} />
+              <Route path="/app/industry/:industryId" element={console_(<IndustryProfile />)} />
+              <Route path="/app/event/:eventId" element={console_(<EventAnalysis />)} />
+              <Route path="/app/companies" element={console_(<NotAvailable />)} />
+              <Route path="/app/trade" element={console_(<NotAvailable />)} />
+              <Route path="/app/markets" element={console_(<NotAvailable />)} />
+              <Route path="/app/policy" element={console_(<NotAvailable />)} />
+              <Route path="/app/analogues" element={console_(<NotAvailable />)} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

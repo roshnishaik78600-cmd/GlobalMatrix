@@ -43,14 +43,14 @@ export default function NotFound() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
                 to="/app"
-                className="group flex items-center justify-between gap-6 border border-ink bg-ink px-5 py-4 text-paper transition-opacity hover:opacity-88"
+                className="group flex items-center justify-between gap-6 border border-foreground bg-foreground px-5 py-4 text-background transition-opacity hover:opacity-88"
               >
                 <span className="label">Detection feed</span>
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <Link
                 to="/"
-                className="label flex items-center justify-between gap-6 border border-ink px-5 py-4 transition-colors hover:bg-ink hover:text-paper"
+                className="label flex items-center justify-between gap-6 border border-foreground px-5 py-4 transition-colors hover:bg-foreground hover:text-background"
               >
                 <span className="label">Back to start</span>
                 <ArrowRight className="size-4" />

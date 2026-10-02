@@ -196,7 +196,7 @@ export default function Industries() {
                   </div>
 
                   <div className="col-span-1 hidden justify-end pt-1 lg:flex">
-                    <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-ink" />
+                    <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-foreground" />
                   </div>
                 </Link>
 
@@ -208,7 +208,7 @@ export default function Industries() {
                     onClick={() =>
                       toggleWatch({ eventId: `SECTOR:${row.id}` })
                     }
-                    className="absolute top-4 right-3 p-1.5 text-muted-foreground transition-colors hover:text-ink"
+                    className="absolute top-4 right-3 p-1.5 text-muted-foreground transition-colors hover:text-foreground"
                   >
                     {row.watched ? (
                       <BookmarkCheck className="size-4 text-signal" />

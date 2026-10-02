@@ -1,11 +1,20 @@
 import type { ReactNode } from "react";
-import { CHANNEL_LABEL, RISK_BANDS, BAND_LABEL, type Channel, type RiskBand } from "@/lib/intel/types";
+import {
+  RISK_COLOR,
+  RISK_FILL,
+  riskColorForScore,
+} from "@/lib/intel/visual";
+import {
+  BAND_LABEL,
+  CHANNEL_LABEL,
+  RISK_BANDS,
+  type Channel,
+  type RiskBand,
+} from "@/lib/intel/types";
 import { cn } from "@/lib/utils";
 
-/* ------------------------------------------------------------------ *
- * Shared Swiss primitives.
- * Square corners, hairline rules, tabular numerals, one accent colour.
- * ------------------------------------------------------------------ */
+/* Shared primitives, re-pointed at the dark workstation tokens.
+   Retained so existing pages inherit the new theme without a rewrite. */
 
 export function Label({
   children,
@@ -14,14 +23,16 @@ export function Label({
   children: ReactNode;
   className?: string;
 }) {
-  return <span className={cn("label text-muted-foreground", className)}>{children}</span>;
+  return (
+    <span className={cn("label text-muted-foreground", className)}>{children}</span>
+  );
 }
 
 export function Rule({ className }: { className?: string }) {
   return <div className={cn("h-px w-full bg-rule", className)} />;
 }
 
-/** Big editorial numeral. */
+/** Compact editorial numeral. Never a hero-scale number inside the console. */
 export function Figure({
   value,
   suffix,
@@ -32,10 +43,10 @@ export function Figure({
   className?: string;
 }) {
   return (
-    <span className={cn("num display text-[2.75rem] leading-none", className)}>
+    <span className={cn("h-metric", className)}>
       {value}
       {suffix ? (
-        <span className="ml-1 align-super text-[0.9rem] font-medium tracking-normal">
+        <span className="ml-1 text-[11px] font-normal text-muted-foreground">
           {suffix}
         </span>
       ) : null}
@@ -43,47 +54,47 @@ export function Figure({
   );
 }
 
-/** Proportion bar drawn as a flat rectangle. */
 export function Meter({
   value,
-  tone = "ink",
+  tone = "foreground",
   className,
 }: {
   value: number;
-  tone?: "ink" | "signal" | "blue";
+  /** `ink` / `blue` are legacy aliases kept for screens predating the new ramp. */
+  tone?: "foreground" | "ink" | "signal" | "cyan" | "blue" | "stable";
   className?: string;
 }) {
   const colour =
     tone === "signal"
-      ? "bg-signal"
-      : tone === "blue"
-        ? "bg-[oklch(0.44_0.185_262)]"
-        : "bg-ink";
+      ? "var(--signal)"
+      : tone === "cyan" || tone === "blue"
+        ? "var(--cyan)"
+        : tone === "stable"
+          ? "var(--stable)"
+          : "var(--foreground)";
   return (
-    <div className={cn("h-1.5 w-full bg-rule", className)}>
+    <div className={cn("h-1 w-full bg-white/10", className)}>
       <div
-        className={cn("h-full origin-left animate-sweep", colour)}
-        style={{ width: `${Math.min(100, Math.max(0, value * 100))}%` }}
+        className="h-full transition-[width] duration-500"
+        style={{
+          width: `${Math.min(100, Math.max(0, value * 100))}%`,
+          backgroundColor: colour,
+        }}
       />
     </div>
   );
 }
 
-/** Risk band chip. Severity is carried by the colour chip alone. */
+/** Band chip. Colour is derived from the engine's own band thresholds. */
 export function BandChip({ band }: { band: RiskBand }) {
-  const intensity: Record<RiskBand, string> = {
-    low: "bg-ink/15 text-ink",
-    moderate: "bg-[oklch(0.72_0.13_70)] text-ink",
-    elevated: "bg-[oklch(0.63_0.2_45)] text-white",
-    high: "bg-signal text-white",
-    severe: "bg-signal text-white ring-1 ring-ink ring-offset-2 ring-offset-paper",
-  };
   return (
     <span
-      className={cn(
-        "label inline-flex items-center px-2 py-1 text-[9px]",
-        intensity[band],
-      )}
+      className="chip"
+      style={{
+        color: RISK_COLOR[band],
+        backgroundColor: RISK_FILL[band],
+        borderColor: "transparent",
+      }}
     >
       {BAND_LABEL[band]}
     </span>
@@ -91,8 +102,8 @@ export function BandChip({ band }: { band: RiskBand }) {
 }
 
 /**
- * The interval bar: the model's central estimate with its 80% range drawn
- * around it. Uncertainty is therefore always visible, never implied.
+ * Interval bar: central estimate with its 80% range drawn around it.
+ * Uncertainty is always visible, never implied.
  */
 export function IntervalBar({
   score,
@@ -112,37 +123,33 @@ export function IntervalBar({
   const left = Math.max(0, Math.min(100, low));
   const width = Math.max(1.5, Math.min(100 - left, high - low));
   const marker = Math.max(0, Math.min(100, score));
-  const colour =
-    band === "severe" || band === "high"
-      ? "bg-signal"
-      : band === "elevated"
-        ? "bg-[oklch(0.63_0.2_45)]"
-        : band === "moderate"
-          ? "bg-[oklch(0.72_0.13_70)]"
-          : "bg-ink";
 
   return (
-    <div className={cn("relative h-6 w-full bg-rule/50", className)}>
+    <div className={cn("relative h-5 w-full bg-white/6", className)}>
       {showTicks ? (
         <div className="pointer-events-none absolute inset-0 flex justify-between">
           {[0, 25, 50, 75, 100].map((t) => (
-            <span key={t} className="h-full w-px bg-rule" />
+            <span key={t} className="h-full w-px bg-white/10" />
           ))}
         </div>
       ) : null}
       <div
-        className={cn("absolute top-1/2 h-2 -translate-y-1/2", colour)}
-        style={{ left: `${left}%`, width: `${width}%` }}
+        className="absolute top-1/2 h-1.5 -translate-y-1/2"
+        style={{
+          left: `${left}%`,
+          width: `${width}%`,
+          backgroundColor: RISK_COLOR[band],
+        }}
       />
       <div
-        className="absolute top-0 h-full w-[2px] bg-ink"
+        className="absolute top-0 h-full w-[2px] bg-foreground"
         style={{ left: `${marker}%` }}
       />
     </div>
   );
 }
 
-/** Cumulative evidence-mass sparkline for the detection feed. */
+/** Cumulative evidence-mass trend. */
 export function Sparkline({
   series,
   className,
@@ -153,36 +160,38 @@ export function Sparkline({
   stroke?: string;
 }) {
   if (series.length < 2) return null;
+  const height = 24;
   const max = Math.max(...series, 0.0001);
   const points = series
     .map((v, i) => {
       const x = (i / (series.length - 1)) * 100;
-      const y = 26 - (v / max) * 24;
+      const y = height - 2 - (v / max) * (height - 4);
       return `${x.toFixed(2)},${y.toFixed(2)}`;
     })
     .join(" ");
-  const area = `0,26 ${points} 100,26`;
+  const area = `0,${height} ${points} 100,${height}`;
 
   return (
     <svg
-      viewBox="0 0 100 26"
+      viewBox={`0 0 100 ${height}`}
       preserveAspectRatio="none"
-      className={cn("h-6 w-full", className)}
-      aria-hidden="true"
+      className={cn("w-full", className)}
+      style={{ height }}
+      aria-hidden
     >
-      <polygon points={area} fill="var(--foreground)" opacity="0.08" />
+      <polygon points={area} fill={stroke} opacity={0.14} />
       <polyline
         points={points}
         fill="none"
         stroke={stroke}
-        strokeWidth="1.25"
+        strokeWidth={1.25}
         vectorEffect="non-scaling-stroke"
       />
     </svg>
   );
 }
 
-/** Compact per-channel pressure readout used in list rows and board cells. */
+/** Per-channel micro-bars used in list rows. */
 export function ChannelBars({
   pressure,
   className,
@@ -190,51 +199,51 @@ export function ChannelBars({
   pressure: Record<Channel, number>;
   className?: string;
 }) {
-  const entries = (Object.keys(pressure) as Channel[]).map((c) => [
-    c,
-    pressure[c],
-  ]) as [Channel, number][];
-
   return (
     <div className={cn("grid grid-cols-4 gap-px", className)}>
-      {entries.map(([channel, value]) => (
-        <div key={channel} className="space-y-1">
-          <div className="flex h-6 w-full flex-col justify-end bg-rule/60">
-            <div
-              className="w-full bg-ink"
-              style={{ height: `${Math.max(2, value * 100)}%` }}
-            />
+      {(Object.keys(pressure) as Channel[]).map((channel) => {
+        const value = pressure[channel];
+        return (
+          <div key={channel} className="space-y-1">
+            <div className="flex h-5 w-full flex-col justify-end bg-white/8">
+              <div
+                className="w-full transition-[height] duration-500"
+                style={{
+                  height: `${Math.max(2, value * 100)}%`,
+                  backgroundColor: value > 0.55 ? "var(--signal)" : "var(--foreground)",
+                }}
+              />
+            </div>
+            <span className="label text-[8px] text-muted-foreground">
+              {CHANNEL_LABEL[channel].slice(0, 3).toUpperCase()}
+            </span>
           </div>
-          <span className="label text-[8px] text-muted-foreground">
-            {CHANNEL_LABEL[channel].slice(0, 3).toUpperCase()}
-          </span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
-/** Heat-cell used by the risk board matrix. */
+/** Heat cell for the event × channel matrix. */
 export function HeatCell({ value }: { value: number }) {
   const intensity = value <= 0.001 ? 0 : Math.min(1, value);
-  const style =
-    intensity === 0
-      ? { backgroundColor: "var(--rule)" }
-      : {
-          backgroundColor: `color-mix(in oklch, var(--signal) ${Math.round(
-            12 + intensity * 88,
-          )}%, var(--paper))`,
-        };
   return (
     <div
-      className="relative h-full min-h-9 w-full"
-      style={style}
+      className="relative min-h-9 w-full"
+      style={{
+        backgroundColor:
+          intensity === 0
+            ? "var(--rule)"
+            : `color-mix(in oklch, ${riskColorForScore(intensity * 100)} ${Math.round(
+                16 + intensity * 72,
+              )}%, var(--card))`,
+      }}
       title={`${(intensity * 100).toFixed(0)}% pressure`}
     >
       <span
         className={cn(
           "num absolute inset-0 flex items-center justify-center text-[10px]",
-          intensity > 0.55 ? "text-white" : "text-ink/70",
+          intensity > 0.55 ? "text-background" : "text-muted-foreground",
         )}
       >
         {intensity === 0 ? "—" : Math.round(intensity * 100)}
@@ -243,22 +252,22 @@ export function HeatCell({ value }: { value: number }) {
   );
 }
 
-/** Legend for the matrix intensity ramp. */
 export function HeatLegend() {
-  const steps = [0, 0.25, 0.5, 0.75, 1];
   return (
     <div className="flex items-center gap-2">
       <span className="label text-muted-foreground">Low</span>
       <div className="flex gap-px">
-        {steps.map((s) => (
+        {[0, 0.25, 0.5, 0.75, 1].map((s) => (
           <span
             key={s}
-            className="h-2.5 w-6"
+            className="h-2.5 w-5"
             style={{
               backgroundColor:
                 s === 0
                   ? "var(--rule)"
-                  : `color-mix(in oklch, var(--signal) ${Math.round(12 + s * 88)}%, var(--paper))`,
+                  : `color-mix(in oklch, ${riskColorForScore(s * 100)} ${Math.round(
+                      16 + s * 72,
+                    )}%, var(--card))`,
             }}
           />
         ))}
@@ -268,7 +277,6 @@ export function HeatLegend() {
   );
 }
 
-/** Ordered band scale used as a key next to the headline score. */
 export function BandScale({ band }: { band: RiskBand }) {
   const index = RISK_BANDS.indexOf(band);
   return (
@@ -276,10 +284,11 @@ export function BandScale({ band }: { band: RiskBand }) {
       {RISK_BANDS.map((b, i) => (
         <span
           key={b}
-          className={cn(
-            "h-1.5 w-6",
-            i <= index ? (i >= 3 ? "bg-signal" : "bg-ink") : "bg-rule",
-          )}
+          className="h-1.5 w-5"
+          style={{
+            backgroundColor:
+              i <= index ? RISK_COLOR[b] : "var(--rule)",
+          }}
           title={BAND_LABEL[b]}
         />
       ))}
