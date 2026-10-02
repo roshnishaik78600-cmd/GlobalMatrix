@@ -633,6 +633,12 @@ export const overview = query({
         load: r.load,
         eventCount: r.eventCount,
         criticality: r.criticality,
+        // Per-channel load, so the map's domain layers can re-shade a country
+        // by one channel instead of only by its blended total.
+        byChannel: r.byChannel.map((c) => ({
+          channel: c.channel,
+          load: c.load,
+        })),
       })),
       flows: flows.slice(0, 80),
       // Where each event lands, for the map markers.
@@ -654,6 +660,12 @@ export const overview = query({
         reference: a.scenario.reference,
         title: a.scenario.title,
         stage: a.scenario.stage,
+        // Carried so the threat ticker can state when each event was detected
+        // rather than leaving the date off the one surface where it matters.
+        detectedAt: a.scenario.detectedAt,
+        firstSignalAt: a.scenario.firstSignalAt,
+        confidence: a.scenario.confidence,
+        signals: a.scenario.signals,
         score: a.risk[30].score,
         low: a.risk[30].low,
         high: a.risk[30].high,

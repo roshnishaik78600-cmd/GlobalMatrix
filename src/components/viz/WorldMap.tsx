@@ -5,7 +5,10 @@ import { getNode } from "@/lib/intel/nodes";
 import { MAP_H, MAP_W, countryShapes, shapeForNode } from "@/lib/geo";
 import { arcPath, project, riskColorForScore } from "@/lib/intel/visual";
 import type { Channel } from "@/lib/intel/types";
+import { CHANNEL_LABEL } from "@/lib/intel/types";
 import { cn } from "@/lib/utils";
+import { useOptionalFocus, type MapLayer } from "@/lib/focus";
+import { SegmentedControl } from "./exec/system";
 import { NoData, Skeleton } from "./core";
 import { NodeEvidence } from "./NodeEvidence";
 
@@ -16,6 +19,8 @@ export interface MapNode {
   eventCount: number;
   criticality: number;
   kind?: string;
+  /** Per-channel load, when the caller has it. Used by the domain layers. */
+  byChannel?: { channel: Channel; load: number }[];
 }
 
 /** An event anchored to the place it lands on hardest. */
@@ -52,6 +57,18 @@ const LAYERS: { id: LayerId; label: string; hint: string }[] = [
   { id: "events", label: "Events", hint: "Where corpus events land hardest" },
   { id: "links", label: "Couplings", hint: "Chokepoint-to-economy shared-event coupling" },
 ];
+
+/** The system bar speaks the same three names; the map's internal id is `links`. */
+const LAYER_TO_MAP: Record<MapLayer, LayerId> = {
+  load: "load",
+  events: "events",
+  couplings: "links",
+};
+const MAP_TO_LAYER: Record<LayerId, MapLayer> = {
+  load: "load",
+  events: "events",
+  links: "couplings",
+};
 
 const FULL: View = { x: 0, y: 0, w: MAP_W, h: MAP_H };
 
@@ -99,6 +116,7 @@ export function WorldMap({
   selected,
   className,
   layers = true,
+  channel = null,
 }: {
   nodes: MapNode[];
   flows?: MapFlow[];
@@ -112,10 +130,29 @@ export function WorldMap({
   className?: string;
   /** Show the layer switcher. Off where the map is a supporting picture. */
   layers?: boolean;
+  /**
+   * Re-shade by one transmission channel instead of blended load.
+   *
+   * This is how the Overview's domain layers work: selecting "Energy" shades
+   * every place by the energy load it actually carries, and shows only the
+   * events whose dominant channel is energy. It never invents a per-domain
+   * value — a place with no energy exposure goes quiet rather than to zero-
+   * coloured, because "no reading" and "no exposure" are not the same claim.
+   */
+  channel?: Channel | null;
 }) {
   const [view, setView] = useState<View>(FULL);
   const [hover, setHover] = useState<string | null>(null);
-  const [layer, setLayer] = useState<LayerId>("load");
+  // The layer is global, so the system bar and this map stay in agreement.
+  // Outside the console shell there is no shared context and it falls back to
+  // the map's own state.
+  const shared = useOptionalFocus();
+  const [localLayer, setLocalLayer] = useState<LayerId>("load");
+  const layer = shared ? LAYER_TO_MAP[shared.layer] : localLayer;
+  const setLayer = (next: LayerId) => {
+    if (shared) shared.setLayer(MAP_TO_LAYER[next]);
+    else setLocalLayer(next);
+  };
   const drag = useRef<{ x: number; y: number; view: View } | null>(null);
   const svg = useRef<SVGSVGElement | null>(null);
 
@@ -161,6 +198,24 @@ export function WorldMap({
   const showLoad = layer === "load";
   const showEvents = layer === "events" || layer === "load";
   const showLinks = layer === "links" || layer === "load";
+
+  /**
+   * Load for the active domain, or the blended load when no domain is chosen.
+   * `null` means "this place publishes no reading for that channel", which the
+   * renderer treats as quiet rather than as zero.
+   */
+  const loadFor = (n: MapNode): number | null => {
+    if (!channel) return n.load;
+    const match = n.byChannel?.find((c) => c.channel === channel);
+    return match ? match.load : null;
+  };
+  const channelMax = Math.max(
+    ...plotted.map((n) => loadFor(n) ?? 0),
+    0.01,
+  );
+  const visibleEvents = channel
+    ? events.filter((e) => e.channel === channel)
+    : events;
 
   const pointerToView = (clientX: number, clientY: number) => {
     const rect = svg.current?.getBoundingClientRect();
@@ -230,9 +285,12 @@ export function WorldMap({
         <g stroke="var(--rule)" strokeWidth={0.4} strokeLinejoin="round">
           {shapes.map((shape) => {
             const owner = plotted.find((p) => p.shape?.iso === shape.iso);
-            const fill = owner && showLoad
-              ? `color-mix(in oklch, ${riskColorForScore(owner.load * 100)} ${Math.round(
-                  18 + owner.load * 62,
+            const value = owner ? loadFor(owner) : null;
+            const shaded = showLoad && value !== null;
+            const scaled = (value ?? 0) / (channel ? channelMax : maxLoad);
+            const fill = shaded
+              ? `color-mix(in oklch, ${riskColorForScore((value ?? 0) * 100)} ${Math.round(
+                  18 + Math.min(1, scaled) * 62,
                 )}%, transparent)`
               : "color-mix(in oklch, var(--foreground) 6%, transparent)";
             return (
@@ -240,8 +298,8 @@ export function WorldMap({
                 key={shape.iso}
                 d={shape.d}
                 fill={fill}
-                stroke={owner && showLoad ? "var(--foreground)" : "var(--rule)"}
-                strokeOpacity={owner && showLoad ? 0.45 : 0.7}
+                stroke={shaded ? "var(--foreground)" : "var(--rule)"}
+                strokeOpacity={shaded ? 0.45 : 0.7}
               />
             );
           })}
@@ -305,10 +363,18 @@ export function WorldMap({
         {/* Nodes */}
         <g>
           {plotted.map((n) => {
-            const r = ((showLoad ? 3.4 + (n.load / maxLoad) * 9 : 2.6) ) / zoom;
-            const colour = riskColorForScore(n.load * 100);
+            const value = loadFor(n);
+            // A place with no reading for the active domain shrinks to the
+            // baseline marker rather than disappearing: it still exists and can
+            // still be inspected, it just has no exposure on this channel.
+            const unmeasured = value === null;
+            const scaled = (value ?? 0) / (channel ? channelMax : maxLoad);
+            const r = (showLoad ? 3.4 + Math.min(1, scaled) * 9 : 2.6) / zoom;
+            const colour = unmeasured
+              ? "var(--muted-foreground)"
+              : riskColorForScore((value ?? 0) * 100);
             const active = selected === n.nodeId || hover === n.nodeId;
-            const dim = selected && !active;
+            const dim = (selected && !active) || (channel !== null && channel !== undefined && unmeasured && !active);
             return (
               <g
                 key={n.nodeId}
@@ -369,7 +435,7 @@ export function WorldMap({
 
         {/* Event markers, anchored where each event lands hardest. */}
         {showEvents
-          ? events.map((e) => {
+          ? visibleEvents.map((e) => {
               const host = plotted.find((p) => p.nodeId === e.nodeId);
               if (!host) return null;
               const r = ((layer === "events" ? 7 : 5) + (e.score / 100) * 8) / zoom;
@@ -393,24 +459,13 @@ export function WorldMap({
       </svg>
 
       {layers ? (
-        <div className="absolute top-2 left-2 flex flex-wrap gap-px">
-          {LAYERS.map((l) => (
-            <button
-              key={l.id}
-              type="button"
-              onClick={() => setLayer(l.id)}
-              aria-pressed={l.id === layer}
-              title={l.hint}
-              className={cn(
-                "label border px-2 py-1 backdrop-blur transition-colors",
-                l.id === layer
-                  ? "border-signal bg-background/90 text-signal"
-                  : "border-rule bg-background/80 text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {l.label}
-            </button>
-          ))}
+        <div className="absolute top-2 left-2">
+          <SegmentedControl
+            options={LAYERS}
+            value={layer}
+            onChange={setLayer}
+            className="glass-strong"
+          />
         </div>
       ) : null}
 
@@ -437,13 +492,19 @@ export function WorldMap({
         })}
       </div>
 
-      {/* Hover read-out */}
+      {/* Hover read-out. The load shown follows the active layer, and says
+          plainly when a place has no reading for it. */}
       {hovered ? (
         <div className="pointer-events-none absolute bottom-3 left-3 max-w-[min(20rem,70%)] border border-rule bg-popover/95 px-3 py-2 backdrop-blur">
           <p className="text-[12.5px] font-semibold">{hovered.node.label}</p>
           <p className="num mt-0.5 text-[10px] text-muted-foreground">
-            {hovered.node.region} · {hovered.node.kind} · load{" "}
-            {(hovered.load * 100).toFixed(0)}% · {hovered.eventCount} events
+            {hovered.node.region} · {hovered.node.kind} ·{" "}
+            {loadFor(hovered) === null
+              ? `no ${CHANNEL_LABEL[channel!]} reading`
+              : `${channel ? `${CHANNEL_LABEL[channel]} load` : "load"} ${(
+                  (loadFor(hovered) ?? 0) * 100
+                ).toFixed(0)}%`}{" "}
+            · {hovered.eventCount} events
           </p>
         </div>
       ) : null}

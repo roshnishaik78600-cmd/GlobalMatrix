@@ -109,16 +109,19 @@
      A deeper, colder base for the high-density screens, plus the three
      indicator accents they use. Kept separate from the console tokens above
      so a dense analyst surface can be tuned without disturbing the rest. */
-  --exec-base: #090d16;
-  --exec-surface: rgba(255, 255, 255, 0.035);
-  --exec-surface-strong: rgba(255, 255, 255, 0.06);
-  --exec-hairline: rgba(255, 255, 255, 0.12);
+  --exec-base: #070a10;
+  --exec-surface: rgba(255, 255, 255, 0.03);
+  --exec-surface-strong: rgba(255, 255, 255, 0.055);
+  --exec-hairline: rgba(255, 255, 255, 0.08);
+  --exec-hairline-strong: rgba(255, 255, 255, 0.16);
   --exec-ink: #ffffff;
   --exec-ink-dim: #94a3b8;
   --exec-cyan: #00f5ff;
   --exec-amber: #ff9f1c;
   --exec-crimson: #ff2e63;
   --exec-emerald: #00e676;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas,
+    monospace;
 }
 
 /* The workstation is dark by default. This class exists so components that
@@ -235,7 +238,7 @@
   }
   .glass-hover:hover {
     background: var(--exec-surface-strong);
-    border-color: rgba(255, 255, 255, 0.22);
+    border-color: var(--exec-hairline-strong);
   }
   .exec-num {
     font-variant-numeric: tabular-nums;

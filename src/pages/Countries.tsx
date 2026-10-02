@@ -14,6 +14,7 @@ import {
 } from "@/components/viz/exec/ExecStatusBar";
 import { QuestionStrip } from "@/components/viz/Unavailable";
 import { NoVerifiedData } from "@/components/viz/Unavailable";
+import { PageTitle } from "@/components/viz/exec/system";
 import { CORPUS_LABEL } from "@/lib/intel/scenarios";
 import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 import { pct } from "@/lib/format";
@@ -132,46 +133,47 @@ export default function Countries() {
         color: "var(--exec-ink)",
       }}
     >
-      {/* Command bar */}
-      <header className="sticky top-0 z-30 border-b border-[var(--exec-hairline)] bg-[color-mix(in_srgb,var(--exec-base)_86%,transparent)] backdrop-blur-xl">
-        <div className="flex flex-col gap-2 px-4 py-2.5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="size-2 shrink-0 bg-[var(--exec-cyan)]" aria-hidden />
-            <h1 className="text-[15px] font-semibold tracking-[-0.01em] text-[var(--exec-ink)]">
-              GlobalMatrix · Countries
-            </h1>
+      {/* The persistent system bar above already carries live source state,
+          search and the global map layer, so this page contributes only its own
+          title and filters rather than a second command bar. */}
+      <PageTitle
+        title="Sovereign risk intelligence"
+        lede="Every tracked economy and the infrastructure it depends on, ranked by derived exposure. Click a country for the ten-module board; double-click to open its full profile."
+        right={
+          <>
             <span className="exec-label hidden sm:inline">{CORPUS_LABEL}</span>
-          </div>
-          <ExecStatusBar countryCount={countries.length} />
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--exec-hairline)] px-4 py-2">
-          <ExecFilters
-            regions={regions}
-            region={region}
-            onRegion={setRegion}
-            watchedOnly={watchedOnly}
-            onWatched={setWatchedOnly}
-            watchCount={watchCount}
-            onSearch={() =>
-              // The shell owns the palette; this is the same path the
-              // keyboard shortcut takes.
-              window.dispatchEvent(new CustomEvent("gm:open-search"))
-            }
+            <ExecStatusBar countryCount={countries.length} />
+          </>
+        }
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--exec-hairline)] px-4 py-2">
+        <ExecFilters
+          regions={regions}
+          region={region}
+          onRegion={setRegion}
+          watchedOnly={watchedOnly}
+          onWatched={setWatchedOnly}
+          watchCount={watchCount}
+          onSearch={() =>
+            // The shell owns the palette; this is the same path the
+            // keyboard shortcut takes.
+            window.dispatchEvent(new CustomEvent("gm:open-search"))
+          }
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <ExecIconLink
+            to="/app/chain"
+            label="Event → world"
+            icon={<Compass className="size-3.5" />}
           />
-          <div className="flex flex-wrap items-center gap-2">
-            <ExecIconLink
-              to="/app/chain"
-              label="Event → world"
-              icon={<Compass className="size-3.5" />}
-            />
-            <ExecIconLink
-              to="/app/risk"
-              label="Risk board"
-              icon={<RadarIcon className="size-3.5" />}
-            />
-          </div>
+          <ExecIconLink
+            to="/app/risk"
+            label="Risk board"
+            icon={<RadarIcon className="size-3.5" />}
+          />
         </div>
-      </header>
+      </div>
 
       {/* Plain-language orientation */}
       <QuestionStrip

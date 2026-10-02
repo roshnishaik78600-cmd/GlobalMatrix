@@ -29,6 +29,34 @@ export type Focus =
 
 export type TimeWindow = "1h" | "6h" | "24h" | "7d";
 
+/**
+ * Which encoding every world map on the platform is currently emphasising.
+ *
+ * This lives in the shared context rather than inside a single map so the
+ * system bar's LOAD | EVENTS | COUPLINGS control is genuinely global: switch it
+ * on Overview, walk to World, and the new map is already in that layer instead
+ * of silently resetting to its own default.
+ */
+export type MapLayer = "load" | "events" | "couplings";
+
+export const MAP_LAYERS: { id: MapLayer; label: string; hint: string }[] = [
+  {
+    id: "load",
+    label: "Load",
+    hint: "Land shading and node size follow derived live load.",
+  },
+  {
+    id: "events",
+    label: "Events",
+    hint: "Where corpus events land hardest on the network.",
+  },
+  {
+    id: "couplings",
+    label: "Couplings",
+    hint: "Chokepoint-to-economy shared-event coupling. A shared pull, not a shipping lane.",
+  },
+];
+
 export const WINDOW_MS: Record<TimeWindow, number> = {
   "1h": 60 * 60 * 1000,
   "6h": 6 * 60 * 60 * 1000,
@@ -48,6 +76,8 @@ interface FocusValue {
   hasFocus: boolean;
   window: TimeWindow;
   setWindow: (w: TimeWindow) => void;
+  layer: MapLayer;
+  setLayer: (l: MapLayer) => void;
 }
 
 const FocusContext = createContext<FocusValue | null>(null);
@@ -55,6 +85,7 @@ const FocusContext = createContext<FocusValue | null>(null);
 export function FocusProvider({ children }: { children: ReactNode }) {
   const [focus, setFocus] = useState<Focus>(null);
   const [window, setWindow] = useState<TimeWindow>("24h");
+  const [layer, setLayer] = useState<MapLayer>("load");
 
   const toggle = useCallback((next: NonNullable<Focus>) => {
     setFocus((current) =>
@@ -103,8 +134,10 @@ export function FocusProvider({ children }: { children: ReactNode }) {
       hasFocus: focus !== null,
       window,
       setWindow,
+      layer,
+      setLayer,
     }),
-    [focus, toggle, clear, isFocused, window],
+    [focus, toggle, clear, isFocused, window, layer],
   );
 
   return <FocusContext.Provider value={value}>{children}</FocusContext.Provider>;
@@ -116,4 +149,15 @@ export function useFocus(): FocusValue {
     throw new Error("useFocus must be used inside FocusProvider");
   }
   return value;
+}
+
+/**
+ * The same context, but null outside the console shell.
+ *
+ * Shared components (the world map in particular) are also rendered by the
+ * public landing page, which has no FocusProvider. They degrade to their own
+ * local state instead of crashing the marketing surface.
+ */
+export function useOptionalFocus(): FocusValue | null {
+  return useContext(FocusContext);
 }

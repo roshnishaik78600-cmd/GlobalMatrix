@@ -1,155 +1,328 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { PageHead } from "@/components/viz/Shell";
-import { FlowDiagram, FlowMap } from "@/components/viz/Flow";
-import { Bar, NoData, Panel, Skeleton } from "@/components/viz/core";
+import { useFocus } from "@/lib/focus";
 import { getNode } from "@/lib/intel/nodes";
-import { riskColorForScore } from "@/lib/intel/visual";
+import { pct } from "@/lib/format";
+import { WorldMap, MapLegend } from "@/components/viz/WorldMap";
+import { FlowDiagram } from "@/components/viz/Flow";
+import {
+  ChokepointBoard,
+  ChokepointRoster,
+} from "@/components/viz/exec/ChokepointBoard";
+import { loadColour } from "@/components/viz/exec/Topology";
+import {
+  BasisTag,
+  Col,
+  DominantCard,
+  ExecCard,
+  ExecGrid,
+  ExecLink,
+  ExecPage,
+  NoDataAvailable,
+  PageTitle,
+  SectionTitle,
+  SegmentedControl,
+} from "@/components/viz/exec/system";
 
-/** Supply-chain explorer: stage flow + geographic flow for one sector. */
+/**
+ * Supply chains — the chokepoint analyzer.
+ *
+ * The dominant visual is a single bottleneck at a time: what feeds it, what
+ * routes through it, and which economies share its exposure. That is the
+ * question this page exists to answer, and it is answered by choosing a node
+ * rather than by showing every node at once.
+ *
+ * No animation appears here. Particles on a supply-chain diagram imply freight
+ * moving on a lane the data does not measure.
+ */
 export default function Supply() {
+  const board = useQuery(api.chokepoints.chokepointBoard);
   const directory = useQuery(api.intel.industryDirectory);
+  const [selected, setSelected] = useState<string | null>(null);
   const [industryId, setIndustryId] = useState<string | null>(null);
-  const active = industryId ?? directory?.industries[0]?.id ?? null;
+  const [view, setView] = useState<"chokepoints" | "sectors">("chokepoints");
+  const { toggle } = useFocus();
+
+  const activeIndustry =
+    industryId ?? directory?.industries[0]?.id ?? null;
   const flow = useQuery(
     api.intel.supplyFlow,
-    active ? { industryId: active } : "skip",
+    activeIndustry ? { industryId: activeIndustry } : "skip",
   );
 
-  const geoFlows = useMemo(
-    () =>
-      (flow?.edges ?? []).map((e) => ({
-        from: e.from === "input" || e.from === "route" ? e.to : e.from,
-        to: e.to,
-        weight: e.weight,
-      })),
-    [flow],
-  );
+  const rows = board?.rows ?? [];
+  const active = selected ?? rows[0]?.nodeId ?? null;
 
-  if (!directory) {
-    return (
-      <main>
-        <PageHead title="Supply chains" lede="Dependency structure per sector." />
-        <div className="p-3">
-          <Skeleton className="h-[420px] w-full" />
-        </div>
-      </main>
-    );
-  }
+  // Geospatial flow. The chain's edges are stage-to-stage ("route" → "producer"),
+  // so the arcs are built from real stage membership: each declared route and
+  // input node feeds each producer, and each producer feeds each consumer. That
+  // keeps every drawn point a real economy or chokepoint with real coordinates.
+  const { geoNodes, geoFlows } = useMemo(() => {
+    const stages = new Map((flow?.stages ?? []).map((s) => [s.id, s.nodeIds]));
+    const producers = stages.get("producer") ?? [];
+    const upstreams = [...(stages.get("input") ?? []), ...(stages.get("route") ?? [])];
+    const consumers = stages.get("consumer") ?? [];
+
+    const ids = new Set<string>([...upstreams, ...producers, ...consumers]);
+    const nodes = [...ids]
+      .map((id) => {
+        const node = getNode(id);
+        if (node.lat === undefined || node.lon === undefined) return null;
+        return {
+          nodeId: id,
+          label: node.label,
+          kind: node.kind,
+          load: 0.5,
+          eventCount: 0,
+          criticality: node.criticality,
+        };
+      })
+      .filter(Boolean) as {
+      nodeId: string;
+      label: string;
+      kind: string;
+      load: number;
+      eventCount: number;
+      criticality: number;
+    }[];
+    const plotted = new Set(nodes.map((n) => n.nodeId));
+
+    const arcs = [
+      ...upstreams.flatMap((u) =>
+        producers.map((p) => ({ from: u, to: p, weight: 1 })),
+      ),
+      ...producers.flatMap((p) =>
+        consumers.map((c) => ({ from: p, to: c, weight: 1 })),
+      ),
+    ].filter((a) => plotted.has(a.from) && plotted.has(a.to));
+
+    return { geoNodes: nodes, geoFlows: arcs };
+  }, [flow]);
+
+  const sector = directory?.industries.find((i) => i.id === activeIndustry);
 
   return (
-    <main className="min-w-0">
-      <PageHead
-        title="Supply chains"
-        lede="The declared dependency chain for a sector, with live corpus weight on each link. Stage membership is structural reference data; edge weight is derived."
-        actions={
-          <select
-            value={active ?? ""}
-            onChange={(e) => setIndustryId(e.target.value)}
-            className="h-8 border border-rule bg-card px-2 text-[12px] outline-none focus:border-foreground"
-            aria-label="Select sector"
-          >
-            {directory.industries.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
-            ))}
-          </select>
+    <ExecPage>
+      <PageTitle
+        title="Supply chain chokepoint analyzer"
+        lede="Single points of failure, one at a time. Pick a bottleneck to see which sectors depend on it and which economies share its exposure. Dependency edges are declared structure; load is derived from the current corpus."
+        right={
+          <>
+            <SegmentedControl
+              options={[
+                { id: "chokepoints", label: "CHOKEPOINTS" },
+                { id: "sectors", label: "BY SECTOR" },
+              ]}
+              value={view}
+              onChange={setView}
+            />
+            <ExecLink to="/app/industries">Industry matrix →</ExecLink>
+          </>
         }
       />
 
-      <div className="space-y-3 p-3">
-        <Panel
-          title="Dependency chain"
-          meta={flow?.industry.label ?? "—"}
-          actions={
-            <span className="label text-muted-foreground">
-              edge width = live corpus weight
-            </span>
-          }
-        >
-          {flow ? (
-            flow.stages.length === 0 ? (
-              <NoData reason="This sector declares no stages." />
-            ) : (
-              <FlowDiagram stages={flow.stages} edges={flow.edges} />
-            )
-          ) : (
-            <Skeleton className="h-40 w-full" />
-          )}
-        </Panel>
+      {view === "chokepoints" ? (
+        <ExecGrid>
+          <Col span={8}>
+            <DominantCard
+              title="Bottleneck flow"
+              meta={
+                active
+                  ? `${getNode(active).label} · structural dependency and derived load`
+                  : "awaiting the chokepoint board"
+              }
+              right={<BasisTag basis="model" />}
+            >
+              <ChokepointBoard
+                rows={rows}
+                selected={active}
+                onSelect={setSelected}
+              />
+            </DominantCard>
+          </Col>
 
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
-          <section className="xl:col-span-7">
-            <Panel title="Stage members" meta="declared structure">
-              {flow ? (
-                <div className="grid grid-cols-1 gap-px bg-rule sm:grid-cols-2 lg:grid-cols-4">
-                  {flow.stages.map((stage) => (
-                    <div key={stage.id} className="bg-card p-3">
-                      <p className="label">{stage.label}</p>
-                      <ul className="mt-2 space-y-1">
-                        {stage.nodeIds.map((id) => (
-                          <li
-                            key={id}
-                            className="flex items-center justify-between gap-2"
-                          >
-                            <span className="truncate text-[11.5px]">
-                              {getNode(id).label}
-                            </span>
-                            <span className="num shrink-0 text-[10px] text-muted-foreground">
-                              {getNode(id).short}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+          <Col span={4} className="flex flex-col gap-3">
+            <ExecCard>
+              <SectionTitle
+                meta="ranked by derived load"
+                right={<BasisTag basis="model" />}
+              >
+                All bottlenecks
+              </SectionTitle>
+              <ChokepointRoster
+                rows={rows}
+                selected={active}
+                onSelect={setSelected}
+                onInspect={(id) => toggle({ kind: "node", id })}
+              />
+            </ExecCard>
+
+            <ExecCard className="flex-1">
+              <SectionTitle meta="derived + structural">Sector load</SectionTitle>
+              {directory?.industries.length ? (
+                <ul className="divide-y divide-[var(--exec-hairline)]">
+                  {directory.industries.map((r) => (
+                    <li key={r.id} className="flex items-center gap-2.5 px-3 py-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIndustryId(r.id);
+                          setView("sectors");
+                        }}
+                        className="min-w-0 flex-1 truncate text-left text-[11.5px] text-[var(--exec-ink)] transition-colors hover:underline"
+                      >
+                        {r.label}
+                      </button>
+                      <span className="h-1.5 w-16 shrink-0 bg-[var(--exec-hairline)]">
+                        <span
+                          className="block h-full"
+                          style={{ width: pct(r.load), background: loadColour(r.load) }}
+                        />
+                      </span>
+                      <span
+                        className="exec-num w-9 shrink-0 text-right text-[10.5px]"
+                        style={{ color: loadColour(r.load) }}
+                      >
+                        {pct(r.load)}
+                      </span>
+                      <span
+                        className="exec-num w-12 shrink-0 text-right text-[9.5px] text-[var(--exec-ink-dim)]"
+                        title="Substitution lead time — the sector's real constraint"
+                      >
+                        {r.substitutionMonths}mo
+                      </span>
+                    </li>
                   ))}
+                </ul>
+              ) : (
+                <NoDataAvailable
+                  title="No sector exposure resolved"
+                  reason="Sector exposure is derived by walking the corpus to each sector's producers and consumers. Nothing has resolved yet."
+                />
+              )}
+            </ExecCard>
+          </Col>
+        </ExecGrid>
+      ) : (
+        <ExecGrid>
+          <Col span={12}>
+            <DominantCard
+              title="Sector dependency chain"
+              meta={`${flow?.industry.label ?? "—"} · declared structure, derived edge weight`}
+              right={
+                <>
+                  <BasisTag basis="model" />
+                  <select
+                    value={activeIndustry ?? ""}
+                    onChange={(e) => setIndustryId(e.target.value)}
+                    className="h-6 border border-[var(--exec-hairline)] bg-[var(--exec-surface)] px-1.5 text-[11px] text-[var(--exec-ink)] outline-none"
+                    aria-label="Select sector"
+                  >
+                    {directory?.industries.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              }
+            >
+              {flow && flow.stages.length > 0 ? (
+                <FlowDiagram stages={flow.stages} edges={flow.edges} />
+              ) : (
+                <NoDataAvailable
+                  title="This sector declares no dependency stages"
+                  reason="Stage membership is structural reference data. A sector with no declared input, route, producer or consumer stage renders nothing rather than a generic chain."
+                />
+              )}
+            </DominantCard>
+          </Col>
+
+          <Col span={4}>
+            <ExecCard className="h-full">
+              <SectionTitle meta="declared structure">Sector structure</SectionTitle>
+              {sector ? (
+                <ul className="divide-y divide-[var(--exec-hairline)]">
+                  <li className="px-3 py-2">
+                    <p className="exec-label">Concentration</p>
+                    <p className="exec-num mt-1 text-[15px] font-bold text-[var(--exec-ink)]">
+                      {pct(sector.concentration)}
+                    </p>
+                    <p className="exec-label mt-0.5 normal-case">
+                      Largest single producer&apos;s share of this sector&apos;s output
+                    </p>
+                  </li>
+                  <li className="px-3 py-2">
+                    <p className="exec-label">Fragility</p>
+                    <p className="exec-num mt-1 text-[15px] font-bold text-[var(--exec-ink)]">
+                      {pct(sector.fragility)}
+                    </p>
+                  </li>
+                  <li className="px-3 py-2">
+                    <p className="exec-label">Substitution lead</p>
+                    <p className="exec-num mt-1 text-[15px] font-bold text-[var(--exec-ink)]">
+                      {sector.substitutionMonths} mo
+                    </p>
+                  </li>
+                  <li className="px-3 py-2">
+                    <p className="exec-label">Events reaching it</p>
+                    <p className="exec-num mt-1 text-[15px] font-bold text-[var(--exec-ink)]">
+                      {sector.eventCount}
+                    </p>
+                  </li>
+                  <li className="px-3 py-2">
+                    <p className="exec-label">Dominant channel</p>
+                    <p className="mt-1 text-[12px] text-[var(--exec-ink)]">
+                      {sector.topChannel}
+                    </p>
+                  </li>
+                </ul>
+              ) : (
+                <NoDataAvailable
+                  title="No sector selected"
+                  reason="Choose a sector from the list above to read its structural parameters."
+                />
+              )}
+            </ExecCard>
+          </Col>
+
+          <Col span={8}>
+            <ExecCard className="h-full">
+              <SectionTitle meta="producers and consumers with real coordinates">
+                Geospatial flow
+              </SectionTitle>
+              {geoNodes.length === 0 ? (
+                <div className="px-3 py-6">
+                  <p className="exec-label text-[var(--exec-ink)]">
+                    NO VERIFIED GEOGRAPHIC DATA AVAILABLE
+                  </p>
+                  <p className="mt-1.5 max-w-lg text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
+                    Every stage in this sector&apos;s chain is an abstraction such as
+                    &ldquo;input&rdquo; or &ldquo;route&rdquo;, which has no place on
+                    the map. GlobalMatrix does not place those at approximate
+                    coordinates to fill the frame; the chain is shown above in full
+                    instead.
+                  </p>
                 </div>
               ) : (
-                <Skeleton className="h-48 w-full" />
-              )}
-            </Panel>
-          </section>
-
-          <section className="xl:col-span-5">
-            <Panel title="Sector load" meta="derived">
-              {directory.industries
-                .filter((r) => r.id === active)
-                .map((r) => (
-                  <div key={r.id} className="space-y-3 p-3">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-[13px]">{r.label}</span>
-                      <span className="h-metric">{(r.load * 100).toFixed(0)}%</span>
-                    </div>
-                    <Bar
-                      value={r.load}
-                      tone={riskColorForScore(r.load * 100)}
-                      height={6}
-                    />
-                    <dl className="grid grid-cols-2 gap-y-2 border-t border-rule pt-3">
-                      {[
-                        ["Concentration", `${(r.concentration * 100).toFixed(0)}%`],
-                        ["Fragility", `${(r.fragility * 100).toFixed(0)}%`],
-                        ["Substitution lead", `${r.substitutionMonths} mo`],
-                        ["Events reaching", String(r.eventCount)],
-                      ].map(([k, v]) => (
-                        <div key={k}>
-                          <dt className="label text-muted-foreground">{k}</dt>
-                          <dd className="num text-[13px]">{v}</dd>
-                        </div>
-                      ))}
-                    </dl>
+                <>
+                  <WorldMap nodes={geoNodes} flows={geoFlows} height={300} />
+                  <div className="border-t border-[var(--exec-hairline)]">
+                    <MapLegend />
                   </div>
-                ))}
-            </Panel>
-          </section>
-        </div>
-
-        <Panel title="Geographic flow of the dependency chain" meta="producer → consumer">
-          <FlowMap flows={geoFlows} height={260} />
-        </Panel>
-      </div>
-    </main>
+                  <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+                    Arcs follow the sector&apos;s declared structure: each input and
+                    route node feeds each declared producer, and each producer feeds
+                    each declared consumer. Their weights are structural shares, not
+                    measured tonnage — no shipment-level data is connected.
+                  </p>
+                </>
+              )}
+            </ExecCard>
+          </Col>
+        </ExecGrid>
+      )}
+    </ExecPage>
   );
 }

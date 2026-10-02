@@ -1,7 +1,6 @@
 import { useState, type ReactNode, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
 import { X } from "lucide-react";
-import { useQuery } from "convex/react";
 import {
   Activity,
   AlertTriangle,
@@ -13,13 +12,12 @@ import {
   LayoutGrid,
   Network,
   Radar,
-  Search,
   type LucideIcon,
 } from "lucide-react";
-import { api } from "@/convex/_generated/api";
+import { SystemBar } from "@/components/viz/exec/SystemBar";
+import { CountryDrawer } from "@/components/viz/exec/CountryDrawer";
 import { useAuth } from "@/hooks/use-auth";
 import { useAuthAction } from "@/hooks/use-auth-action";
-import { CORPUS_LABEL } from "@/lib/intel/scenarios";
 import { CommandPalette } from "@/components/intel/CommandPalette";
 import { FocusDrawer } from "@/components/viz/FocusPanel";
 import { useFocus } from "@/lib/focus";
@@ -67,9 +65,6 @@ export function Shell({ children }: { children: ReactNode }) {
     await signOut();
     navigate("/");
   };
-
-  const stats = useQuery(api.intel.corpusStats);
-  const health = useQuery(api.observations.sourceHealth);
 
   // Any surface can raise the command palette without owning it.
   useEffect(() => {
@@ -168,61 +163,43 @@ export function Shell({ children }: { children: ReactNode }) {
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Command bar + status */}
-        <header className="sticky top-0 z-20 border-b border-rule bg-background/95 backdrop-blur">
-          <div className="flex h-12 items-center gap-3 px-3">
-            <button
-              type="button"
-              onClick={() => setSearchOpen(true)}
-              className="flex h-8 min-w-0 flex-1 items-center gap-2 border border-rule bg-card px-2.5 text-left transition-colors hover:border-foreground/40 sm:max-w-md"
-            >
-              <Search className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="truncate text-[12px] text-muted-foreground">
-                Search events, countries, sectors, infrastructure…
-              </span>
-              <kbd className="num ml-auto hidden shrink-0 border border-rule px-1 text-[9px] text-muted-foreground sm:block">
-                ⌘K
-              </kbd>
-            </button>
-
-            <div className="ml-auto flex items-center gap-3 overflow-x-auto">
-              <StatusStrip stats={stats} health={health} />
-              <div className="hidden items-center gap-2 border-l border-rule pl-3 sm:flex">
-                {isAuthenticated ? (
-                  <>
-                    <span className="hidden max-w-[14ch] truncate text-[11px] text-muted-foreground lg:block">
-                      {user?.name ?? user?.email ?? "Member"}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleSignOut}
-                      className="label border border-rule px-2 py-1 transition-colors hover:border-foreground hover:bg-foreground hover:text-background"
-                    >
-                      Sign out
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      navigate(
-                        `/auth?returnTo=${encodeURIComponent(window.location.pathname)}`,
-                      )
-                    }
-                    className="label bg-foreground px-2.5 py-1 text-background transition-opacity hover:opacity-85"
-                  >
-                    Sign in to save
-                  </button>
-                )}
-              </div>
-            </div>
+        {/* Persistent system bar: source state, search, global map layer. */}
+        <header className="sticky top-0 z-20">
+          <SystemBar onOpenSearch={() => setSearchOpen(true)} />
+          <div className="flex min-h-0 items-center justify-end gap-2 border-b border-rule bg-background/95 px-3 py-1">
+            {isAuthenticated ? (
+              <>
+                <span className="truncate text-[11px] text-muted-foreground">
+                  {user?.name ?? user?.email ?? "Member"}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="label border border-rule px-2 py-1 transition-colors hover:border-foreground hover:bg-foreground hover:text-background"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(
+                    `/auth?returnTo=${encodeURIComponent(window.location.pathname)}`,
+                  )
+                }
+                className="label border border-rule px-2 py-1 transition-colors hover:border-foreground hover:text-foreground"
+              >
+                Sign in to save a watchlist
+              </button>
+            )}
           </div>
         </header>
 
         {/* The current selection follows you between pages, so drilling in and
             coming back never loses what you were looking at. */}
         {focus ? (
-          <div className="sticky top-12 z-20 flex items-center gap-2 border-b border-signal/40 bg-signal/10 px-3 py-1.5">
+          <div className="sticky top-[4.25rem] z-20 flex items-center gap-2 border-b border-signal/40 bg-signal/10 px-3 py-1.5">
             <span className="label text-signal">Inspecting</span>
             <span className="min-w-0 truncate text-[12px]">{focusLabel(focus)}</span>
             <Link
@@ -246,7 +223,13 @@ export function Shell({ children }: { children: ReactNode }) {
       </div>
 
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
-      <FocusDrawer />
+      {/* Countries get the ten-module board; every other entity keeps the
+          six-question drawer. One drawer per kind, not two competing ones. */}
+      {focus?.kind === "node" ? (
+        <CountryDrawer nodeId={focus.id} />
+      ) : (
+        <FocusDrawer />
+      )}
     </div>
   );
 }
@@ -276,87 +259,6 @@ function focusRoute(focus: NonNullable<ReturnType<typeof useFocus>["focus"]>) {
     case "channel":
       return "/app/risk";
   }
-}
-
-/**
- * Status strip.
- *
- * Every value here is read from something real: how many connected sources are
- * answering, when the last one answered, and how many events and places the
- * corpus covers. Nothing is hardcoded, and nothing claims to be live when it
- * is not — a quiet source says so.
- */
-function StatusStrip({
-  stats,
-  health,
-}: {
-  stats:
-    | { events: number; signals: number; actors: number; nodes: number; countries: number }
-    | undefined;
-  health:
-    | { sourceId: string; ok: boolean; status: string; retrievedAt: number; problem?: string }[]
-    | undefined;
-}) {
-  const live = (health ?? []).filter((h) => h.ok).length;
-  const total = health?.length ?? 0;
-  const lastUpdate = (health ?? []).reduce((max, h) => Math.max(max, h.retrievedAt), 0);
-  const anyLive = live > 0;
-
-  return (
-    <div className="flex items-center gap-3 sm:gap-4">
-      <span className="flex items-center gap-1.5 whitespace-nowrap">
-        <span
-          className={cn(
-            "size-1.5 shrink-0 rounded-full",
-            anyLive ? "bg-stable" : "bg-muted-foreground/50",
-          )}
-          aria-hidden
-        />
-        <span className="label text-muted-foreground">Live data</span>
-        <span className="num text-[12px] font-medium">
-          {total === 0 ? "connecting" : `${live}/${total}`}
-        </span>
-      </span>
-
-      <span className="hidden items-baseline gap-1.5 whitespace-nowrap lg:flex">
-        <span className="label text-muted-foreground">Last updated</span>
-        <span className="num text-[12px] font-medium">
-          {lastUpdate ? timeAgo(lastUpdate) : "not yet"}
-        </span>
-      </span>
-
-      {[
-        ["Sources", total],
-        ["Events", stats?.events],
-        ["Countries", stats?.countries],
-      ].map(([label, value]) => (
-        <span
-          key={label as string}
-          className="hidden items-baseline gap-1.5 whitespace-nowrap md:flex"
-        >
-          <span className="label text-muted-foreground">{label}</span>
-          <span className="num text-[12px] font-medium">{value ?? "—"}</span>
-        </span>
-      ))}
-
-      <span
-        className="label hidden text-muted-foreground xl:block"
-        title="The event corpus is a scenario, not a live feed. The live figures are the source counts above."
-      >
-        {CORPUS_LABEL}
-      </span>
-    </div>
-  );
-}
-
-/** Compact relative time for the header, where space is tight. */
-function timeAgo(ms: number): string {
-  const minutes = Math.max(0, Math.round((Date.now() - ms) / 60000));
-  if (minutes < 1) return "now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 48) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
 }
 
 /** Standard page header — compact, no marketing typography. */
