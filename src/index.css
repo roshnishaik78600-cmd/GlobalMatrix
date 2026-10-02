@@ -1,0 +1,229 @@
+/* DO NOT CHANGE */
+@import "tailwindcss";
+@import "tw-animate-css";
+@custom-variant dark (&:is(.dark *));
+
+/* DO NOT CHANGE */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Swiss palette extensions */
+  --color-signal: var(--signal);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-rule: var(--rule);
+  --font-sans: "Helvetica Neue", Helvetica, "Inter", "Akzidenz-Grotesk",
+    ui-sans-serif, system-ui, Arial, sans-serif;
+  --font-mono: "SFMono-Regular", "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+}
+
+/* CHANGE VALUES FOR THEME */
+/* Swiss / International Typographic Style: square corners, hairline rules,
+   restrained red + black + blue on warm paper white. */
+:root {
+  --radius: 0rem;
+
+  --paper: oklch(0.982 0.002 106);
+  --ink: oklch(0.145 0 0);
+  --rule: oklch(0.86 0.002 106);
+  --signal: oklch(0.545 0.234 27);
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--ink);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.955 0.002 106);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.955 0.002 106);
+  --muted-foreground: oklch(0.44 0.006 106);
+  --accent: oklch(0.955 0.002 106);
+  --accent-foreground: var(--ink);
+  --destructive: var(--signal);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: var(--ink);
+
+  --chart-1: var(--signal);
+  --chart-2: oklch(0.44 0.185 262);
+  --chart-3: oklch(0.145 0 0);
+  --chart-4: oklch(0.62 0.14 262);
+  --chart-5: oklch(0.72 0.16 27);
+
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.955 0.002 106);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: var(--ink);
+}
+
+.dark {
+  --paper: oklch(0.16 0 0);
+  --ink: oklch(0.96 0 0);
+  --rule: oklch(0.3 0 0);
+  --signal: oklch(0.62 0.215 27);
+
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: oklch(0.2 0 0);
+  --card-foreground: var(--ink);
+  --popover: oklch(0.2 0 0);
+  --popover-foreground: var(--ink);
+  --primary: oklch(0.96 0 0);
+  --primary-foreground: oklch(0.16 0 0);
+  --secondary: oklch(0.24 0 0);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.24 0 0);
+  --muted-foreground: oklch(0.66 0 0);
+  --accent: oklch(0.24 0 0);
+  --accent-foreground: var(--ink);
+  --destructive: var(--signal);
+  --border: var(--rule);
+  --input: var(--rule);
+  --ring: oklch(0.96 0 0);
+
+  --chart-1: var(--signal);
+  --chart-2: oklch(0.66 0.16 262);
+  --chart-3: oklch(0.96 0 0);
+  --chart-4: oklch(0.5 0.14 262);
+  --chart-5: oklch(0.72 0.16 27);
+
+  --sidebar: oklch(0.2 0 0);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: oklch(0.96 0 0);
+  --sidebar-primary-foreground: oklch(0.16 0 0);
+  --sidebar-accent: oklch(0.24 0 0);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-sidebar-border: var(--rule);
+  --sidebar-border: var(--rule);
+  --sidebar-ring: oklch(0.96 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  button:not([disabled]),
+  [role="button"]:not([disabled]) {
+    cursor: pointer;
+  }
+  ::selection {
+    background: var(--signal);
+    color: white;
+  }
+}
+
+@layer components {
+  /* Uppercase micro-label — the Swiss caption voice. */
+  .label {
+    @apply text-[10px] font-medium uppercase tracking-[0.18em];
+  }
+
+  .label-lg {
+    @apply text-[11px] font-medium uppercase tracking-[0.2em];
+  }
+
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Hairline grid rules. */
+  .rule-t {
+    @apply border-t border-rule;
+  }
+  .rule-b {
+    @apply border-b border-rule;
+  }
+  .rule-l {
+    @apply border-l border-rule;
+  }
+  .rule-r {
+    @apply border-r border-rule;
+  }
+
+  /* Editorial display type. */
+  .display {
+    @apply font-semibold tracking-[-0.035em] leading-[0.92];
+  }
+
+  .link-underline {
+    @apply underline decoration-[1.5px] underline-offset-[3px];
+  }
+}
+
+@layer utilities {
+  .animate-rise {
+    animation: swiss-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes swiss-rise {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .animate-sweep {
+    animation: swiss-sweep 1.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  @keyframes swiss-sweep {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+}
