@@ -46,6 +46,18 @@ const OUTPUTS = [
     route: "/app/risk",
     body: "Every event against every channel, plus loaded nodes and tail scenarios. Built for concentration risk.",
   },
+  {
+    index: "04",
+    name: "Countries",
+    route: "/app/countries",
+    body: "Economies, blocs and infrastructure ranked by live exposure, with structural dependencies and who depends on them in return.",
+  },
+  {
+    index: "05",
+    name: "Industries",
+    route: "/app/industries",
+    body: "Sectors ranked by derived exposure, with production concentration, demand centres, route dependency and substitution lead time.",
+  },
 ];
 
 export default function Landing() {
@@ -253,10 +265,10 @@ export default function Landing() {
           </div>
 
           <h2 className="display mt-6 max-w-3xl text-[2.2rem] sm:text-[3rem]">
-            Three screens. Nothing else in version one.
+            Five screens. Nothing else in version one.
           </h2>
 
-          <div className="mt-12 grid grid-cols-1 gap-px bg-rule md:grid-cols-3">
+          <div className="mt-12 grid grid-cols-1 gap-px bg-rule md:grid-cols-3 xl:grid-cols-5">
             {OUTPUTS.map((output, i) => (
               <motion.div
                 key={output.index}

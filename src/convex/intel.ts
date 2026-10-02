@@ -2,6 +2,13 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { allAssessments, networkSummary } from "../lib/intel/engine";
+import {
+  corridorIndex,
+  countryIndex,
+  countryProfilePayload,
+  industryIndex,
+  industryProfilePayload,
+} from "../lib/intel/exposure";
 import { SCENARIOS } from "../lib/intel/scenarios";
 import { CHANNELS, type Channel, type Stage } from "../lib/intel/types";
 import { query } from "./_generated/server";
@@ -168,6 +175,45 @@ export const riskBoard = query({
       })),
       summary: networkSummary(all),
     };
+  },
+});
+
+/**
+ * Country and corridor index. Exposure is derived live from the event corpus
+ * by walking the propagation graph to each node — no figure here is stored.
+ */
+export const countryDirectory = query({
+  args: {},
+  handler: async () => {
+    const all = allAssessments(SCENARIOS);
+    return {
+      countries: countryIndex(all),
+      corridors: corridorIndex(all),
+    };
+  },
+});
+
+/** Full profile for one country, bloc, chokepoint or institution. */
+export const countryProfile = query({
+  args: { nodeId: v.string() },
+  handler: async (ctx, args) => {
+    return countryProfilePayload(allAssessments(SCENARIOS), args.nodeId);
+  },
+});
+
+/** Industry index, ranked by live exposure. */
+export const industryDirectory = query({
+  args: {},
+  handler: async () => {
+    return { industries: industryIndex(allAssessments(SCENARIOS)) };
+  },
+});
+
+/** Full profile for one industry. */
+export const industryProfile = query({
+  args: { industryId: v.string() },
+  handler: async (ctx, args) => {
+    return industryProfilePayload(allAssessments(SCENARIOS), args.industryId);
   },
 });
 

@@ -6,7 +6,9 @@ import { CORPUS_LABEL } from "@/lib/intel/scenarios";
 
 const NAV = [
   { to: "/app", label: "Detection", index: "01", end: true },
-  { to: "/app/risk", label: "Risk board", index: "02", end: false },
+  { to: "/app/risk", label: "Risk board", index: "02", end: true },
+  { to: "/app/countries", label: "Countries", index: "03", end: true },
+  { to: "/app/industries", label: "Industries", index: "04", end: true },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {

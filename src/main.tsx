@@ -16,6 +16,10 @@ const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Detection = lazy(() => import("./pages/Detection.tsx"));
 const EventAnalysis = lazy(() => import("./pages/EventAnalysis.tsx"));
 const RiskBoard = lazy(() => import("./pages/RiskBoard.tsx"));
+const Countries = lazy(() => import("./pages/Countries.tsx"));
+const CountryProfile = lazy(() => import("./pages/CountryProfile.tsx"));
+const Industries = lazy(() => import("./pages/Industries.tsx"));
+const IndustryProfile = lazy(() => import("./pages/IndustryProfile.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 // Simple loading fallback for route transitions
@@ -149,6 +153,58 @@ createRoot(document.getElementById("root")!).render(
                   >
                     <AppShell>
                       <RiskBoard />
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/app/countries"
+                element={
+                  <RequireAuth
+                    title="Sign in to open country intelligence"
+                    description="Country and infrastructure profiles are available to signed-in researchers."
+                  >
+                    <AppShell>
+                      <Countries />
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/app/country/:nodeId"
+                element={
+                  <RequireAuth
+                    title="Sign in to open this profile"
+                    description="Country exposure and dependency structure are available to signed-in researchers."
+                  >
+                    <AppShell>
+                      <CountryProfile />
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/app/industries"
+                element={
+                  <RequireAuth
+                    title="Sign in to open industry intelligence"
+                    description="Sector exposure and structure are available to signed-in researchers."
+                  >
+                    <AppShell>
+                      <Industries />
+                    </AppShell>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/app/industry/:industryId"
+                element={
+                  <RequireAuth
+                    title="Sign in to open this sector profile"
+                    description="Sector structure and live exposure are available to signed-in researchers."
+                  >
+                    <AppShell>
+                      <IndustryProfile />
                     </AppShell>
                   </RequireAuth>
                 }
