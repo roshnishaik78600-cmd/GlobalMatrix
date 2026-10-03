@@ -10,7 +10,10 @@ import {
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
-import type { TopologyResult } from "@/convex/macroTopology";
+import type {
+  TopologyCategory,
+  TopologyResult,
+} from "@/convex/macroTopology";
 import { loadColour } from "@/components/viz/exec/Topology";
 import {
   BasisTag,
@@ -31,14 +34,14 @@ import {
 
 /* ----------------------------------------------------------- Global pulse -- */
 
-/** The six domains the pulse reports. Two of them have no connected feed. */
-const PULSE: {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-  /** Why a domain may be unmeasured, stated rather than implied. */
-  gap?: string;
-}[] = [
+/**
+ * The six domains the pulse reports.
+ *
+ * All six always resolve: the topology builds its series from a fixed
+ * six-category set, so there is no per-domain "not connected" case to render
+ * here. If that ever changes, the honest empty state is the branch below.
+ */
+const PULSE: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "geopolitical", label: "Geopolitics", icon: Globe2 },
   { id: "trade-bottlenecks", label: "Trade", icon: Package },
   { id: "energy", label: "Energy", icon: Boxes },
@@ -120,11 +123,7 @@ export function GlobalPulse({ data }: { data: TopologyResult | undefined }) {
                   </span>
                   <Sparkline values={cat.values} />
                   <span className="exec-label min-w-0 truncate normal-case" title={cat.measure}>
-                    {cat.trend === "rising"
-                      ? "building"
-                      : cat.trend === "falling"
-                        ? "easing"
-                        : "steady"}
+                    {statusWord(cat)}
                   </span>
                 </>
               ) : (
@@ -140,6 +139,24 @@ export function GlobalPulse({ data }: { data: TopologyResult | undefined }) {
   );
 }
 
+/**
+ * One honest word per cell.
+ *
+ * The 30-day trend and the latest reading can disagree — a category whose last
+ * day carries no signal reads 0 while the window as a whole trends up. Both
+ * figures stay on screen, but the word has to agree with the number the reader
+ * is actually looking at, or the cell claims a live index is "building" while
+ * displaying zero.
+ */
+function statusWord(cat: TopologyCategory): string {
+  if (cat.intensity <= 0.001) return "no current reading";
+  return cat.trend === "rising"
+    ? "building"
+    : cat.trend === "falling"
+      ? "easing"
+      : "steady";
+}
+
 /** 30-point sparkline. Filled under the line so six of them still read as one strip. */
 function Sparkline({ values }: { values: number[] }) {
   if (values.length < 2) return <div className="h-5 w-full" />;
@@ -152,10 +169,13 @@ function Sparkline({ values }: { values: number[] }) {
     >
       <polyline
         points={values
-          .map(
-            (v, i) =>
-              `${((i / (values.length - 1)) * 100).toFixed(1)},${(19 - v * 18).toFixed(1)}`,
-          )
+          .map((v, i) => {
+            // Clamped: the series is a share of its own ceiling, but a value
+            // outside 0..1 would otherwise plot outside the viewBox and draw
+            // over the neighbouring cell instead of being visibly wrong.
+            const y = 1 + (1 - Math.min(1, Math.max(0, v))) * 18;
+            return `${((i / (values.length - 1)) * 100).toFixed(1)},${y.toFixed(1)}`;
+          })
           .join(" ")}
         fill="none"
         stroke="var(--exec-cyan)"

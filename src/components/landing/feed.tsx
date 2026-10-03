@@ -3,6 +3,7 @@ import { ArrowUpRight, Radar } from "lucide-react";
 import { SOURCE_CLASS_LABEL } from "@/lib/intel/types";
 import { freshnessOf, type Freshness } from "@/lib/freshness";
 import { SOURCE_LIST } from "@/lib/sources";
+import { CORPUS_LABEL } from "@/lib/intel/scenarios";
 import {
   BasisTag,
   ExecCard,
@@ -29,7 +30,6 @@ export interface TimelineEvent {
   /** Publisher of the most recent signal supporting this event. */
   source: string;
   sourceClass: keyof typeof SOURCE_CLASS_LABEL;
-  channel: string;
   score: number;
 }
 
@@ -137,10 +137,12 @@ export function TrustStrip({ health }: { health: SourceHealthRow[] }) {
   const connected = new Set(
     health.filter((h) => h.ok).map((h) => h.sourceId),
   );
-  // Every fetch attempt, newest first, so "last updated" is a real observation
-  // rather than the moment this component happened to render.
+  // Newest *successful* fetch, so "last updated" is a real observation rather
+  // than the moment this component happened to render — and rather than the
+  // timestamp of an attempt that returned an error. A failed connector that
+  // retries last must never be able to date the whole board.
   const latest = health.reduce<number | undefined>((best, h) => {
-    if (!h.retrievedAt) return best;
+    if (!h.ok || !h.retrievedAt) return best;
     return best === undefined || h.retrievedAt > best ? h.retrievedAt : best;
   }, undefined);
 
@@ -255,7 +257,9 @@ const BADGE: Record<string, string> = {
   gdelt: "GDELT",
 };
 
-const CORPUS_NOTE = "Scenario corpus v1.0.0";
+// Referenced, not retyped: a corpus version bump has to move every surface
+// that names it, so the string lives in exactly one place.
+const CORPUS_NOTE = CORPUS_LABEL;
 
 /**
  * The weakest freshness among the sources that reported.

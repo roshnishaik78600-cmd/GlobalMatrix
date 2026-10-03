@@ -1,5 +1,5 @@
-import { useMemo } from "react";
-import { Link } from "react-router";
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import {
   ArrowRight,
@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { TopologyResult } from "@/convex/macroTopology";
-import { CHANNEL_LABEL } from "@/lib/intel/types";
+import { getNode } from "@/lib/intel/nodes";
 import { CORPUS_LABEL } from "@/lib/intel/scenarios";
 import { riskColorForScore } from "@/lib/intel/visual";
 import { WorldMap } from "@/components/viz/WorldMap";
@@ -59,12 +59,36 @@ export default function Landing() {
     | undefined;
   const health = useQuery(api.observations.sourceHealth);
 
+  // Client-side navigation, so inspecting a country on the map does not throw
+  // away the SPA and the shared selection along with it.
+  const navigate = useNavigate();
+
   // The map's selection is the shared console selection, so a country picked
   // here is still selected after crossing into /app. Landing is mounted inside
   // FocusProvider like every other route.
   const { focus, setFocus } = useFocus();
-  const nodeId = focus?.kind === "node" ? focus.id : null;
-  const selectNode = (id: string) => setFocus({ kind: "node", id });
+  const sharedNodeId = focus?.kind === "node" ? focus.id : null;
+
+  // The reverse must not happen: the shared focus outlives the route, so a
+  // country chosen inside the console would otherwise leave the marketing page
+  // with a country drawer already covering it. The map is highlighted from the
+  // shared selection, but the drawer is gated on what was picked on this page.
+  const [pickedHere, setPickedHere] = useState<string | null>(null);
+  const selectNode = (id: string) => {
+    setPickedHere(id);
+    setFocus({ kind: "node", id });
+  };
+  const nodeId = pickedHere;
+
+  // The map can only draw a node that has coordinates, so the count beside it
+  // has to be the count of drawable nodes. Institutions such as SWIFT and the
+  // institutional-portfolio node carry no location and are dropped by the map
+  // before they reach the screen; counting them would put a number on the page
+  // that a reader cannot match against the picture.
+  const mappable = useMemo(
+    () => (data?.mapNodes ?? []).filter((n) => getNode(n.nodeId).lat !== undefined),
+    [data],
+  );
 
   const timeline = useMemo<TimelineEvent[]>(() => {
     if (!feed) return [];
@@ -76,9 +100,8 @@ export default function Landing() {
         place: row.topNodes[0]?.label ?? "no dominant location",
         at: row.detectedAt,
         title: row.title,
-        source: row.latestSignal?.source ?? "Scenario corpus v1.0.0",
+        source: row.latestSignal?.source ?? CORPUS_LABEL,
         sourceClass: row.latestSignal?.sourceClass ?? "intel",
-        channel: CHANNEL_LABEL[row.dominantChannel],
         score: row.score30,
       }));
   }, [feed]);
@@ -163,7 +186,7 @@ export default function Landing() {
               value: (financial.intensity * 100).toFixed(0),
               tone: loadColour(financial.intensity),
             }}
-            right={{ label: "Trend", value: financial.trend.slice(0, 4) }}
+            right={{ label: "Trend", value: TREND_LABEL[financial.trend] }}
           />
         ) : (
           <UnavailablePreview />
@@ -229,7 +252,7 @@ export default function Landing() {
             </h2>
             <span className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
               {data
-                ? `${data.mapNodes.length} places · ${data.mapEvents.length} events · ${data.flows.length} couplings`
+                ? `${mappable.length} places · ${data.mapEvents.length} events · ${data.flows.length} couplings`
                 : "resolving"}
               {" · "}
               <FreshnessTag freshness="historical" className="exec-label" />
@@ -242,10 +265,10 @@ export default function Landing() {
               flows={data.flows}
               events={data.mapEvents.filter((e) => e.nodeId !== "")}
               height={480}
-              selected={nodeId}
+              selected={sharedNodeId}
               onSelect={selectNode}
               onInspect={(id) => {
-                window.location.href = `/app/country/${id}`;
+                navigate(`/app/country/${id}`);
               }}
             />
           ) : (
@@ -254,7 +277,10 @@ export default function Landing() {
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--exec-hairline)] px-4 py-2">
             {[
-              { label: "Economy", shape: "circle" },
+              // Economies and corridors draw with the same circle marker, so the
+              // legend names them together rather than implying a distinction
+              // the map does not make.
+              { label: "Economy / corridor", shape: "circle" },
               { label: "Chokepoint", shape: "diamond" },
             ].map((g) => (
               <span key={g.label} className="flex items-center gap-1.5">
@@ -363,6 +389,16 @@ export default function Landing() {
 
 /* ------------------------------------------------------------------ parts -- */
 
+/**
+ * `TopologyCategory.trend` is a direction, not a series, so it is labelled with
+ * the same three words the pulse uses rather than printed raw.
+ */
+const TREND_LABEL: Record<TopologyResult["categories"][number]["trend"], string> = {
+  rising: "rising",
+  falling: "falling",
+  flat: "steady",
+};
+
 function LandingNav() {
   return (
     <nav className="sticky top-0 z-30 border-b border-[var(--exec-hairline)] bg-[var(--exec-base)]/90 backdrop-blur">
@@ -462,7 +498,7 @@ function AnalystPreview({
 
         <p className="exec-label">Sources</p>
         <p className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
-          {evidence?.source ?? "Scenario corpus v1.0.0"} · every claim links to the
+          {evidence?.source ?? CORPUS_LABEL} · every claim links to the
           ledger it came from
         </p>
       </div>
@@ -503,16 +539,14 @@ function AccessBand() {
                 "Public intelligence",
               ],
             },
-            {
-              title: "Sign in only to save",
-              items: [
-                "Watchlists",
-                "Alerts",
-                "Comments and reviews",
-                "Saved analysis",
-                "Personal scenarios",
-              ],
-            },
+          {
+            title: "Sign in only to save",
+            items: [
+              "Watchlists",
+              "Comments and reviews",
+              "Saved analysis",
+            ],
+          },
           ].map((col) => (
             <div key={col.title} className="glass px-3.5 py-3">
               <p className="exec-label text-[var(--exec-ink)]">{col.title}</p>
