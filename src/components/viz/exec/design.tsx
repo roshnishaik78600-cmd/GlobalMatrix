@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router";
-import { AlertTriangle, Inbox, Loader2 } from "lucide-react";
+import { AlertTriangle, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   BasisTag,
@@ -96,7 +96,10 @@ export function PageFrame({
       ) : null}
 
       <main className="min-w-0 flex-1 px-4 py-4 lg:px-6">
-        <Grid>{children}</Grid>
+        {/* The one grid, inlined: 12 columns on desktop, one on mobile, a
+            single gutter. Not exported, because every page reaches it through
+            PageFrame and a second entry point would be a second thing to drift. */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">{children}</div>
       </main>
 
       {footer ? (
@@ -105,21 +108,6 @@ export function PageFrame({
         </footer>
       ) : null}
     </ExecPage>
-  );
-}
-
-/** The one grid. 12 columns on desktop, 1 on mobile, one gutter everywhere. */
-export function Grid({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn("grid grid-cols-1 gap-4 lg:grid-cols-12", className)}>
-      {children}
-    </div>
   );
 }
 
@@ -438,98 +426,6 @@ export function Action({
 
 /* ----------------------------------------------------------------- Chart -- */
 
-/**
- * The chart frame.
- *
- * Title, optional description, the visual, and exactly one provenance line —
- * which is how "do not repeat giant source labels under every chart" is
- * satisfied: the source appears once, here, and the body is not allowed to
- * repeat it. Height is a prop with a small fixed set of options so charts line
- * up across pages instead of each choosing its own.
- */
-export function ChartFrame({
-  title,
-  description,
-  legend,
-  children,
-  height = "md",
-  className,
-  bodyClassName,
-}: {
-  title: string;
-  description?: string;
-  legend?: ReactNode;
-  children: ReactNode;
-  /** One of four sizes. Arbitrary heights are how charts drift apart. */
-  height?: "sm" | "md" | "lg" | "xl";
-  className?: string;
-  bodyClassName?: string;
-}) {
-  return (
-    <div className={cn("flex min-w-0 flex-col", className)}>
-      <PanelHead title={title}>{null}</PanelHead>
-      {description ? (
-        <p className="px-3 pt-2 text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
-          {description}
-        </p>
-      ) : null}
-      <div
-        className={cn(
-          "min-w-0 flex-1 px-3 py-3",
-          height === "sm" && "min-h-[120px]",
-          height === "md" && "min-h-[200px]",
-          height === "lg" && "min-h-[300px]",
-          height === "xl" && "min-h-[420px]",
-          bodyClassName,
-        )}
-      >
-        {children}
-      </div>
-      {legend ? (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--exec-hairline)] px-3 py-1.5">
-          {legend}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-/** Legend swatch + label. One shape per meaning, reused everywhere. */
-export function LegendItem({
-  colour,
-  label,
-  shape = "line",
-}: {
-  colour: string;
-  label: string;
-  shape?: "line" | "dot" | "square" | "diamond";
-}) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span
-        className={cn(
-          "inline-block shrink-0",
-          shape === "dot" && "size-1.5 rounded-full",
-          shape === "square" && "size-2",
-          shape === "line" && "h-px w-4",
-        )}
-        style={
-          shape === "diamond"
-            ? {
-                background: colour,
-                width: 7,
-                height: 7,
-                transform: "rotate(45deg)",
-              }
-            : { background: colour }
-        }
-        aria-hidden
-      />
-      <span className="exec-label">{label}</span>
-    </span>
-  );
-}
-
 /** The 30-point sparkline used inside metrics and dense table rows. */
 export function Sparkline({
   values,
@@ -651,81 +547,7 @@ export function DataTable({
   );
 }
 
-/* ----------------------------------------------------------------- Rows -- */
-
-/**
- * One entity in a list. Used wherever a reader picks something to inspect, so
- * selection looks the same on Events, Countries and the chain explorer.
- */
-export function EntityRow({
-  title,
-  meta,
-  value,
-  tone,
-  onClick,
-  active,
-  to,
-}: {
-  title: string;
-  meta?: ReactNode;
-  value?: string;
-  tone?: string;
-  onClick?: () => void;
-  active?: boolean;
-  to?: string;
-}) {
-  const inner = (
-    <>
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="truncate text-[12.5px] font-medium text-[var(--exec-ink)]">
-          {title}
-        </span>
-        {meta ? (
-          <span className="exec-num truncate text-[9.5px] text-[var(--exec-ink-dim)]">
-            {meta}
-          </span>
-        ) : null}
-      </span>
-      {value ? (
-        <span
-          className="exec-num shrink-0 text-[13px] font-semibold"
-          style={{ color: tone ?? "var(--exec-ink)" }}
-        >
-          {value}
-        </span>
-      ) : null}
-    </>
-  );
-  const cls = cn(
-    "flex w-full items-center gap-3 border-b border-[var(--exec-hairline)] px-3 py-2 text-left transition-colors last:border-b-0",
-    (onClick || to) && "hover:bg-[var(--exec-surface-strong)]",
-    active && "bg-[color-mix(in_srgb,var(--exec-cyan)_10%,transparent)]",
-  );
-  if (to) {
-    return (
-      <Link to={to} className={cls}>
-        {inner}
-      </Link>
-    );
-  }
-  return (
-    <button type="button" onClick={onClick} className={cls} disabled={!onClick}>
-      {inner}
-    </button>
-  );
-}
-
 /* ---------------------------------------------------------------- States -- */
-
-/** Loading. Same box the empty state uses, so panels never resize mid-load. */
-export function LoadingState({ label = "Loading" }: { label?: string }) {
-  return (
-    <div className="flex min-h-[132px] items-center justify-center gap-2 p-4">
-      <Loader2 className="size-3.5 animate-spin text-[var(--exec-ink-dim)]" aria-hidden />
-      <span className="exec-label">{label}</span>
-    </div>
-  );
-}
 
 /**
  * The whole-page loading state.
@@ -832,31 +654,6 @@ export function ErrorState({
 
 /* ------------------------------------------------------------ Typography -- */
 
-/**
- * Typographic register.
- *
- * Level 1 answers and Level 6 coefficients must not look alike. `Lead` is the
- * one number a page is about; `Note` is the footnote-sized qualifier; `Fine`
- * is technical and only ever appears below a disclosure.
- */
-export function Lead({ children }: { children: ReactNode }) {
-  return (
-    <p className="exec-num text-[2rem] leading-none font-bold tracking-[-0.03em] text-[var(--exec-ink)]">
-      {children}
-    </p>
-  );
-}
-
-export function Note({ children }: { children: ReactNode }) {
-  return (
-    <p className="text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">{children}</p>
-  );
-}
-
-/** Technical register — deliberately the smallest type in the product. */
-export function Fine({ children }: { children: ReactNode }) {
-  return <p className="exec-num text-[10px] leading-relaxed text-[var(--exec-ink-dim)]">{children}</p>;
-}
 
 /** Re-export so pages never import from two places for one number. */
 export { num };

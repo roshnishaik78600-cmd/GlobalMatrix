@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useTradeData } from "@/hooks/use-verified-data";
 import { freshnessOf } from "@/lib/freshness";
+import { compact } from "@/lib/numbers";
 import { getNode } from "@/lib/intel/nodes";
 import { CHANNEL_LABEL } from "@/lib/intel/types";
 import { useFocus } from "@/lib/focus";
@@ -175,7 +176,7 @@ export default function Trade() {
                 No reported values stored.
               </p>
             ) : (
-              <div className="max-h-[19rem] overflow-y-auto">
+              <div className="max-h-[19rem] overflow-x-auto overflow-y-auto">
                 <table className="w-full text-left">
                   <thead className="sticky top-0 bg-[var(--exec-base)]">
                     <tr className="border-b border-[var(--exec-hairline)]">
@@ -208,11 +209,11 @@ export default function Trade() {
                             <td className="px-3 py-1.5 text-[11.5px] text-[var(--exec-ink)]">
                               {getNode(f.reporter).label}
                             </td>
-                            <td className="exec-num px-3 py-1.5 text-right text-[11px]">
-                              {money(f.exportsUsd)}
+                            <td className="exec-num px-3 py-1.5 text-right text-[11px] whitespace-nowrap">
+                              {compact(f.exportsUsd)}
                             </td>
-                            <td className="exec-num px-3 py-1.5 text-right text-[11px]">
-                              {money(f.importsUsd)}
+                            <td className="exec-num px-3 py-1.5 text-right text-[11px] whitespace-nowrap">
+                              {compact(f.importsUsd)}
                             </td>
                             <td
                               className="exec-num px-3 py-1.5 text-right text-[11px] font-semibold"
@@ -224,7 +225,7 @@ export default function Trade() {
                               }}
                             >
                               {balance >= 0 ? "+" : "−"}
-                              {money(Math.abs(balance))}
+                              {compact(balance)}
                             </td>
                           </tr>
                         );
@@ -297,9 +298,3 @@ export default function Trade() {
 }
 
 /** Reporter ledger formatting: the same convention the balance board uses. */
-function money(value: number): string {
-  const abs = Math.abs(value);
-  if (abs >= 1e12) return `${(value / 1e12).toFixed(2)}T`;
-  if (abs >= 1e9) return `${(value / 1e9).toFixed(0)}B`;
-  return `${(value / 1e6).toFixed(0)}M`;
-}

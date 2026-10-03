@@ -84,18 +84,39 @@ class RootErrorBoundary extends React.Component<
   }
   render() {
     if (this.state.hasError) {
+      // The raw message and stack are kept, but behind a disclosure. Showing a
+      // stack trace as the page's primary content told a reader nothing they
+      // could act on and leaked internals; a reader who needs the diagnostic
+      // can still open it.
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background text-foreground p-6">
-          <div className="max-w-lg text-center">
-            <p className="text-sm font-semibold">Preview runtime error</p>
-            <p className="mt-2 text-xs text-muted-foreground break-words">
-              {this.state.message}
-            </p>
-            {this.state.stack && (
-              <pre className="mt-3 text-left text-[10px] leading-4 text-muted-foreground/80 max-h-40 overflow-auto rounded border border-border/60 p-2">
-                {this.state.stack}
-              </pre>
-            )}
+        <div className="min-h-screen bg-[var(--exec-base)] px-4 py-10 text-[var(--exec-ink)]">
+          <div className="mx-auto max-w-lg border border-[var(--exec-hairline)]">
+            <div className="flex flex-col gap-1.5 p-4">
+              <div className="flex items-center gap-2">
+                <span className="size-1.5 shrink-0 rounded-full bg-[var(--exec-crimson)]" aria-hidden />
+                <span className="exec-label text-[var(--exec-crimson)]">ERROR</span>
+              </div>
+              <p className="text-[12.5px] font-medium text-[var(--exec-ink)]">
+                GlobalMatrix could not finish rendering this view
+              </p>
+              <p className="max-w-md text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
+                The page stopped before it could draw. Your data is
+                unaffected — reloading usually recovers it. If it keeps
+                happening, the diagnostics below identify where.
+              </p>
+            </div>
+            {this.state.stack ? (
+              <details className="border-t border-[var(--exec-hairline)] px-4 py-2">
+                <summary className="exec-label cursor-pointer select-none text-[var(--exec-ink-dim)]">
+                  Diagnostics
+                </summary>
+                <pre className="mt-2 max-h-48 overflow-auto break-words text-[10px] leading-4 whitespace-pre-wrap text-[var(--exec-ink-dim)]">
+                  {this.state.message}
+                  {"\n"}
+                  {this.state.stack}
+                </pre>
+              </details>
+            ) : null}
           </div>
         </div>
       );

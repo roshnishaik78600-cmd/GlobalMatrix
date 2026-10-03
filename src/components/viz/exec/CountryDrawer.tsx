@@ -9,6 +9,7 @@ import { getNode } from "@/lib/intel/nodes";
 import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 import { riskColorForScore } from "@/lib/intel/visual";
 import { pct } from "@/lib/format";
+import { compact } from "@/lib/numbers";
 import { freshnessOf } from "@/lib/freshness";
 import { macroSeries, useMacroData, useTradeData } from "@/hooks/use-verified-data";
 import { NodeRiskRadar, RadarLegend } from "./NodeRiskRadar";
@@ -321,9 +322,9 @@ function TradeTab({ nodeId }: { nodeId: string }) {
                 <BasisTag basis="observed" />
               </div>
               <div className="mt-1.5 flex gap-4">
-                <Metric label="Exports" value={f.exportsUsd} />
-                <Metric label="Imports" value={f.importsUsd} />
-                <Metric label="Balance" value={f.exportsUsd - f.importsUsd} signed />
+                <DrawerMetric label="Exports" value={f.exportsUsd} />
+                <DrawerMetric label="Imports" value={f.importsUsd} />
+                <DrawerMetric label="Balance" value={f.exportsUsd - f.importsUsd} signed />
               </div>
             </li>
           ))}
@@ -338,7 +339,7 @@ function TradeTab({ nodeId }: { nodeId: string }) {
   );
 }
 
-function Metric({
+function DrawerMetric({
   label,
   value,
   signed,
@@ -347,7 +348,9 @@ function Metric({
   value: number;
   signed?: boolean;
 }) {
-  const t = Math.abs(value) >= 1e12 ? `${(value / 1e12).toFixed(2)}T` : `${(value / 1e9).toFixed(1)}B`;
+  // compact() rather than a local branch: the previous inline version had no
+  // M or K step, so a sub-billion figure rendered as "0.0B".
+  const t = compact(value);
   return (
     <span className="min-w-0">
       <span className="exec-label block">{label}</span>

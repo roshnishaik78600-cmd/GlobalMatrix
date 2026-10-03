@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { ArrowUpRight, TrendingDown, TrendingUp } from "lucide-react";
 import { Panel, Skeleton } from "@/components/viz/core";
+import { compact } from "@/lib/numbers";
 import { NoVerifiedData } from "@/components/viz/Unavailable";
 import { SourceLine, SourceNote } from "@/components/viz/Provenance";
 import {
@@ -26,14 +27,14 @@ import { pct } from "@/lib/format";
  * whole panel untrustworthy.
  */
 
-/** Compact absolute-size formatting so trade values stay readable. */
-export function usd(value: number): string {
-  const abs = Math.abs(value);
-  if (abs >= 1e12) return `${(value / 1e12).toFixed(2)}T`;
-  if (abs >= 1e9) return `${(value / 1e9).toFixed(1)}B`;
-  if (abs >= 1e6) return `${(value / 1e6).toFixed(0)}M`;
-  return value.toFixed(0);
-}
+/**
+ * Compact absolute-size formatting for trade values.
+ *
+ * Deliberately an alias of the one canonical formatter rather than a second
+ * implementation: these two used to round the same figure differently, so a
+ * reader comparing a Sankey label against a table cell saw two numbers.
+ */
+export const usd = compact;
 
 /**
  * Zero-baseline sparkline.
@@ -265,7 +266,7 @@ export function TradePanel({ limit = 7 }: { limit?: number }) {
                   {node?.label ?? f.reporter}
                 </Link>
                 <span className="num w-16 shrink-0 text-right text-[11px]">
-                  ${usd(total)}
+                  {usd(total)}
                 </span>
                 <span
                   className={`num w-16 shrink-0 text-right text-[10px] ${
@@ -282,12 +283,12 @@ export function TradePanel({ limit = 7 }: { limit?: number }) {
                 <span
                   className="h-full bg-signal"
                   style={{ width: `${(f.exportsUsd / max) * 100}%` }}
-                  title={`Exports $${usd(f.exportsUsd)}`}
+                  title={`Exports ${usd(f.exportsUsd)}`}
                 />
                 <span
                   className="h-full bg-rule"
                   style={{ width: `${(f.importsUsd / max) * 100}%` }}
-                  title={`Imports $${usd(f.importsUsd)}`}
+                  title={`Imports ${usd(f.importsUsd)}`}
                 />
               </div>
             </li>

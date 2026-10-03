@@ -1,57 +1,17 @@
 import { useState, type ReactNode, useEffect } from "react";
-import { Link, NavLink, useNavigate } from "react-router";
-import { X } from "lucide-react";
-import {
-  Activity,
-  AlertTriangle,
-  Boxes,
-  ChevronLeft,
-  Database,
-  Factory,
-  Globe2,
-  LayoutGrid,
-  Network,
-  Radar,
-  type LucideIcon,
-} from "lucide-react";
+import { Link, useNavigate } from "react-router";
+import { ChevronLeft, Menu, X } from "lucide-react";
 import { SystemBar } from "@/components/viz/exec/SystemBar";
 import { CountryDrawer } from "@/components/viz/exec/CountryDrawer";
 import { useAuth } from "@/hooks/use-auth";
 import { useAuthAction } from "@/hooks/use-auth-action";
 import { CommandPalette } from "@/components/intel/CommandPalette";
+import { NavList, NavSheet } from "@/components/viz/NavRail";
 import { FocusDrawer } from "@/components/viz/FocusPanel";
 import { useFocus } from "@/lib/focus";
 import { getNode } from "@/lib/intel/nodes";
 import { cn } from "@/lib/utils";
 
-interface NavItem {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-  end?: boolean;
-  /** Shown greyed with a reason instead of linking, because no data exists. */
-  unavailable?: string;
-}
-
-const NAV: NavItem[] = [
-  { to: "/app", label: "Overview", icon: LayoutGrid, end: true },
-  { to: "/app/data", label: "Sources", icon: Database },
-  { to: "/app/chain", label: "Event → world", icon: Network },
-  { to: "/app/events", label: "Events", icon: Activity },
-  { to: "/app/world", label: "World", icon: Globe2 },
-  { to: "/app/countries", label: "Countries", icon: Globe2 },
-  { to: "/app/companies", label: "Companies", icon: Factory, unavailable: "no company-level data connected" },
-  { to: "/app/industries", label: "Industries", icon: Boxes },
-  { to: "/app/trade", label: "Trade", icon: Boxes },
-  { to: "/app/supply", label: "Supply chains", icon: Boxes },
-  { to: "/app/markets", label: "Markets", icon: Activity },
-  { to: "/app/policy", label: "Policy", icon: AlertTriangle, unavailable: "no policy registry connected" },
-  { to: "/app/risk", label: "Risk", icon: AlertTriangle },
-  { to: "/app/graph", label: "Graph", icon: Network },
-  { to: "/app/scenarios", label: "Scenarios", icon: Radar },
-  { to: "/app/analogues", label: "Analogues", icon: Boxes, unavailable: "no historical corpus connected" },
-  { to: "/app/analyst", label: "AI analyst", icon: Activity },
-];
 
 export function Shell({ children }: { children: ReactNode }) {
   const { user, signOut } = useAuth();
@@ -59,6 +19,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
   const { focus, clear } = useFocus();
 
   const handleSignOut = async () => {
@@ -79,8 +40,11 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <aside
+        // Hidden outright below lg. A 212px rail inside a 390px viewport
+        // leaves 178px for content, so the rail collapses into the sheet
+        // instead of squeezing the page it is meant to frame.
         className={cn(
-          "sticky top-0 z-30 flex h-screen shrink-0 flex-col border-r border-rule bg-[var(--sidebar)] transition-[width] duration-200",
+          "sticky top-0 z-30 hidden h-screen shrink-0 flex-col border-r border-rule bg-[var(--sidebar)] transition-[width] duration-200 lg:flex",
           collapsed ? "w-[52px]" : "w-[212px]",
         )}
       >
@@ -97,56 +61,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </Link>
 
         <nav className="min-h-0 flex-1 overflow-y-auto py-1" aria-label="Primary">
-          <ul>
-            {NAV.map((item) => {
-              const Icon = item.icon;
-              if (item.unavailable) {
-                return (
-                  <li key={item.to}>
-                    <button
-                      type="button"
-                      disabled
-                      title={`Unavailable — ${item.unavailable}`}
-                      className="flex w-full cursor-not-allowed items-center gap-2.5 px-3 py-1.5 text-left text-muted-foreground/45"
-                    >
-                      <Icon className="size-3.5 shrink-0" aria-hidden />
-                      {!collapsed ? (
-                        <span className="truncate text-[12px]">{item.label}</span>
-                      ) : null}
-                      {!collapsed ? (
-                        <span
-                          className="ml-auto text-[8px] tracking-wider uppercase"
-                          title="Not measured yet — the page explains why"
-                        >
-                          soon
-                        </span>
-                      ) : null}
-                    </button>
-                  </li>
-                );
-              }
-              return (
-                <li key={item.to}>
-                  <NavLink
-                    to={item.to}
-                    end={item.end}
-                    title={collapsed ? item.label : undefined}
-                    className={({ isActive }) =>
-                      cn(
-                        "flex items-center gap-2.5 border-l-2 px-3 py-1.5 text-[12px] transition-colors",
-                        isActive
-                          ? "border-signal bg-white/6 text-foreground"
-                          : "border-transparent text-muted-foreground hover:bg-white/4 hover:text-foreground",
-                      )
-                    }
-                  >
-                    <Icon className="size-3.5 shrink-0" aria-hidden />
-                    {!collapsed ? <span className="truncate">{item.label}</span> : null}
-                  </NavLink>
-                </li>
-              );
-            })}
-          </ul>
+          <NavList collapsed={collapsed} />
         </nav>
 
         <button
@@ -165,6 +80,23 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Persistent system bar: source state, search, global map layer. */}
         <header className="sticky top-0 z-20">
+          {/* The menu button occupies exactly the sidebar's width so the
+              content beneath it does not shift when navigation moves between
+              the rail and the sheet. */}
+          <div className="flex items-center border-b border-rule lg:hidden">
+            <button
+              type="button"
+              onClick={() => setNavOpen(true)}
+              aria-label="Open navigation"
+              aria-expanded={navOpen}
+              className="flex h-12 w-12 shrink-0 items-center justify-center border-r border-rule text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Menu className="size-4" />
+            </button>
+            <span className="min-w-0 truncate px-3 text-[11px] font-semibold tracking-[0.18em] uppercase">
+              GlobalMatrix
+            </span>
+          </div>
           <SystemBar onOpenSearch={() => setSearchOpen(true)} />
           <div className="flex min-h-0 items-center justify-end gap-2 border-b border-rule bg-background/95 px-3 py-1">
             {isAuthenticated ? (
@@ -222,6 +154,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {children}
       </div>
 
+      <NavSheet open={navOpen} onClose={() => setNavOpen(false)} />
       <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
       {/* Countries get the ten-module board; every other entity keeps the
           six-question drawer. One drawer per kind, not two competing ones. */}

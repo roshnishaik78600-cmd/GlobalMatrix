@@ -77,11 +77,11 @@ export function NodeEvidence({
         <div className="px-3 py-2.5">
           <p className="label text-muted-foreground">Merchandise trade</p>
           <div className="mt-1.5 flex items-baseline justify-between gap-2">
-            <span className="num text-[12px]">${usd(flow.exportsUsd)}</span>
+            <span className="num text-[12px]">{usd(flow.exportsUsd)}</span>
             <span className="label text-muted-foreground">exports</span>
           </div>
           <div className="mt-1 flex items-baseline justify-between gap-2">
-            <span className="num text-[12px]">${usd(flow.importsUsd)}</span>
+            <span className="num text-[12px]">{usd(flow.importsUsd)}</span>
             <span className="label text-muted-foreground">imports</span>
           </div>
           <div className="mt-2">

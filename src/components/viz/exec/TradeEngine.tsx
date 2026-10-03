@@ -3,6 +3,7 @@ import { useMacroData, macroSeries } from "@/hooks/use-verified-data";
 import { freshnessOf } from "@/lib/freshness";
 import { getNode } from "@/lib/intel/nodes";
 import { cn } from "@/lib/utils";
+import { compact } from "@/lib/numbers";
 import type { TradeFlow } from "@/hooks/use-verified-data";
 import {
   BasisTag,
@@ -30,13 +31,7 @@ import {
 const EXPORT_COLOUR = "var(--exec-cyan)";
 const IMPORT_COLOUR = "color-mix(in srgb, var(--exec-amber) 78%, transparent)";
 
-function usd(value: number): string {
-  const abs = Math.abs(value);
-  if (abs >= 1e12) return `${(value / 1e12).toFixed(2)}T`;
-  if (abs >= 1e9) return `${(value / 1e9).toFixed(0)}B`;
-  if (abs >= 1e6) return `${(value / 1e6).toFixed(0)}M`;
-  return value.toFixed(0);
-}
+const usd = compact;
 
 /* ------------------------------------------------------------------ Sankey */
 
@@ -91,7 +86,7 @@ export function TradeSankey({ flows }: { flows: TradeFlow[] }) {
           viewBox={`0 0 ${W} ${H}`}
           className="h-auto w-full min-w-[34rem]"
           role="img"
-          aria-label={`Sankey of reported exports and imports to world trade. Total ${usd(grand)}.`}
+          aria-label={`Sankey of reported exports and imports to world trade. Total {usd(grand)}.`}
         >
           <defs>
             <linearGradient id="gm-exp" x1="0" x2="1">
@@ -151,7 +146,7 @@ export function TradeSankey({ flows }: { flows: TradeFlow[] }) {
                 fill="var(--exec-ink-dim)"
                 style={{ fontSize: 9, paintOrder: "stroke", stroke: "var(--exec-base)", strokeWidth: 3 }}
               >
-                ${usd(row.total)}
+                {usd(row.total)}
               </text>
             </g>
           ))}
@@ -185,7 +180,7 @@ export function TradeSankey({ flows }: { flows: TradeFlow[] }) {
                 fill="var(--exec-ink-dim)"
                 style={{ fontSize: 10, paintOrder: "stroke", stroke: "var(--exec-base)", strokeWidth: 3 }}
               >
-                ${usd(s.value)}
+                {usd(s.value)}
               </text>
             </g>
           ))}
@@ -259,7 +254,7 @@ function Readout({
                 : colour ?? "var(--exec-ink)",
         }}
       >
-        {signed && value > 0 ? "+" : ""}${usd(value)}
+        {signed && value > 0 ? "+" : ""}{usd(value)}
       </span>
     </span>
   );
@@ -436,7 +431,7 @@ export function TradeBalance({ flows }: { flows: TradeFlow[] }) {
                   color: surplus ? "var(--exec-emerald)" : "var(--exec-crimson)",
                 }}
               >
-                {surplus ? "+" : "-"}${usd(r.balance)}
+                {surplus ? "+" : "-"}{usd(r.balance)}
               </span>
             </li>
           );
