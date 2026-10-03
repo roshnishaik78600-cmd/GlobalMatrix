@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import { ArrowUpRight } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -9,21 +9,22 @@ import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 import { riskColorForScore } from "@/lib/intel/visual";
 import { WorldMap } from "@/components/viz/WorldMap";
 import { Skeleton } from "@/components/viz/core";
+import { getNode } from "@/lib/intel/nodes";
+import { count, num, pct } from "@/lib/numbers";
+import { CORPUS_LABEL } from "@/lib/intel/scenarios";
 import {
-  BasisTag,
-  Col,
-  DominantCard,
-  ExecCard,
-  ExecGrid,
-  ExecLink,
-  ExecPage,
-  FreshnessTag,
-  NoDataAvailable,
-  PageTitle,
-  SectionTitle,
-  SegmentedControl,
-  StatTile,
-} from "@/components/viz/exec/system";
+  Action,
+  DataType,
+  EmptyState,
+  FilterBar,
+  Metric,
+  MetricGrid,
+  PageFrame,
+  PanelHead,
+  Region,
+  Segmented,
+} from "@/components/viz/exec/design";
+import { FreshnessTag } from "@/components/viz/exec/system";
 import {
   DomainSwitch,
   GaugeCluster,
@@ -32,8 +33,8 @@ import {
   loadColour,
   type TickerEvent,
 } from "@/components/viz/exec/Topology";
-import { ProvenanceFoot } from "@/components/viz/exec/system";
 import { freshnessOf } from "@/lib/freshness";
+import { period as periodLabel } from "@/lib/numbers";
 
 /**
  * The executive command centre.
@@ -80,7 +81,7 @@ export default function Overview() {
         band: e.band,
         channel: e.dominantChannel,
         confidence: e.confidence,
-        source: e.signals[0]?.source ?? "Scenario corpus v1.0.0",
+        source: e.signals[0]?.source ?? CORPUS_LABEL,
         inWindow: Date.parse(e.detectedAt) >= cutoff,
       }));
   }, [data, timeWindow]);
@@ -90,273 +91,221 @@ export default function Overview() {
   const mapEvents = (data.mapEvents ?? []).filter((e) => e.nodeId !== "");
   const mapChannel = domain === "risk" ? null : domain;
   const hottest = data.hottestCountries[0];
+  // Only places the map can actually draw are counted, so the number on the
+  // page matches the number of markers in the picture.
+  const mappable = data.mapNodes.filter((n) => getNode(n.nodeId).lat !== undefined);
 
   return (
-    <ExecPage>
-      <PageTitle
-        title="Executive command centre"
-        lede="One map of where risk is concentrated, the macro topology behind it, and what actually changed. Every figure is labelled as observed, modelled or scenario."
-        right={
-          <>
-            <SegmentedControl
-              options={[
-                { id: "1h", label: "1H" },
-                { id: "6h", label: "6H" },
-                { id: "24h", label: "24H" },
-                { id: "7d", label: "7D" },
-              ]}
-              value={timeWindow}
-              onChange={setWindow}
-            />
-            <ExecLink to="/app/risk">Risk explorer →</ExecLink>
-            <ExecLink to="/app/scenarios">Scenario lab →</ExecLink>
-          </>
-        }
-      />
+    <PageFrame
+      eyebrow="Overview"
+      title="Executive command centre"
+      lede="Where global risk is concentrated right now, the macro topology behind it, and what changed."
+      actions={
+        <>
+          <Action to="/app/risk">Risk explorer</Action>
+          <Action to="/app/scenarios">Scenario lab</Action>
+        </>
+      }
+      controls={
+        <FilterBar scope={`${mappable.length} places · ${data.flows.length} couplings · ${mapEvents.length} events`}>
+          <span className="exec-label">Window</span>
+          <Segmented
+            label="Time window"
+            options={[
+              { id: "1h", label: "1H" },
+              { id: "6h", label: "6H" },
+              { id: "24h", label: "24H" },
+              { id: "7d", label: "7D" },
+            ]}
+            value={timeWindow}
+            onChange={setWindow}
+          />
+          <DomainSwitch
+            value={domain}
+            onChange={(next) => {
+              setDomain(next);
+              if (next === "risk") setTopologyFilter(null);
+              else setTopologyFilter(next);
+            }}
+          />
+        </FilterBar>
+      }
+      footer={
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <DataType type="scenario" />
+          <span className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
+            {CORPUS_NOTE}
+          </span>
+          <Action to="/methodology">Methodology</Action>
+        </div>
+      }
+    >
+      {/* LEVEL 1 — one dominant object. The map. Everything else is sized to
+          support it rather than compete with it. */}
+      <Region width={8} dominant>
+        <PanelHead
+          title="Global risk surface"
+          meta="land shading and arcs are model output"
+          actions={<DataType type="model" />}
+        />
+        <div className="min-h-0 flex-1">
+          <WorldMap
+            nodes={data.mapNodes}
+            flows={data.flows}
+            events={mapEvents}
+            height={470}
+            selected={selected}
+            channel={mapChannel}
+            onSelect={setSelected}
+            onInspect={(id) => navigate(`/app/country/${id}`)}
+          />
+        </div>
+      </Region>
 
-      <ExecGrid>
-        {/* DOMINANT VISUAL — the map. Everything else on the page is sized to
-            support it rather than compete with it. */}
-        <Col span={8}>
-          <DominantCard
-            title="Global risk surface"
-            meta={`${data.mapNodes.length} places · ${data.flows.length} couplings · ${mapEvents.length} events`}
-            right={
-              <DomainSwitch
-                value={domain}
-                onChange={(next) => {
-                  setDomain(next);
-                  if (next === "risk") setTopologyFilter(null);
-                  else setTopologyFilter(next);
-                }}
-              />
-            }
-            bodyClassName="flex flex-col"
-          >
-            <div className="min-h-0 flex-1">
-              <WorldMap
-                nodes={data.mapNodes}
-                flows={data.flows}
-                events={mapEvents}
-                height={470}
-                selected={selected}
-                channel={mapChannel}
-                onSelect={setSelected}
-                onInspect={(id) => navigate(`/app/country/${id}`)}
-              />
-            </div>
-            <ProvenanceFoot
-              sourceId="none"
-              freshness="historical"
-              note={`Land shading and arcs are MODEL OUTPUT derived from ${CORPUS_NOTE}. Hover a place to preview it, click to inspect, double-click to open its profile.`}
-            />
-          </DominantCard>
-        </Col>
-
-        {/* SUPPORTING INTELLIGENCE — the two instruments that explain the map. */}
-        <Col span={4} className="flex flex-col gap-3">
-          <ExecCard>
-            <GaugeCluster data={topology} />
-          </ExecCard>
-
-          <ExecCard className="flex-1">
-            <SectionTitle meta="corpus census">Exposure leaders</SectionTitle>
-            <ul className="divide-y divide-[var(--exec-hairline)]">
-              {data.hottestCountries.slice(0, 5).map((row) => {
-                const active = isFocused("node", row.nodeId);
-                return (
-                  <li key={row.nodeId} className="flex items-stretch">
-                    <button
-                      type="button"
-                      onClick={() => toggle({ kind: "node", id: row.nodeId })}
-                      aria-pressed={active}
-                      className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2 text-left transition-colors hover:bg-[var(--exec-surface-strong)]"
-                    >
-                      <span className="exec-num w-7 shrink-0 text-[10px] text-[var(--exec-ink-dim)]">
-                        {row.short}
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-[12px] text-[var(--exec-ink)]">
-                        {row.label}
-                      </span>
-                      <span className="h-1 w-16 shrink-0 bg-[var(--exec-hairline)]">
-                        <span
-                          className="block h-full"
-                          style={{
-                            width: `${row.load * 100}%`,
-                            background: loadColour(row.load),
-                          }}
-                        />
-                      </span>
-                      <span className="exec-num w-8 shrink-0 text-right text-[10.5px] text-[var(--exec-ink)]">
-                        {(row.load * 100).toFixed(0)}%
-                      </span>
-                    </button>
-                    <ExecLink
-                      to={`/app/country/${row.nodeId}`}
-                      className="flex w-7 shrink-0 items-center justify-center border-l border-[var(--exec-hairline)]"
-                    >
-                      <ArrowUpRight className="size-3" />
-                    </ExecLink>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="border-t border-[var(--exec-hairline)] px-2.5 py-1.5">
-              <BasisTag basis="model" />
-            </div>
-          </ExecCard>
-        </Col>
-
-        {/* MACRO RISK TOPOLOGY — full width, because six tiles side by side at
-            half width would be unreadable. */}
-        <Col span={12}>
-          <ExecCard>
-            <RiskTopology
-              data={topology}
-              selected={topologyFilter}
-              onSelect={(id) => {
-                setTopologyFilter(id);
-                if (id && id !== "risk") {
-                  setDomain(
-                    (CHANNEL_BY_TOPOLOGY[id] as Channel | undefined) ?? "risk",
-                  );
-                }
-              }}
-            />
-            <div className="border-t border-[var(--exec-hairline)] px-3 py-1.5">
-              <BasisTag basis="model" />
-            </div>
-          </ExecCard>
-        </Col>
-
-        {/* THREAT TICKER — the timeline of what actually happened, deliberately
-            scrollable rather than self-advancing. */}
-        <Col span={12}>
-          <ExecCard>
-            {ticker.length === 0 ? (
-              <NoDataAvailable
-                title="The corpus has no events to place on a timeline"
-                reason="The scenario corpus supplies the events behind this board. Without it there is nothing verified to show, and GlobalMatrix does not substitute an illustrative feed for a missing one."
-                hint={
-                  <ExecLink to="/app/events" className="mt-1 inline-block">
-                    Open the event observatory →
-                  </ExecLink>
-                }
-              />
-            ) : (
-              <ThreatTicker
-                events={ticker}
-                windowLabel={timeWindow.toUpperCase()}
-                selected={focus?.kind === "event" ? focus.id : null}
-                onSelect={(id) => toggle({ kind: "event", id })}
-              />
-            )}
-          </ExecCard>
-        </Col>
-
-        {/* DETAIL / EVIDENCE — the numbers a briefing would actually quote. */}
-        <Col span={3}>
-          <div className="grid h-full grid-cols-1 gap-2">
-            <StatTile
-              label="Corpus events"
-              value={String(stats?.events ?? data.stats.events)}
-              unit="events"
-              basis="scenario"
-              note={CORPUS_NOTE}
-            />
-            <StatTile
-              label="Tracked places"
-              value={String(stats?.countries ?? 0)}
-              unit="with coordinates"
-              basis="scenario"
-              note="Places the map can plot"
-            />
-            <StatTile
+      {/* LEVEL 2 — where, and what is exposed. */}
+      <Region width={4} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <MetricGrid columns={2}>
+            <Metric
               label="Mean composite"
-              value={(stats?.meanScore ?? 0).toFixed(1)}
+              value={num(stats?.meanScore ?? 0, 1)}
               unit="/100"
               basis="model"
               tone={loadColour((stats?.meanScore ?? 0) / 100)}
-              note="Corpus mean, 30-day horizon"
+              period="30D"
+              hint="Corpus mean composite risk on the 30-day horizon"
             />
-            <StatTile
+            <Metric
               label="Most exposed"
-              value={hottest?.short ?? "—"}
+              value={hottest?.short ?? "\u2014"}
               basis="model"
               tone={loadColour(hottest?.load ?? 0)}
-              note={hottest ? `${hottest.label} at ${(hottest.load * 100).toFixed(0)}%` : "No exposure resolved"}
+              hint={hottest ? `${hottest.label} at ${pct(hottest.load)}` : "No exposure resolved"}
             />
-          </div>
-        </Col>
+            <Metric
+              label="Corpus events"
+              value={count(stats?.events ?? data.stats.events)}
+              basis="scenario"
+              hint="Synthetic events currently in the corpus"
+            />
+            <Metric
+              label="Tracked places"
+              value={count(mappable.length)}
+              basis="scenario"
+              hint="Places the map can plot"
+            />
+          </MetricGrid>
+        </div>
 
-        <Col span={5}>
-          <ExecCard className="h-full">
-            <SectionTitle meta="30-day composite" right={<BasisTag basis="model" />}>
-              Top developments
-            </SectionTitle>
-            <ul className="divide-y divide-[var(--exec-hairline)]">
-              {data.topEvents.map((event) => {
-                const active = isFocused("event", event.id);
-                return (
-                  <li key={event.id} className="flex items-stretch">
-                    <button
-                      type="button"
-                      onClick={() => toggle({ kind: "event", id: event.id })}
-                      aria-pressed={active}
-                      className="min-w-0 flex-1 px-2.5 py-2 text-left transition-colors hover:bg-[var(--exec-surface-strong)]"
-                    >
-                      <div className="flex items-baseline justify-between gap-2">
-                        <span
-                          className="exec-label"
-                          style={{ color: riskColorForScore(event.score) }}
-                        >
-                          {CHANNEL_LABEL[event.dominantChannel]}
-                        </span>
-                        <span className="exec-num text-[12px] font-semibold text-[var(--exec-ink)]">
-                          {event.score.toFixed(1)}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-[12px] leading-snug font-medium text-[var(--exec-ink)]">
-                        {event.title}
-                      </p>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1">
-                        {event.topNodes.map((n) => (
-                          <span
-                            key={n.nodeId}
-                            className="exec-num border border-[var(--exec-hairline)] px-1 text-[8.5px] text-[var(--exec-ink-dim)]"
-                            title={`${n.label} · weight ${n.weight.toFixed(2)}`}
-                          >
-                            {n.short}
-                          </span>
-                        ))}
-                        <span className="exec-num ml-auto text-[9px] text-[var(--exec-ink-dim)]">
-                          80% {event.low.toFixed(0)}–{event.high.toFixed(0)}
-                        </span>
-                      </div>
-                    </button>
-                    <ExecLink
-                      to={`/app/event/${event.id}`}
-                      className="flex w-7 shrink-0 items-center justify-center border-l border-[var(--exec-hairline)]"
-                    >
-                      <ArrowUpRight className="size-3" />
-                    </ExecLink>
-                  </li>
-                );
-              })}
-            </ul>
-          </ExecCard>
-        </Col>
+        <div className="glass flex min-h-0 flex-1 flex-col">
+          <PanelHead title="Exposure leaders" meta="composite load" actions={<DataType type="model" />} />
+          <GaugeCluster data={topology} />
+        </div>
+      </Region>
 
-        <Col span={4}>
-          <ExecCard className="h-full">
-            <SectionTitle meta="live sources only">
-              Verified external data
-            </SectionTitle>
-            <VerifiedStrip />
-          </ExecCard>
-        </Col>
-      </ExecGrid>
-    </ExecPage>
+      {/* LEVEL 2 — the six domains, full width so six tiles stay legible. */}
+      <Region width={12}>
+        <RiskTopology
+          data={topology}
+          selected={topologyFilter}
+          onSelect={(id) => {
+            setTopologyFilter(id);
+            if (id && id !== "risk") {
+              setDomain((CHANNEL_BY_TOPOLOGY[id] as Channel | undefined) ?? "risk");
+            }
+          }}
+        />
+      </Region>
+
+      {/* LEVEL 3 — what is affected, and what actually happened. */}
+      <Region width={7}>
+        <PanelHead
+          title="Top developments"
+          meta="30-day composite"
+          actions={<DataType type="model" />}
+        />
+        <ul className="divide-y divide-[var(--exec-hairline)]">
+          {data.topEvents.map((event) => {
+            const active = isFocused("event", event.id);
+            return (
+              <li key={event.id} className="flex items-stretch">
+                <button
+                  type="button"
+                  onClick={() => toggle({ kind: "event", id: event.id })}
+                  aria-pressed={active}
+                  className="min-w-0 flex-1 px-3 py-2.5 text-left transition-colors hover:bg-[var(--exec-surface-strong)]"
+                >
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span
+                      className="exec-label"
+                      style={{ color: riskColorForScore(event.score) }}
+                    >
+                      {CHANNEL_LABEL[event.dominantChannel]}
+                    </span>
+                    <span className="exec-num text-[12px] font-semibold text-[var(--exec-ink)]">
+                      {num(event.score, 1)}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[12px] leading-snug font-medium text-[var(--exec-ink)]">
+                    {event.title}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                    {event.topNodes.map((n) => (
+                      <span
+                        key={n.nodeId}
+                        className="exec-num border border-[var(--exec-hairline)] px-1 text-[8.5px] text-[var(--exec-ink-dim)]"
+                        title={`${n.label} · weight ${num(n.weight, 2)}`}
+                      >
+                        {n.short}
+                      </span>
+                    ))}
+                    <span className="exec-num ml-auto text-[9px] text-[var(--exec-ink-dim)]">
+                      80% {num(event.low, 0)}\u2013{num(event.high, 0)}
+                    </span>
+                  </div>
+                </button>
+                <Link
+                  to={`/app/event/${event.id}`}
+                  aria-label={`Open ${event.title}`}
+                  className="flex w-8 shrink-0 items-center justify-center border-l border-[var(--exec-hairline)] text-[var(--exec-ink-dim)] transition-colors hover:text-[var(--exec-ink)]"
+                >
+                  <ArrowUpRight className="size-3.5" />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </Region>
+
+      {/* LEVEL 2 — the timeline of what happened. */}
+      <Region width={5}>
+        <PanelHead
+          title="Threat timeline"
+          meta={timeWindow.toUpperCase()}
+          actions={<DataType type="scenario" />}
+        />
+        {ticker.length === 0 ? (
+          <EmptyState
+            title="No events in this window"
+            reason="The corpus supplies the events behind this board. Nothing falls inside the selected window, and GlobalMatrix will not substitute an illustrative feed for a missing one."
+            action={<Action to="/app/events">Open the event observatory</Action>}
+          />
+        ) : (
+          <ThreatTicker
+            events={ticker}
+            windowLabel={timeWindow.toUpperCase()}
+            selected={focus?.kind === "event" ? focus.id : null}
+            onSelect={(id) => toggle({ kind: "event", id })}
+          />
+        )}
+      </Region>
+
+      {/* LEVEL 5 — external verified data, with its own freshness per source. */}
+      <Region width={12}>
+        <PanelHead title="Verified external data" meta="live connectors" />
+        <VerifiedStrip />
+      </Region>
+    </PageFrame>
   );
 }
 
@@ -366,9 +315,9 @@ function VerifiedStrip() {
   const rows = health ?? [];
   if (rows.length === 0) {
     return (
-      <NoDataAvailable
+      <EmptyState
         title="No source has reported yet"
-        reason="The three connectors refresh in the background. Until one answers there is nothing verified to show, and GlobalMatrix will not substitute a placeholder for it."
+        reason="The connectors refresh in the background. Until one answers there is nothing verified to show, and GlobalMatrix will not substitute a placeholder for it."
       />
     );
   }
@@ -385,14 +334,14 @@ function VerifiedStrip() {
               <FreshnessTag freshness={freshness} />
             </div>
             <span className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
-              {h.asOf ? `as of ${h.asOf}` : "no reference period"} ·{" "}
+              {h.asOf ? `as of ${periodLabel(h.asOf)}` : "no reference period"} ·{" "}
               {h.ok ? "reading stored" : (h.problem ?? "no reading")}
             </span>
           </li>
         );
       })}
-      <li className="px-2.5 py-2">
-        <ExecLink to="/app/data">Full source register →</ExecLink>
+      <li className="px-3 py-2">
+        <Action to="/app/data">Full source register</Action>
       </li>
     </ul>
   );
@@ -400,7 +349,7 @@ function VerifiedStrip() {
 
 /* ------------------------------------------------------------------ */
 
-const CORPUS_NOTE = "Scenario corpus v1.0.0 (synthetic, latest observation 2026-10-02)";
+const CORPUS_NOTE = `${CORPUS_LABEL} · synthetic · latest observation 2026-10-02`;
 
 /** Shared window is a focus concern, so the cut lives with it. */
 const WINDOW_CUTOFF = {
@@ -431,23 +380,22 @@ const CHANNEL_BY_TOPOLOGY: Record<string, Channel> = {
 
 function OverviewSkeleton() {
   return (
-    <ExecPage>
-      <div className="px-4 pt-4 pb-1">
-        <Skeleton className="h-6 w-64" />
-        <Skeleton className="mt-2 h-3 w-full max-w-2xl" />
-      </div>
-      <ExecGrid>
-        <Col span={8}>
-          <Skeleton className="h-[540px] w-full" />
-        </Col>
-        <Col span={4}>
+    <div className="min-w-0 px-4 py-4 lg:px-6">
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="mt-3 h-7 w-80" />
+      <Skeleton className="mt-2 h-3 w-full max-w-2xl" />
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <div className="lg:col-span-8">
+          <Skeleton className="h-[520px] w-full" />
+        </div>
+        <div className="lg:col-span-4">
           <Skeleton className="h-52 w-full" />
-          <Skeleton className="mt-3 h-64 w-full" />
-        </Col>
-        <Col span={12}>
+          <Skeleton className="mt-4 h-64 w-full" />
+        </div>
+        <div className="lg:col-span-12">
           <Skeleton className="h-40 w-full" />
-        </Col>
-      </ExecGrid>
-    </ExecPage>
+        </div>
+      </div>
+    </div>
   );
 }

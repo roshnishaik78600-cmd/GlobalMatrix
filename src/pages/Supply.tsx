@@ -12,17 +12,17 @@ import {
 } from "@/components/viz/exec/ChokepointBoard";
 import { loadColour } from "@/components/viz/exec/Topology";
 import {
-  BasisTag,
-  Col,
-  DominantCard,
+  Action,
+  PageFrame,
+  Region,
+  Segmented,
+} from "@/components/viz/exec/design";
+import {
   ExecCard,
-  ExecGrid,
-  ExecLink,
-  ExecPage,
-  NoDataAvailable,
-  PageTitle,
+  DominantCard,
   SectionTitle,
-  SegmentedControl,
+  BasisTag,
+  NoDataAvailable,
 } from "@/components/viz/exec/system";
 
 /**
@@ -103,28 +103,28 @@ export default function Supply() {
   const sector = directory?.industries.find((i) => i.id === activeIndustry);
 
   return (
-    <ExecPage>
-      <PageTitle
-        title="Supply chain chokepoint analyzer"
-        lede="Single points of failure, one at a time. Pick a bottleneck to see which sectors depend on it and which economies share its exposure. Dependency edges are declared structure; load is derived from the current corpus."
-        right={
-          <>
-            <SegmentedControl
-              options={[
-                { id: "chokepoints", label: "CHOKEPOINTS" },
-                { id: "sectors", label: "BY SECTOR" },
-              ]}
-              value={view}
-              onChange={setView}
-            />
-            <ExecLink to="/app/industries">Industry matrix →</ExecLink>
-          </>
-        }
-      />
+    <PageFrame
+      eyebrow="Supply chains"
+      title="Supply chain chokepoint analyzer"
+      lede="Single points of failure, one at a time, and the sectors that depend on each."
+      actions={
+        <>
+          <Segmented
+            options={[
+              { id: "chokepoints", label: "CHOKEPOINTS" },
+              { id: "sectors", label: "BY SECTOR" },
+            ]}
+            value={view}
+            onChange={setView}
+          />
+          <Action to="/app/industries">Industry matrix</Action>
+        </>
+      }
+    >
 
       {view === "chokepoints" ? (
-        <ExecGrid>
-          <Col span={8}>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <Region width={8}>
             <DominantCard
               title="Bottleneck flow"
               meta={
@@ -140,9 +140,9 @@ export default function Supply() {
                 onSelect={setSelected}
               />
             </DominantCard>
-          </Col>
+          </Region>
 
-          <Col span={4} className="flex flex-col gap-3">
+          <Region width={4} className="flex flex-col gap-3">
             <ExecCard>
               <SectionTitle
                 meta="ranked by derived load"
@@ -202,11 +202,11 @@ export default function Supply() {
                 />
               )}
             </ExecCard>
-          </Col>
-        </ExecGrid>
+          </Region>
+        </div>
       ) : (
-        <ExecGrid>
-          <Col span={12}>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+          <Region width={12}>
             <DominantCard
               title="Sector dependency chain"
               meta={`${flow?.industry.label ?? "—"} · declared structure, derived edge weight`}
@@ -237,9 +237,9 @@ export default function Supply() {
                 />
               )}
             </DominantCard>
-          </Col>
+          </Region>
 
-          <Col span={4}>
+          <Region width={4}>
             <ExecCard className="h-full">
               <SectionTitle meta="declared structure">Sector structure</SectionTitle>
               {sector ? (
@@ -285,9 +285,9 @@ export default function Supply() {
                 />
               )}
             </ExecCard>
-          </Col>
+          </Region>
 
-          <Col span={8}>
+          <Region width={8}>
             <ExecCard className="h-full">
               <SectionTitle meta="producers and consumers with real coordinates">
                 Geospatial flow
@@ -320,9 +320,9 @@ export default function Supply() {
                 </>
               )}
             </ExecCard>
-          </Col>
-        </ExecGrid>
+          </Region>
+        </div>
       )}
-    </ExecPage>
+    </PageFrame>
   );
 }

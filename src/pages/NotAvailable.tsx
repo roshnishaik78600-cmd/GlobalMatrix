@@ -1,5 +1,5 @@
 import { useLocation } from "react-router";
-import { PageHead } from "@/components/viz/Shell";
+import { PageFrame } from "@/components/viz/exec/design";
 import { Panel } from "@/components/viz/core";
 import { QuestionStrip } from "@/components/viz/Unavailable";
 
@@ -34,15 +34,15 @@ export default function NotAvailable() {
   const reason = module ? REASONS[module] : undefined;
 
   return (
-    <main className="min-w-0">
-      <PageHead
+      <PageFrame
+        eyebrow={module ?? "Unavailable"}
         title={module ?? "Unavailable"}
         lede={
           reason
             ? "This module is intentionally empty rather than populated with invented data."
             : "This module has no data source in the current build."
         }
-      />
+      >
       <QuestionStrip
         className="border-b border-rule"
         answers={[
@@ -126,6 +126,6 @@ export default function NotAvailable() {
           </Panel>
         </section>
       </div>
-    </main>
+    </PageFrame>
   );
 }

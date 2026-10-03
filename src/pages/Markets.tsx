@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { PageHead } from "@/components/viz/Shell";
+import { PageFrame } from "@/components/viz/exec/design";
 import { Panel, Skeleton } from "@/components/viz/core";
 import { NoVerifiedData, QuestionStrip } from "@/components/viz/Unavailable";
 import { MacroTable } from "@/components/viz/VerifiedPanels";
@@ -30,19 +30,11 @@ export default function Markets() {
   const attentionSeries = aggregateHourly(attention.data ?? []);
 
   return (
-    <main className="min-w-0">
-      <PageHead
-        title="Markets"
-        lede="GlobalMatrix has no live price feed connected. This page shows what it can evidence — reported growth, finance-channel pressure and measured news attention — and says plainly where the rest is missing."
-        actions={
-          <Link
-            to="/app/data"
-            className="label flex items-center gap-2 border border-rule px-3 py-2 transition-colors hover:border-foreground"
-          >
-            Source register
-          </Link>
-        }
-      />
+      <PageFrame
+      eyebrow="Markets"
+      title="Markets"
+      lede="Macro context and measured news attention, with the missing price feed stated in the place a reader looks for a chart."
+    >
 
       <QuestionStrip
         className="border-b border-rule"
@@ -161,7 +153,7 @@ export default function Markets() {
           </Panel>
         </section>
       </div>
-    </main>
+    </PageFrame>
   );
 }
 

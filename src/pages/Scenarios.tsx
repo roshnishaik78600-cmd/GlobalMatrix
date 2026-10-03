@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { Play, TriangleAlert } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import { PageHead } from "@/components/viz/Shell";
+import { PageFrame } from "@/components/viz/exec/design";
 import { Bar, NoData, Panel, Skeleton } from "@/components/viz/core";
 import { PropagationRibbon } from "@/components/viz/PropagationRibbon";
 import { riskColorForScore } from "@/lib/intel/visual";
@@ -48,7 +48,6 @@ export default function Scenarios() {
   if (!meta) {
     return (
       <main>
-        <PageHead title="Scenario lab" lede="Perturb the corpus and re-score it." />
         <div className="p-3">
           <Skeleton className="h-[520px] w-full" />
         </div>
@@ -59,19 +58,11 @@ export default function Scenarios() {
   const selectedMode = meta.modes.find((m) => m.mode === mode);
 
   return (
-    <main className="min-w-0">
-      <PageHead
-        title="Scenario lab"
-        lede="Choose a shock, then re-run the real propagation engine over a perturbed corpus. These are not predictions — they are the model's own arithmetic recomputed under a stated assumption."
-        actions={
-          <Link
-            to="/app/chain"
-            className="label flex items-center gap-2 border border-rule px-3 py-2 transition-colors hover:border-foreground"
-          >
-            See a real event travel →
-          </Link>
-        }
-      />
+      <PageFrame
+      eyebrow="Scenarios"
+      title="Scenario lab"
+      lede="Hypothetical perturbations of the corpus, with the range they imply and the observed baseline beside them."
+    >
 
       {/* Builder */}
       <div className="border-b border-rule bg-card">
@@ -376,7 +367,7 @@ export default function Scenarios() {
           </div>
         </div>
       )}
-    </main>
+    </PageFrame>
   );
 }
 

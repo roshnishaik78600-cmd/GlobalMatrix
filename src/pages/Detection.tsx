@@ -10,16 +10,16 @@ import { pct } from "@/lib/format";
 import { WorldMap, MapLegend } from "@/components/viz/WorldMap";
 import { loadColour } from "@/components/viz/exec/Topology";
 import {
-  BasisTag,
-  Col,
-  DominantCard,
+  Action,
+  PageFrame,
+  Region,
+} from "@/components/viz/exec/design";
+import {
   ExecCard,
-  ExecGrid,
-  ExecLink,
-  ExecPage,
-  NoDataAvailable,
-  PageTitle,
+  DominantCard,
   SectionTitle,
+  BasisTag,
+  NoDataAvailable,
   SegmentedControl,
 } from "@/components/viz/exec/system";
 
@@ -96,14 +96,16 @@ export default function Detection() {
   const active = rows.find((r) => r.id === selectedEvent) ?? null;
 
   return (
-    <ExecPage>
-      <PageTitle
-        title="Global event observatory"
-        lede="Every event in the scenario corpus with the channel pressure behind its score, the evidence behind its confidence, and the interval the model will defend. Select one in either column and both follow."
-        right={<ExecLink to="/app/chain">Event → world →</ExecLink>}
-      />
-
-      {/* Filters drive the query, the stream and the map together. */}
+        <PageFrame
+      eyebrow="Events"
+      title="Global event observatory"
+      lede="Every event in the corpus with the pressure, evidence and interval behind its score."
+      actions={
+        <>
+<Action to="/app/chain">Event → world</Action>
+        </>
+      }
+    >{/* Filters drive the query, the stream and the map together. */}
       <div className="flex flex-wrap items-center gap-3 border-b border-[var(--exec-hairline)] px-4 py-2">
         <span className="exec-label">Channel</span>
         <SegmentedControl
@@ -143,9 +145,9 @@ export default function Detection() {
         </span>
       </div>
 
-      <ExecGrid>
+      
         {/* LEFT: the stream. Compact rows, not cards. */}
-        <Col span={5}>
+        <Region width={5}>
           <ExecCard className="h-full">
             <SectionTitle
               meta="30-day composite, ranked"
@@ -241,10 +243,10 @@ export default function Detection() {
               </ul>
             )}
           </ExecCard>
-        </Col>
+        </Region>
 
         {/* RIGHT: the map. Selecting here pulls the event forward in the stream. */}
-        <Col span={7} className="flex flex-col gap-3">
+        <Region width={7} className="flex flex-col gap-3">
           <DominantCard
             title="Event geography"
             meta={`${mapEvents.length} events · ${mapNodes.length} places · clustered where they land`}
@@ -335,9 +337,9 @@ export default function Detection() {
               </div>
             )}
           </ExecCard>
-        </Col>
-      </ExecGrid>
-    </ExecPage>
+        </Region>
+      
+    </PageFrame>
   );
 }
 

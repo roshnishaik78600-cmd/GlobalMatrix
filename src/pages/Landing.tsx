@@ -20,12 +20,12 @@ import { Skeleton } from "@/components/viz/core";
 import { CountryDrawer } from "@/components/viz/exec/CountryDrawer";
 import { useFocus } from "@/lib/focus";
 import {
-  ExecGrid,
   ExecPage,
   FreshnessTag,
   SectionTitle,
 } from "@/components/viz/exec/system";
 import { loadColour } from "@/components/viz/exec/Topology";
+import { Region } from "@/components/viz/exec/design";
 import {
   BarPreview,
   ExploreGrid,
@@ -212,7 +212,7 @@ export default function Landing() {
       {/* Hero. Compact on purpose: the map is the headline, and a wall of type
           above it would push the one thing worth seeing below the fold. */}
       <header className="border-b border-[var(--exec-hairline)] px-4 pt-8 pb-6 lg:px-8 lg:pt-12 lg:pb-8">
-        <div className="mx-auto max-w-[1600px]">
+        <div className="gm-width">
           <p className="exec-label text-[var(--exec-cyan)]">Global event intelligence</p>
           <h1 className="mt-3 text-[2rem] leading-[1.05] font-semibold tracking-[-0.03em] text-[var(--exec-ink)] sm:text-[2.9rem] lg:text-[3.6rem]">
             See how the world connects.
@@ -245,7 +245,7 @@ export default function Landing() {
         id="world-map"
         className="border-b border-[var(--exec-hairline)] scroll-mt-14"
       >
-        <div className="mx-auto max-w-[1600px]">
+        <div className="gm-width">
           <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-3">
             <h2 className="exec-label text-[var(--exec-ink)]">
               Global risk surface
@@ -305,25 +305,24 @@ export default function Landing() {
         </div>
       </section>
 
-      <ExecGrid>
         {/* The pulse: the same six signals the executive board runs, compressed
             into one readable strip. */}
-        <div className="col-span-4 lg:col-span-12">
+        <Region width={12}>
           <GlobalPulse data={topology} />
-        </div>
+        </Region>
 
         {/* WHAT'S HAPPENING NOW. Four fields per event, then the click. */}
-        <div className="col-span-4 lg:col-span-5">
+        <Region width={5}>
           <EventTimeline events={timeline} />
-        </div>
+        </Region>
 
         {/* EXPLAIN. One object, one sentence. */}
-        <div className="col-span-4 lg:col-span-7">
+        <Region width={7}>
           <PropagationFlow />
-        </div>
+        </Region>
 
         {/* EXPLORE. Six panels, each previewed from the board it opens. */}
-        <div className="col-span-4 lg:col-span-12">
+        <Region width={12}>
           <SectionTitle
             meta="six ways in"
             className="px-3"
@@ -333,11 +332,11 @@ export default function Landing() {
           <div className="mt-3">
             <ExploreGrid panels={panels} />
           </div>
-        </div>
+        </Region>
 
         {/* AI ANALYST. A preview of the answer's *shape* — evidence, drivers,
             sources — not a chat window. */}
-        <div className="col-span-4 lg:col-span-7">
+        <Region width={7}>
           <AnalystPreview
             question="Why did trade risk change?"
             evidence={timeline[0]}
@@ -345,18 +344,17 @@ export default function Landing() {
               ["trade-bottlenecks", "energy", "supply-chain"].includes(c.id),
             )}
           />
-        </div>
+        </Region>
 
         {/* TRUST + DATA. */}
-        <div className="col-span-4 lg:col-span-5">
+        <Region width={5}>
           <TrustStrip health={health ?? []} />
-        </div>
-      </ExecGrid>
+        </Region>
 
       <AccessBand />
 
       <footer className="border-t border-[var(--exec-hairline)] px-4 py-5">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2">
+        <div className="flex gm-width flex-wrap items-center justify-between gap-2">
           <span className="exec-label text-[var(--exec-ink-dim)]">
             GlobalMatrix · geopolitical, macro and supply-chain intelligence
           </span>
@@ -402,7 +400,7 @@ const TREND_LABEL: Record<TopologyResult["categories"][number]["trend"], string>
 function LandingNav() {
   return (
     <nav className="sticky top-0 z-30 border-b border-[var(--exec-hairline)] bg-[var(--exec-base)]/90 backdrop-blur">
-      <div className="mx-auto flex h-12 max-w-[1600px] items-center gap-4 px-4 lg:px-8">
+      <div className="gm-width flex h-12  items-center gap-4 px-4 lg:px-8">
         <Link to="/" className="flex shrink-0 items-center gap-2">
           <span className="size-2 bg-[var(--exec-cyan)]" aria-hidden />
           <span className="text-[12px] font-semibold tracking-[0.18em] text-[var(--exec-ink)] uppercase">
@@ -517,7 +515,7 @@ function AnalystPreview({
 function AccessBand() {
   return (
     <section className="border-t border-[var(--exec-hairline)] px-4 py-10 lg:px-8">
-      <div className="mx-auto max-w-[1600px]">
+      <div className="gm-width">
         <h2 className="text-[1.5rem] font-semibold tracking-[-0.02em] text-[var(--exec-ink)] sm:text-[1.9rem]">
           Explore GlobalMatrix freely.
         </h2>

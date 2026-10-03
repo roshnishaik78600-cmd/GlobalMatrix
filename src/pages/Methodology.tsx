@@ -67,7 +67,7 @@ export default function Methodology() {
   return (
     <ExecPage className="min-h-screen">
       <nav className="sticky top-0 z-30 border-b border-[var(--exec-hairline)] bg-[var(--exec-base)]/90 backdrop-blur">
-        <div className="mx-auto flex h-12 max-w-[1600px] items-center gap-4 px-4 lg:px-8">
+        <div className="gm-width flex h-12  items-center gap-4 px-4 lg:px-8">
           <Link to="/" className="flex shrink-0 items-center gap-2">
             <span className="size-2 bg-[var(--exec-cyan)]" aria-hidden />
             <span className="text-[12px] font-semibold tracking-[0.18em] text-[var(--exec-ink)] uppercase">
@@ -88,7 +88,7 @@ export default function Methodology() {
       </nav>
 
       <header className="border-b border-[var(--exec-hairline)] px-4 py-8 lg:px-8">
-        <div className="mx-auto max-w-[1600px]">
+        <div className="gm-width">
           <h1 className="text-[1.9rem] font-semibold tracking-[-0.03em] text-[var(--exec-ink)] sm:text-[2.4rem]">
             A model you can argue with.
           </h1>
@@ -100,7 +100,7 @@ export default function Methodology() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1600px] px-4 py-8 lg:px-8">
+      <div className="gm-width px-4 py-8 lg:px-8">
         <section>
           <h2 className="exec-label border-b border-[var(--exec-hairline)] pb-2 text-[var(--exec-ink)]">
             01 — The derivation
@@ -206,7 +206,7 @@ export default function Methodology() {
       </div>
 
       <footer className="border-t border-[var(--exec-hairline)] px-4 py-5">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-2">
+        <div className="flex gm-width flex-wrap items-center justify-between gap-2">
           <span className="exec-label text-[var(--exec-ink-dim)]">
             GlobalMatrix · methodology
           </span>

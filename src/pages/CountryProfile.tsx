@@ -1,4 +1,5 @@
 import { Link, useParams } from "react-router";
+import { DataType, PageFrame, PageLoading } from "@/components/viz/exec/design";
 import { useQuery } from "convex/react";
 import { ArrowLeft, ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
@@ -22,9 +23,11 @@ export default function CountryProfile() {
 
   if (!nodeId || !data) {
     return (
-      <main className="mx-auto max-w-[1600px] px-5 py-20 lg:px-8">
-        <p className="label text-muted-foreground">Loading node profile…</p>
-      </main>
+      <PageLoading
+        eyebrow="Country"
+        title="Country intelligence"
+        lede="Exposure, dependency and the events that land hardest on this place."
+      />
     );
   }
 
@@ -33,108 +36,62 @@ export default function CountryProfile() {
   const topContribution = exposure.contributions[0];
 
   return (
-    <main>
-      {/* Masthead */}
-      <div className="border-b border-rule">
-        <div className="mx-auto max-w-[1600px] px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10">
+    <PageFrame
+      eyebrow={country ? "Country" : "Infrastructure"}
+      title={node.label}
+      lede={
+        country
+          ? country.note
+          : "An infrastructure node: this entry carries traffic rather than demand, so its exposure is measured by how many pathways route through it."
+      }
+      actions={
+        <>
           <Link
             to="/app/countries"
-            className="label inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+            className="exec-label inline-flex items-center gap-1.5 border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
           >
             <ArrowLeft className="size-3" /> Countries
           </Link>
+          <button
+            type="button"
+            onClick={() => toggleWatch(`NODE:${nodeId}`)}
+            className="exec-label inline-flex items-center gap-1.5 border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+          >
+            {watched ? (
+              <BookmarkCheck className="size-3" />
+            ) : (
+              <Bookmark className="size-3" />
+            )}
+            {watched ? "Tracking" : "Track"}
+          </button>
+        </>
+      }
+    >
 
-          <div className="mt-8 grid grid-cols-12 gap-x-4 gap-y-8">
-            <div className="col-span-12 lg:col-span-8">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <span className="num label text-signal">{node.short}</span>
-                <span className="h-3 w-px bg-rule" />
-                <span className="label text-muted-foreground">{node.kind}</span>
-                <span className="label text-muted-foreground">{node.region}</span>
-                <span className="label border border-signal px-1.5 py-0.5 text-[9px] text-signal">
-                  Modelled exposure
-                </span>
-                <button
-                  type="button"
-                  onClick={() => toggleWatch(`NODE:${nodeId}`)}
-                  className="label ml-auto flex items-center gap-1.5 border border-foreground px-2.5 py-1 transition-colors hover:bg-foreground hover:text-background lg:ml-0"
-                >
-                  {watched ? (
-                    <BookmarkCheck className="size-3" />
-                  ) : (
-                    <Bookmark className="size-3" />
-                  )}
-                  {watched ? "Tracking" : "Track"}
-                </button>
-              </div>
-              <h1 className="display mt-4 text-[2.4rem] sm:text-[3.2rem] lg:text-[4rem]">
-                {node.label}
-              </h1>
-              {country ? (
-                <p className="mt-5 max-w-3xl text-[15px] leading-relaxed text-muted-foreground">
-                  {country.note}
-                </p>
-              ) : (
-                <p className="mt-5 max-w-3xl text-[15px] leading-relaxed text-muted-foreground">
-                  An infrastructure node: this entry carries traffic rather than
-                  demand, so its exposure is measured by how many pathways route
-                  through it rather than by how much it consumes.
-                </p>
-              )}
-            </div>
 
-            <div className="col-span-12 lg:col-span-4">
-              <div className="border border-rule bg-card p-5">
-                <Label>Live load from current corpus</Label>
-                <p className="num display mt-3 text-[3.4rem] leading-none">
-                  {pct(exposure.load)}
-                </p>
-                <Meter
-                  value={exposure.load}
-                  tone={exposure.load > 0.6 ? "signal" : "ink"}
-                  className="mt-4"
-                />
-                <div className="mt-4">
-                  <Label className="mb-2 block">By channel</Label>
-                  <ChannelBars
-                    pressure={Object.fromEntries(
-                      exposure.byChannel.map((c) => [c.channel, c.load]),
-                    ) as Record<Channel, number>}
-                  />
-                </div>
-                <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 border-t border-rule pt-4">
-                  <div>
-                    <dt className="label text-[9px] text-muted-foreground">
-                      Events reaching node
-                    </dt>
-                    <dd className="num text-lg">{exposure.eventCount}</dd>
-                  </div>
-                  <div>
-                    <dt className="label text-[9px] text-muted-foreground">
-                      Off-channel arrivals
-                    </dt>
-                    <dd className="num text-lg">{exposure.offAffinityCount}</dd>
-                  </div>
-                  <div>
-                    <dt className="label text-[9px] text-muted-foreground">
-                      Criticality
-                    </dt>
-                    <dd className="num text-lg">{pct(node.criticality)}</dd>
-                  </div>
-                  {country ? (
-                    <div>
-                      <dt className="label text-[9px] text-muted-foreground">
-                        Structural fragility
-                      </dt>
-                      <dd className="num text-lg">
-                        {pct(country.structuralFragility)}
-                      </dd>
-                    </div>
-                  ) : null}
-                </dl>
-              </div>
-            </div>
-          </div>
+      {/* LEVEL 1 — the headline load, then its channel breakdown. This was the
+          bespoke masthead's right-hand card; the frame moved it into the body so
+          the header stays one sentence everywhere. */}
+      <div className="glass mb-3 px-3 py-3">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <span className="exec-label">Live load from current corpus</span>
+          <span className="exec-num ml-auto text-[1.55rem] leading-none font-bold text-[var(--exec-ink)]">
+            {pct(exposure.load)}
+          </span>
+          <DataType type="model" />
+        </div>
+        <Meter
+          value={exposure.load}
+          tone={exposure.load > 0.6 ? "signal" : "ink"}
+          className="mt-3"
+        />
+        <div className="mt-4">
+          <Label className="mb-2 block">By channel</Label>
+          <ChannelBars
+            pressure={Object.fromEntries(
+              exposure.byChannel.map((c) => [c.channel, c.load]),
+            ) as Record<Channel, number>}
+          />
         </div>
       </div>
 
@@ -176,7 +133,7 @@ export default function CountryProfile() {
 
       {/* Reported evidence, kept visibly separate from the modelled load. */}
       <div className="border-b border-rule">
-        <div className="mx-auto grid max-w-[1600px] gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
+        <div className="grid gm-width gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
           <div className="lg:col-span-7">
             <MacroTrend nodeId={nodeId} />
           </div>
@@ -197,7 +154,7 @@ export default function CountryProfile() {
       {/* Macro parameters */}
       {country ? (
         <div className="border-b border-rule bg-card">
-          <dl className="mx-auto grid max-w-[1600px] grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-4 lg:px-8">
+          <dl className="grid gm-width grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-4 lg:px-8">
             <Macro caption="Share of global output" value={pct(country.macro.outputShare)} note="MODELLED structural parameter" />
             <Macro caption="Trade openness" value={pct(country.macro.tradeOpenness)} note="MODELLED structural parameter" />
             <Macro caption="Energy import dependence" value={pct(country.macro.energyImportDependence)} note="MODELLED structural parameter" />
@@ -209,7 +166,7 @@ export default function CountryProfile() {
       {/* Energy mix */}
       {country ? (
         <div className="border-b border-rule">
-          <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
+          <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
             <Panel caption="Energy structure" aside="MODELLED · illustrative shares">
               <ul className="divide-y divide-rule">
                 {country.energy.map((source) => (
@@ -237,7 +194,7 @@ export default function CountryProfile() {
 
       {/* Dependencies + industries */}
       <div className="border-b border-rule">
-        <div className="mx-auto grid max-w-[1600px] gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
+        <div className="grid gm-width gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
           {country ? (
             <div className="lg:col-span-6">
               <Panel
@@ -335,7 +292,7 @@ export default function CountryProfile() {
       {/* Dependents */}
       {dependents.length > 0 ? (
         <div className="border-b border-rule">
-          <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
+          <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
             <Panel
               caption="Who depends on this node"
               aside="Declared structural dependency ≥ 0.40"
@@ -370,7 +327,7 @@ export default function CountryProfile() {
 
       {/* Causal path trace */}
       <div>
-        <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
+        <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
           <Panel
             caption="Causal path trace · how this load was built"
             aside={`${exposure.contributions.length} pathway exposures across ${exposure.eventCount} events`}
@@ -379,7 +336,7 @@ export default function CountryProfile() {
           </Panel>
         </div>
       </div>
-    </main>
+    </PageFrame>
   );
 }
 

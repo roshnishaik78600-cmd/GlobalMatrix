@@ -10,17 +10,17 @@ import { WorldMap, MapLegend } from "@/components/viz/WorldMap";
 import { loadColour } from "@/components/viz/exec/Topology";
 import { TradeBalance, TradeOpenness, TradeSankey } from "@/components/viz/exec/TradeEngine";
 import {
-  BasisTag,
-  Col,
-  DominantCard,
+  Action,
+  PageFrame,
+  Region,
+} from "@/components/viz/exec/design";
+import {
   ExecCard,
-  ExecGrid,
-  ExecLink,
-  ExecPage,
-  FreshnessTag,
-  PageTitle,
-  ProvenanceFoot,
+  DominantCard,
   SectionTitle,
+  BasisTag,
+  ProvenanceFoot,
+  FreshnessTag,
 } from "@/components/viz/exec/system";
 
 /**
@@ -75,21 +75,21 @@ export default function Trade() {
     : freshnessOf(trade.retrievedAt, "comtrade");
 
   return (
-    <ExecPage>
-      <PageTitle
-        title="Trade flow engine"
-        lede="Reported merchandise values for every economy GlobalMatrix follows, flowed into world trade and ranked by balance. The flows are measurements; the trade-channel events at the foot of this page are the model's view of pressure, and the two are never merged."
-        right={
-          <>
-            <FreshnessTag freshness={freshness} />
-            <ExecLink to="/app/data">How this is collected →</ExecLink>
-          </>
-        }
-      />
+    <PageFrame
+      eyebrow="Trade"
+      title="Trade flow engine"
+      lede="Reported merchandise values for every economy GlobalMatrix follows, flowed into world trade and ranked by balance."
+      actions={
+        <>
+          <FreshnessTag freshness={freshness} />
+          <Action to="/app/data">How this is collected</Action>
+        </>
+      }
+    >
 
-      <ExecGrid>
+      
         {/* DOMINANT VISUAL — the flow engine. */}
-        <Col span={8}>
+        <Region width={8}>
           <DominantCard
             title="Reported trade flows"
             meta={
@@ -109,9 +109,9 @@ export default function Trade() {
               note="The public preview tier reports total merchandise trade per reporter with the counterparty always 'World'. It returns no bilateral corridor and no commodity split, so neither is drawn here: a bilateral chord built from a source that does not contain counterparties would be a fabrication, and this page would rather be smaller than wrong."
             />
           </DominantCard>
-        </Col>
+        </Region>
 
-        <Col span={4} className="flex flex-col gap-3">
+        <Region width={4} className="flex flex-col gap-3">
           <ExecCard>
             <TradeBalance flows={flows} />
           </ExecCard>
@@ -119,10 +119,10 @@ export default function Trade() {
           <ExecCard className="flex-1">
             <TradeOpenness />
           </ExecCard>
-        </Col>
+        </Region>
 
         {/* GLOBAL TRADE MAP — where the reporting happens. */}
-        <Col span={7}>
+        <Region width={7}>
           <ExecCard className="h-full">
             <SectionTitle
               meta={
@@ -162,10 +162,10 @@ export default function Trade() {
               the data does not contain.
             </p>
           </ExecCard>
-        </Col>
+        </Region>
 
         {/* The ranking, in full, so the Sankey is auditable against it. */}
-        <Col span={5}>
+        <Region width={5}>
           <ExecCard className="h-full">
             <SectionTitle meta="descending by total" right={<BasisTag basis="observed" />}>
               Reporter ledger
@@ -240,10 +240,10 @@ export default function Trade() {
               period={trade.asOf || undefined}
             />
           </ExecCard>
-        </Col>
+        </Region>
 
         {/* Trade-channel events. Kept last and visibly separate. */}
-        <Col span={12}>
+        <Region width={12}>
           <ExecCard>
             <SectionTitle
               meta="MODEL OUTPUT · not a reported policy change"
@@ -290,9 +290,9 @@ export default function Trade() {
               </ul>
             )}
           </ExecCard>
-        </Col>
-      </ExecGrid>
-    </ExecPage>
+        </Region>
+      
+    </PageFrame>
   );
 }
 

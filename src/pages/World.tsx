@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { PageHead } from "@/components/viz/Shell";
+import { PageFrame } from "@/components/viz/exec/design";
 import { Bar, NoData, Panel, Skeleton } from "@/components/viz/core";
 import { MapLegend, MapSelection, WorldMap } from "@/components/viz/WorldMap";
 import { riskColorForScore } from "@/lib/intel/visual";
@@ -43,10 +43,6 @@ export default function World() {
   if (!overview) {
     return (
       <main>
-        <PageHead
-          title="World"
-          lede="Geospatial view of the transmission graph."
-        />
         <div className="p-3">
           <Skeleton className="h-[520px] w-full" />
         </div>
@@ -57,20 +53,23 @@ export default function World() {
   const corridors = directory?.corridors ?? [];
 
   return (
-    <main className="min-w-0">
-      <PageHead
-        title="World"
-        lede="Every plotted point is a real coordinate on real country geometry. Radius encodes live load derived from the corpus, shading shows the same load by country, and each arc means the two places are exposed to the same events. Click to inspect, double-click to open the profile, drag to pan. Institutions are excluded because they have no location."
-        actions={
+      <PageFrame
+      eyebrow="World"
+      title="World"
+      lede="Every plotted point is a real coordinate on real country geometry; radius and shading both encode derived load."
+      actions={
+        <>
           <button
             type="button"
             onClick={() => setShowFlows((v) => !v)}
-            className="label border border-rule px-3 py-2 transition-colors hover:border-foreground"
+            aria-pressed={showFlows}
+            className="exec-label border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
           >
             {showFlows ? "Hide couplings" : "Show couplings"}
           </button>
-        }
-      />
+        </>
+      }
+    >
 
       <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
         <section className="xl:col-span-9">
@@ -208,6 +207,6 @@ export default function World() {
           </Panel>
         </section>
       </div>
-    </main>
+    </PageFrame>
   );
 }

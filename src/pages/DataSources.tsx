@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { useConvex, useQuery } from "convex/react";
 import { ExternalLink, RefreshCw } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import { PageHead } from "@/components/viz/Shell";
+import { PageFrame } from "@/components/viz/exec/design";
 import { Panel, Skeleton } from "@/components/viz/core";
 import { StatusBadge } from "@/components/viz/Provenance";
 import { SOURCE_LIST } from "@/lib/sources";
@@ -58,11 +58,11 @@ export default function DataSources() {
   const convex = useConvex();
 
   return (
-    <main className="min-w-0">
-      <PageHead
-        title="Data sources"
-        lede="Every figure on GlobalMatrix carries its publisher, the period it covers and the time it was fetched. Nothing is shown without one."
-      />
+      <PageFrame
+      eyebrow="Sources"
+      title="Data sources"
+      lede="Every connector, its last successful fetch, how current that makes it, and what it is not evidence of."
+    >
 
       <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
         <section className="xl:col-span-7">
@@ -208,6 +208,6 @@ export default function DataSources() {
           </Panel>
         </section>
       </div>
-    </main>
+    </PageFrame>
   );
 }

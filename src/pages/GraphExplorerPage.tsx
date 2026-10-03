@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { PageHead } from "@/components/viz/Shell";
+import { PageFrame } from "@/components/viz/exec/design";
 import { GraphExplorer } from "@/components/viz/Flow";
 import { Bar, NoData, Panel, Skeleton } from "@/components/viz/core";
 import { getNode } from "@/lib/intel/nodes";
@@ -60,7 +60,6 @@ export default function GraphExplorerPage() {
   if (!feed) {
     return (
       <main>
-        <PageHead title="Graph" lede="Relationship explorer." />
         <div className="p-3">
           <Skeleton className="h-[520px] w-full" />
         </div>
@@ -69,25 +68,29 @@ export default function GraphExplorerPage() {
   }
 
   return (
-    <main className="min-w-0">
-      <PageHead
-        title="Graph"
-        lede="How a single event reaches the network: event → channel → node. Edge weight is the real propagation term; node size is the resolved impact."
-        actions={
-          <select
-            value={eventId ?? ""}
-            onChange={(e) => setParams({ event: e.target.value })}
-            className="h-8 border border-rule bg-card px-2 text-[12px] outline-none focus:border-foreground"
-            aria-label="Select event"
-          >
-            {feed.rows.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.reference} — {r.title.slice(0, 48)}
-              </option>
-            ))}
-          </select>
-        }
-      />
+      <PageFrame
+      eyebrow="Graph"
+      title="Graph"
+      lede="The transmission graph as a knowledge web: pick an entity and see everything it shares exposure with."
+      actions={
+        <>
+          <label className="flex items-center gap-2">
+            <span className="exec-label">Event</span>
+            <select
+              value={eventId ?? ""}
+              onChange={(e) => setParams(e.target.value ? { event: e.target.value } : {})}
+              className="max-w-[16rem] border border-[var(--exec-hairline-strong)] bg-transparent px-2 py-1.5 text-[12px] text-[var(--exec-ink)]"
+            >
+              {(feed?.rows ?? []).map((r) => (
+                <option key={r.id} value={r.id} className="bg-[var(--exec-base)]">
+                  {r.reference} — {r.title.slice(0, 40)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      }
+    >
 
       <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
         <section className="xl:col-span-9">
@@ -202,7 +205,7 @@ export default function GraphExplorerPage() {
           </Panel>
         </section>
       </div>
-    </main>
+    </PageFrame>
   );
 }
 

@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { useConvex, useQuery } from "convex/react";
 import { Sparkles } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import { PageHead } from "@/components/viz/Shell";
+import { PageFrame } from "@/components/viz/exec/design";
 import { useAuthAction } from "@/hooks/use-auth-action";
 import { Bar, NoData, Panel, Skeleton } from "@/components/viz/core";
 import { RiskTrajectory, EventFootprintMap } from "@/components/viz/EventVisuals";
@@ -78,7 +78,6 @@ export default function Analyst() {
   if (!feed) {
     return (
       <main>
-        <PageHead title="AI analyst" lede="Evidence-grounded briefs." />
         <div className="p-3">
           <Skeleton className="h-[520px] w-full" />
         </div>
@@ -94,42 +93,42 @@ export default function Analyst() {
     getNode(id).label;
 
   return (
-    <main className="min-w-0">
-      <PageHead
-        title="AI analyst"
-        lede="The model may only re-weigh evidence already in the ledger. It cannot introduce facts, and every brief must return its caveats."
-        actions={
-          <>
+      <PageFrame
+      eyebrow="AI analyst"
+      title="AI analyst"
+      lede="A question answered with evidence, drivers and sources — never a claim without the ledger it came from."
+      actions={
+        <>
+          <label className="flex items-center gap-2">
+            <span className="exec-label">Event</span>
             <select
               value={active ?? ""}
-              onChange={(e) => setEventId(e.target.value)}
-              className="h-8 border border-rule bg-card px-2 text-[12px] outline-none focus:border-foreground"
-              aria-label="Select event"
+              onChange={(e) => setEventId(e.target.value || null)}
+              className="border border-[var(--exec-hairline-strong)] bg-transparent px-2 py-1.5 text-[12px] text-[var(--exec-ink)]"
             >
-              {feed.rows.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.reference} — {r.title.slice(0, 44)}
+              {(feed?.rows ?? []).map((r) => (
+                <option key={r.id} value={r.id} className="bg-[var(--exec-base)]">
+                  {r.title}
                 </option>
               ))}
             </select>
-            <button
-              type="button"
-              onClick={run}
-              disabled={pending}
-              className="label flex h-8 items-center gap-2 bg-foreground px-3 text-background transition-opacity hover:opacity-85 disabled:opacity-50"
-            >
-              <Sparkles className="size-3.5" />
-              {pending
-                ? "Generating"
-                : !isAuthenticated
-                  ? "Sign in to generate"
-                  : brief
-                    ? "Regenerate"
-                    : "Generate"}
-            </button>
-          </>
-        }
-      />
+          </label>
+          <button
+            type="button"
+            onClick={run}
+            disabled={pending || !active}
+            className="exec-label border border-[color-mix(in_srgb,var(--exec-cyan)_60%,transparent)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:bg-[var(--exec-surface-strong)] disabled:opacity-50"
+          >
+            <Sparkles className="size-3" aria-hidden />
+            {pending
+              ? "Generating…"
+              : isAuthenticated
+                ? "Generate brief"
+                : "Sign in to save a brief"}
+          </button>
+        </>
+      }
+    >
 
       {error ? (
         <div className="border-b border-rule bg-signal/10 px-4 py-2">
@@ -341,6 +340,6 @@ export default function Analyst() {
           </div>
         </div>
       ) : null}
-    </main>
+    </PageFrame>
   );
 }

@@ -14,8 +14,12 @@ import {
 } from "@/components/viz/exec/ExecStatusBar";
 import { QuestionStrip } from "@/components/viz/Unavailable";
 import { NoVerifiedData } from "@/components/viz/Unavailable";
-import { PageTitle } from "@/components/viz/exec/system";
-import { CORPUS_LABEL } from "@/lib/intel/scenarios";
+import {
+  DataType,
+  FilterBar,
+  PageFrame,
+  PageLoading,
+} from "@/components/viz/exec/design";
 import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 import { pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -104,9 +108,11 @@ export default function Countries() {
 
   if (!directory) {
     return (
-      <main className="min-h-screen p-4" style={{ background: "var(--exec-base)" }}>
-        <p className="exec-label">Resolving country exposure…</p>
-      </main>
+      <PageLoading
+        eyebrow="Countries"
+        title="Sovereign risk intelligence"
+        lede="Every tracked economy and the infrastructure it depends on, ranked by derived exposure."
+      />
     );
   }
 
@@ -125,29 +131,22 @@ export default function Countries() {
     .sort((a, b) => b.value - a.value)[0];
   const stressedCorridor = [...corridors].sort((a, b) => b.load - a.load)[0];
 
+  // The persistent system bar above already carries live source state, search
+  // and the global map layer, so this page contributes only its own filters
+  // rather than a second command bar.
   return (
-    <main
-      className="min-w-0"
-      style={{
-        background: "var(--exec-base)",
-        color: "var(--exec-ink)",
-      }}
-    >
-      {/* The persistent system bar above already carries live source state,
-          search and the global map layer, so this page contributes only its own
-          title and filters rather than a second command bar. */}
-      <PageTitle
-        title="Sovereign risk intelligence"
-        lede="Every tracked economy and the infrastructure it depends on, ranked by derived exposure. Click a country for the ten-module board; double-click to open its full profile."
-        right={
-          <>
-            <span className="exec-label hidden sm:inline">{CORPUS_LABEL}</span>
-            <ExecStatusBar countryCount={countries.length} />
-          </>
-        }
-      />
-
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--exec-hairline)] px-4 py-2">
+    <PageFrame
+      eyebrow="Countries"
+      title="Sovereign risk intelligence"
+      lede="Every tracked economy and the infrastructure it depends on, ranked by derived exposure."
+      actions={
+        <>
+          <DataType type="scenario" />
+          <ExecStatusBar countryCount={countries.length} />
+        </>
+      }
+      controls={
+        <FilterBar>
         <ExecFilters
           regions={regions}
           region={region}
@@ -173,7 +172,9 @@ export default function Countries() {
             icon={<RadarIcon className="size-3.5" />}
           />
         </div>
-      </div>
+        </FilterBar>
+      }
+    >
 
       {/* Plain-language orientation */}
       <QuestionStrip
@@ -395,6 +396,6 @@ export default function Countries() {
           </span>
         </div>
       </div>
-    </main>
+    </PageFrame>
   );
 }

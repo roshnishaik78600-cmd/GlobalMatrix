@@ -6,7 +6,7 @@ export default function NotFound() {
   return (
     <main className="min-h-screen bg-background">
       <header className="border-b border-rule">
-        <div className="mx-auto flex h-14 max-w-[1600px] items-center px-5 lg:px-8">
+        <div className="gm-width flex h-14  items-center px-5 lg:px-8">
           <Link to="/" className="flex items-center gap-2.5">
             <span className="block size-2.5 bg-signal" aria-hidden="true" />
             <span className="text-[13px] font-semibold tracking-[0.16em] uppercase">
@@ -16,7 +16,7 @@ export default function NotFound() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-[1600px] px-5 py-20 lg:px-8 lg:py-32">
+      <div className="gm-width px-5 py-20 lg:px-8 lg:py-32">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

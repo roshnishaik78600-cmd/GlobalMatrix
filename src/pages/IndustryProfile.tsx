@@ -26,7 +26,7 @@ export default function IndustryProfile() {
 
   if (!industryId || !data) {
     return (
-      <main className="mx-auto max-w-[1600px] px-5 py-20 lg:px-8">
+      <main className="gm-width px-5 py-20 lg:px-8">
         <p className="label text-muted-foreground">Loading sector profile…</p>
       </main>
     );
@@ -42,7 +42,7 @@ export default function IndustryProfile() {
     <main>
       {/* Masthead */}
       <div className="border-b border-rule">
-        <div className="mx-auto max-w-[1600px] px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10">
+        <div className="gm-width px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10">
           <Link
             to="/app/industries"
             className="label inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
@@ -144,7 +144,7 @@ export default function IndustryProfile() {
 
       {/* Structure */}
       <div className="border-b border-rule bg-card">
-        <dl className="mx-auto grid max-w-[1600px] grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-4 lg:px-8">
+        <dl className="grid gm-width grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-4 lg:px-8">
           <Fact caption="Structural fragility" value={pct(industry.fragility)} note="MODELLED single-point-of-failure exposure" />
           <Fact caption="Substitution lead time" value={`${industry.substitutionMonths} mo`} note="MODELLED requalification + inventory cycle" />
           <Fact
@@ -162,7 +162,7 @@ export default function IndustryProfile() {
 
       {/* Structure map */}
       <div className="border-b border-rule">
-        <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
+        <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
             <div className="lg:col-span-6">
               <Panel caption="Production & input structure" aside="MODELLED shares" className="h-full">
@@ -203,7 +203,7 @@ export default function IndustryProfile() {
 
       {/* Live node load */}
       <div className="border-b border-rule">
-        <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
+        <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
           <Panel
             caption="Nodes currently transmitting into this sector"
             aside="Σ weighted exposure across all events"
@@ -245,7 +245,7 @@ export default function IndustryProfile() {
 
       {/* Causal path trace */}
       <div>
-        <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
+        <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
           <Panel
             caption="Causal path trace · how this load was built"
             aside={`${exposure.contributions.length} node exposures`}

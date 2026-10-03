@@ -3,7 +3,8 @@ import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { api } from "@/convex/_generated/api";
-import { Panel, SectionHeader } from "@/components/intel/AppShell";
+import { PageFrame, PageLoading } from "@/components/viz/exec/design";
+import { Panel } from "@/components/intel/AppShell";
 import {
   BandChip,
   HeatCell,
@@ -22,9 +23,11 @@ export default function RiskBoard() {
 
   if (!data) {
     return (
-      <main className="mx-auto max-w-[1600px] px-5 py-20 lg:px-8">
-        <p className="label text-muted-foreground">Loading risk board…</p>
-      </main>
+      <PageLoading
+        eyebrow="Risk"
+        title="Risk surface"
+        lede="Every event against every transmission channel, with the 30-day composite and its 80% interval."
+      />
     );
   }
 
@@ -32,16 +35,15 @@ export default function RiskBoard() {
   const severe = rows.filter((r) => r.band === "severe" || r.band === "high").length;
 
   return (
-    <main>
-      <SectionHeader
-        index="02"
-        title="Risk board"
-        lede="Every event against every transmission channel. Cell intensity is channel pressure; the right-hand column is the 30-day composite with its 80% interval. Read the board for concentration risk: pressure stacking in one channel across unrelated events is the signal the per-event view cannot show you."
-      />
+    <PageFrame
+      eyebrow="Risk"
+      title="Risk board"
+      lede="Every event against every transmission channel, with the 30-day composite and its 80% interval."
+    >
 
       {/* Aggregate strip */}
       <div className="border-b border-rule bg-card">
-        <dl className="mx-auto grid max-w-[1600px] grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-5 lg:px-8">
+        <dl className="grid gm-width grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-5 lg:px-8">
           <Aggregate caption="Events on board" value={String(rows.length)} note="Ranked by 30-day composite" />
           <Aggregate caption="High or severe" value={String(severe)} note="Events breaching the elevated band" />
           {channels.map((c) => (
@@ -57,7 +59,7 @@ export default function RiskBoard() {
 
       {/* Matrix */}
       <div className="border-b border-rule">
-        <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
+        <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
           <Panel
             caption="Event × channel pressure matrix"
             aside="0–100 channel pressure · sorted by 30-day composite"
@@ -165,7 +167,7 @@ export default function RiskBoard() {
 
       {/* Network load + tails */}
       <div>
-        <div className="mx-auto grid max-w-[1600px] gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
+        <div className="grid gm-width gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
           <div className="lg:col-span-5">
             <Panel
               caption="Most loaded network nodes"
@@ -230,7 +232,7 @@ export default function RiskBoard() {
       </div>
 
       <footer className="border-t border-rule">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-5 py-6 lg:px-8">
+        <div className="flex gm-width flex-wrap items-center justify-between gap-3 px-5 py-6 lg:px-8">
           <Label>
             Model: deterministic composite · all coefficients stated in
             src/lib/intel/engine.ts
@@ -241,7 +243,7 @@ export default function RiskBoard() {
           </Label>
         </div>
       </footer>
-    </main>
+  </PageFrame>
   );
 }
 

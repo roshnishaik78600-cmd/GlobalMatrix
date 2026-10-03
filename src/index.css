@@ -240,6 +240,26 @@
     background: var(--exec-surface-strong);
     border-color: var(--exec-hairline-strong);
   }
+  /* One content width for the entire product.
+     Every page frame, every landing surface and every methodology section
+     resolves to this, so the left edge of a chart lines up with the left edge
+     of the table beneath it at every breakpoint. Defined once, because a
+     max-width repeated per page is a max-width that will drift. */
+  .gm-width {
+    width: 100%;
+    max-width: 1600px;
+    margin-inline: auto;
+  }
+
+  /* Vertical rhythm. Section spacing is drawn from a 4/8/12/16/24/32/48 scale
+     so the gap above a section is always visibly larger than the gap inside it. */
+  .gm-band {
+    padding-block: 1.5rem;
+  }
+  .gm-band-lg {
+    padding-block: 2.5rem;
+  }
+
   .exec-num {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;

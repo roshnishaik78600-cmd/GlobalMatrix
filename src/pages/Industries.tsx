@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import { ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { useToggleWatch } from "@/hooks/use-auth-action";
-import { FilterToggle, Panel, SectionHeader } from "@/components/intel/AppShell";
+import { PageFrame, PageLoading } from "@/components/viz/exec/design";
+import { FilterToggle, Panel } from "@/components/intel/AppShell";
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
 import { pct } from "@/lib/format";
 import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
@@ -20,9 +21,11 @@ export default function Industries() {
 
   if (!data) {
     return (
-      <main className="mx-auto max-w-[1600px] px-5 py-20 lg:px-8">
-        <p className="label text-muted-foreground">Resolving sector exposure…</p>
-      </main>
+      <PageLoading
+        eyebrow="Industries"
+        title="Industry exposure"
+        lede="Sector concentration, substitution lead time and the events that reach each one."
+      />
     );
   }
 
@@ -38,15 +41,14 @@ export default function Industries() {
   )[0];
 
   return (
-    <main>
-      <SectionHeader
-        index="04"
-        title="Industries"
-        lede="Sector exposure is not assigned — it is derived. For each event, every node exposure is looked up in that sector's production, consumption, input and route structure, weighted by the share the node holds, then multiplied by the pathway's magnitude and confidence. Change the event corpus and these numbers move with it."
-      />
+    <PageFrame
+      eyebrow="Industries"
+      title="Industries"
+      lede="Sector concentration, substitution lead time and the events that reach each one."
+    >
 
       <div className="border-b border-rule bg-card">
-        <dl className="mx-auto grid max-w-[1600px] grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-4 lg:px-8">
+        <dl className="grid gm-width grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-4 lg:px-8">
           <Stat
             caption="Sectors modelled"
             value={String(allIndustries.length)}
@@ -79,7 +81,7 @@ export default function Industries() {
       </div>
 
       <div className="border-b border-rule">
-        <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-5 py-3 lg:px-8">
+        <div className="flex gm-width items-center justify-between gap-4 px-5 py-3 lg:px-8">
           <span className="label text-muted-foreground">
             Showing {industries.length} of {allIndustries.length} sectors
           </span>
@@ -92,7 +94,7 @@ export default function Industries() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
+      <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
         <Panel
           caption={`Sectors · ${industries.length}`}
           aside="Ranked by live exposure to the current corpus"
@@ -241,7 +243,7 @@ export default function Industries() {
           </ul>
         </Panel>
       </div>
-    </main>
+  </PageFrame>
   );
 }
 

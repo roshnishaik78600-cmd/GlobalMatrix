@@ -112,7 +112,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <header className="border-b border-rule">
-        <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between px-5 lg:px-8">
+        <div className="gm-width flex h-14  items-center justify-between px-5 lg:px-8">
           <button
             type="button"
             onClick={() => navigate("/")}

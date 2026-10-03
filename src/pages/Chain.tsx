@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { PageHead } from "@/components/viz/Shell";
+import { PageFrame } from "@/components/viz/exec/design";
 import { Skeleton } from "@/components/viz/core";
 import { QuestionStrip } from "@/components/viz/Unavailable";
 import { ChainExplorer } from "@/components/viz/ChainExplorer";
@@ -28,10 +28,6 @@ export default function ChainPage() {
   if (!overview) {
     return (
       <main>
-        <PageHead
-          title="Event → world"
-          lede="Following one event through every layer it touches."
-        />
         <div className="p-3">
           <Skeleton className="h-[560px] w-full" />
         </div>
@@ -43,11 +39,11 @@ export default function ChainPage() {
   const topEvent = overview.topEvents[0];
 
   return (
-    <main className="min-w-0">
-      <PageHead
-        title="Event → world"
-        lede="Pick an event and follow it: the economies it lands on, the routes it uses, the infrastructure it depends on, the sectors it reaches — and the two stages this build does not measure."
-      />
+      <PageFrame
+      eyebrow="Event → world"
+      title="Event → world"
+      lede="How one event travels from detection through countries, trade, energy and supply chains into market exposure."
+    >
 
       <QuestionStrip
         className="border-b border-rule"
@@ -126,6 +122,6 @@ export default function ChainPage() {
 
         <SignalMatrix />
       </div>
-    </main>
+    </PageFrame>
   );
 }

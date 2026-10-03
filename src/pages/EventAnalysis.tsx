@@ -1,20 +1,26 @@
 import { useState } from "react";
+import {
+  DataTable,
+  DataType,
+  PageFrame,
+  PageLoading,
+} from "@/components/viz/exec/design";
 import { Link, useNavigate, useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { useConvex } from "convex/react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowUpRight, Bookmark, BookmarkCheck, Sparkles, Trash2 } from "lucide-react";
+import { ArrowUpRight, Bookmark, BookmarkCheck, Sparkles, Trash2 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { useToggleWatch, useAuthAction } from "@/hooks/use-auth-action";
 import { Panel } from "@/components/intel/AppShell";
 import {
   BandChip,
-  BandScale,
   IntervalBar,
   Label,
   Meter,
 } from "@/components/intel/primitives";
-import { dayMonth, pct, shortDate, signed, timestamp } from "@/lib/format";
+import { pct, shortDate, signed, timestamp } from "@/lib/format";
+import { num } from "@/lib/numbers";
 import { getNode } from "@/lib/intel/nodes";
 import {
   CHANNELS,
@@ -43,18 +49,15 @@ export default function EventAnalysis() {
 
   if (!eventId || !data) {
     return (
-      <main className="mx-auto max-w-[1600px] px-5 py-20 lg:px-8">
-        <p className="label text-muted-foreground">
-          {data ? "Event not found." : "Loading assessment…"}
-        </p>
-        <button
-          type="button"
-          onClick={() => navigate("/app")}
-          className="label mt-6 border border-foreground px-3 py-2 hover:bg-foreground hover:text-background"
-        >
-          ← Back to detection
-        </button>
-      </main>
+      <PageLoading
+        eyebrow="Event"
+        title={data ? "Event not found" : "Event analysis"}
+        lede={
+          data
+            ? "No assessment resolved for this identifier."
+            : "Resolving the assessment, its evidence and its propagation."
+        }
+      />
     );
   }
 
@@ -86,91 +89,58 @@ export default function EventAnalysis() {
   };
 
   return (
-    <main>
-      {/* Masthead */}
-      <div className="border-b border-rule">
-        <div className="mx-auto max-w-[1600px] px-5 pt-6 pb-8 lg:px-8 lg:pt-8 lg:pb-10">
-          <Link
-            to="/app"
-            className="label inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+    <PageFrame
+      eyebrow={`Event · ${STAGE_LABEL[s.stage]}`}
+      title={s.title}
+      lede={s.summary}
+      actions={
+        <>
+          <button
+            type="button"
+            onClick={() => navigate("/app/events")}
+            className="exec-label border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
           >
-            <ArrowLeft className="size-3" /> Detection feed
-          </Link>
+            ← Back to events
+          </button>
+        </>
+      }
+    >
 
-          <div className="mt-8 grid grid-cols-12 gap-x-4 gap-y-6">
-            <div className="col-span-12 lg:col-span-8">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <span className="num label text-signal">{s.reference}</span>
-                <span className="h-3 w-px bg-rule" />
-                <span className="label text-muted-foreground">
-                  {STAGE_LABEL[s.stage]}
-                </span>
-                <span className="label text-muted-foreground">
-                  First signal {shortDate(s.firstSignalAt)}
-                </span>
-              </div>
-              <h1 className="display mt-4 text-[2.2rem] sm:text-[2.9rem] lg:text-[3.6rem]">
-                {s.title}
-              </h1>
-              <p className="mt-5 max-w-3xl text-[15px] leading-relaxed text-muted-foreground">
-                {s.summary}
-              </p>
-              <div className="mt-5 flex flex-wrap gap-1.5">
-                {s.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="label border border-rule px-2 py-1 text-[9px] text-muted-foreground"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="col-span-12 lg:col-span-4">
-              <div className="border border-rule bg-card p-5">
-                <div className="flex items-baseline justify-between">
-                  <Label>30-day composite risk</Label>
-                  <BandChip band={assessment.band} />
-                </div>
-                <p className="num display mt-3 text-[3.4rem] leading-none">
-                  {assessment.overall.toFixed(1)}
-                </p>
-                <IntervalBar
-                  score={assessment.risk[30].score}
-                  low={assessment.risk[30].low}
-                  high={assessment.risk[30].high}
-                  band={assessment.band}
-                  className="mt-4"
-                />
-                <p className="num mt-2 text-[10px] text-muted-foreground">
-                  80% interval {assessment.risk[30].low.toFixed(1)} –{" "}
-                  {assessment.risk[30].high.toFixed(1)}
-                </p>
-                <div className="mt-4 flex items-center justify-between">
-                  <BandScale band={assessment.band} />
-                  <button
-                    type="button"
-                    onClick={() => toggleWatch(eventId)}
-                    className="label flex items-center gap-1.5 border border-foreground px-3 py-2 transition-colors hover:bg-foreground hover:text-background"
-                  >
-                    {watched ? (
-                      <BookmarkCheck className="size-3.5" />
-                    ) : (
-                      <Bookmark className="size-3.5" />
-                    )}
-                    {watched ? "Tracking" : "Track"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* The reference, tags and watch control that the bespoke masthead
+          used to carry inline. The frame owns the title and the lede; these
+          are the event-specific facts that have nowhere else to live. */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-3">
+        <span className="exec-num text-[10px] font-semibold tracking-[0.16em] text-[var(--exec-cyan)]">
+          {s.reference}
+        </span>
+        <span className="label">First signal {shortDate(s.firstSignalAt)}</span>
+        <span className="label">Detected {shortDate(s.detectedAt)}</span>
+        <DataType type="scenario" />
+        <button
+          type="button"
+          onClick={() => toggleWatch(`EVENT:${s.id}`)}
+          className="exec-label ml-auto inline-flex items-center gap-1.5 border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+        >
+          {watched ? <BookmarkCheck className="size-3" /> : <Bookmark className="size-3" />}
+          {watched ? "Tracking" : "Track"}
+        </button>
       </div>
+
+      <div className="flex flex-wrap gap-1.5 pb-4">
+        {s.tags.map((tag) => (
+          <span
+            key={tag}
+            className="exec-num border border-[var(--exec-hairline)] px-2 py-1 text-[9px] text-[var(--exec-ink-dim)]"
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+
 
       {/* Readouts */}
       <div className="border-b border-rule bg-card">
-        <dl className="mx-auto grid max-w-[1600px] grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-5 lg:px-8">
+        <dl className="grid gm-width grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-5 lg:px-8">
           <Readout caption="Model confidence" value={pct(s.confidence)} note="Corroboration across independent source classes" />
           <Readout caption="Novelty" value={pct(s.novelty)} note="Distance from the corpus's own precedent set" />
           <Readout caption="Signal velocity" value={pct(s.velocity)} note="Rate of new observation, 30-day window" />
@@ -181,7 +151,7 @@ export default function EventAnalysis() {
 
       {/* Risk by horizon */}
       <div className="border-b border-rule">
-        <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
+        <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
           <Panel caption="Risk by horizon" aside="Central estimate with 80% interval">
             <div className="divide-y divide-rule">
               {risk.map((r) => (
@@ -220,7 +190,7 @@ export default function EventAnalysis() {
 
       {/* Propagation map */}
       <div className="border-b border-rule">
-        <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
+        <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
           <Panel
             caption="Propagation map · trade / energy / finance / diplomatic"
             aside="Pressure, transmission lag and exposed nodes per channel"
@@ -350,7 +320,7 @@ export default function EventAnalysis() {
 
       {/* Drivers + scenario */}
       <div className="border-b border-rule">
-        <div className="mx-auto grid max-w-[1600px] gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
+        <div className="grid gm-width gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
           <div className="lg:col-span-7">
             <Panel
               caption="Risk decomposition"
@@ -375,104 +345,70 @@ export default function EventAnalysis() {
                       }
                       className="mt-2"
                     />
-                    <p className="num mt-1.5 text-[10px] text-muted-foreground">
-                      weight {pct(driver.weight)} · {driver.channel}
-                    </p>
-                    <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                      {driver.note}
-                    </p>
-                  </li>
+                      <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+                        {driver.note}
+                      </p>
+                    </li>
                 ))}
               </ul>
-            </Panel>
-          </div>
-
-          <div className="space-y-8 lg:col-span-5">
-            <Panel caption="Analyst note">
-              <p className="px-4 py-4 text-[13px] leading-relaxed">
-                {s.analystNote}
-              </p>
-            </Panel>
-            <Panel caption="Tail scenario" aside="Beyond the 90-day interval">
-              <p className="px-4 py-4 text-[13px] leading-relaxed">
-                {s.tailScenario}
-              </p>
-            </Panel>
-          </div>
+          </Panel>
+        </div>
         </div>
       </div>
 
-      {/* Evidence ledger */}
+      {/* LEVEL 5 — the evidence ledger. Every signal that moved this score,
+          in one table, because this is where precise comparison matters: the
+          reader is meant to check reliability, corroboration and anomaly
+          against each other column by column. */}
       <div className="border-b border-rule">
-        <div className="mx-auto max-w-[1600px] px-5 py-8 lg:px-8 lg:py-10">
-          <Panel
-            caption={`Evidence ledger · ${s.signals.length} observations`}
-            aside="Reliability prior × corroborations × anomaly"
-          >
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-rule">
-                    {["Date", "Source", "Class", "Channel", "Observation", "Rel.", "Corr.", "σ"].map((h) => (
-                      <th key={h} className="label px-4 py-2.5 text-muted-foreground">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {s.signals
-                    .slice()
-                    .sort((a, b) => b.observedAt.localeCompare(a.observedAt))
-                    .map((signal) => (
-                      <tr
-                        key={signal.id}
-                        className="border-b border-rule align-top last:border-b-0"
-                      >
-                        <td className="num px-4 py-3 text-[11px] whitespace-nowrap">
-                          {dayMonth(signal.observedAt)}
-                        </td>
-                        <td className="px-4 py-3 text-[12px]">
-                          {signal.source}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="label text-[9px] text-muted-foreground">
-                            {SOURCE_CLASS_LABEL[signal.sourceClass]}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="label text-[9px]">
-                            {CHANNEL_LABEL[signal.channel]}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="text-[12px] font-medium">
-                            {signal.headline}
-                          </p>
-                          <p className="mt-1 max-w-prose text-[11px] leading-snug text-muted-foreground">
-                            {signal.detail}
-                          </p>
-                        </td>
-                        <td className="num px-4 py-3 text-[11px]">
-                          {pct(signal.reliability)}
-                        </td>
-                        <td className="num px-4 py-3 text-[11px]">
-                          ×{signal.corroborations}
-                        </td>
-                        <td className="num px-4 py-3 text-[11px]">
-                          {signal.anomalyZ.toFixed(1)}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          </Panel>
-        </div>
+        <Panel
+          caption="Evidence ledger"
+          aside={`${s.signals.length} observations · newest first`}
+        >
+          <DataTable
+            columns={[
+              { key: "date", label: "Date" },
+              { key: "source", label: "Source" },
+              { key: "class", label: "Class" },
+              { key: "channel", label: "Channel" },
+              { key: "observation", label: "Observation" },
+              { key: "reliability", label: "Rel.", numeric: true },
+              { key: "corr", label: "Corr.", numeric: true },
+              { key: "z", label: "Anomaly", numeric: true },
+            ]}
+            rows={[...s.signals]
+              .sort((a, b) => b.observedAt.localeCompare(a.observedAt))
+              .map((signal) => ({
+                date: shortDate(signal.observedAt),
+                source: signal.source,
+                class: (
+                  <span className="exec-label">
+                    {SOURCE_CLASS_LABEL[signal.sourceClass]}
+                  </span>
+                ),
+                channel: (
+                  <span className="exec-label">{CHANNEL_LABEL[signal.channel]}</span>
+                ),
+                observation: (
+                  <span className="block min-w-[16rem] whitespace-normal">
+                    <span className="block text-[12px] font-medium text-[var(--exec-ink)]">
+                      {signal.headline}
+                    </span>
+                    <span className="mt-1 block text-[11px] leading-snug text-[var(--exec-ink-dim)]">
+                      {signal.detail}
+                    </span>
+                  </span>
+                ),
+                reliability: pct(signal.reliability),
+                corr: `×${signal.corroborations}`,
+                z: `${num(signal.anomalyZ, 1)}σ`,
+              }))}
+          />
+        </Panel>
       </div>
 
       {/* Brief + annotations */}
-      <div className="mx-auto grid max-w-[1600px] gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
+      <div className="grid gm-width gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
         <div className="lg:col-span-7">
           <Panel
             caption="Analyst brief"
@@ -606,7 +542,7 @@ export default function EventAnalysis() {
           </Panel>
         </div>
       </div>
-    </main>
+    </PageFrame>
   );
 }
 
