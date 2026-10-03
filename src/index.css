@@ -8,7 +8,10 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: var(--radius + 4px);
+  /* Written out rather than as `var(--radius) + 4px`: the optimizer cannot fold
+     a var() inside an addition, and it warns on every build that it left
+     `.rounded-xl` unevaluated. 0.75rem is `--radius` (0.5rem) plus 4px. */
+  --radius-xl: 0.75rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -57,32 +60,35 @@
 }
 
 /* CHANGE VALUES FOR THEME */
-/* Dark intelligence workstation: cool near-black base, hairline rules,
-   semantic risk ramp (stable → warning → elevated → critical). */
+/* Obsidian workstation. The base and panel are literal hex rather than oklch on
+   purpose: the sidebar, the command bar and every page body all resolve to
+   these two values, so there is exactly one background in the product and no
+   seam where the chrome meets the page. Hairlines are alpha, not a third
+   colour, so a divider reads as "the surface, cut" at any nesting depth. */
 :root {
-  --radius: 0rem;
+  --radius: 0.5rem;
 
-  --background: oklch(0.145 0.004 264);
-  --foreground: oklch(0.96 0 0);
-  --card: oklch(0.183 0.005 264);
-  --card-foreground: oklch(0.96 0 0);
-  --popover: oklch(0.165 0.005 264);
-  --popover-foreground: oklch(0.96 0 0);
-  --primary: oklch(0.93 0 0);
-  --primary-foreground: oklch(0.16 0 0);
-  --secondary: oklch(0.225 0.006 264);
-  --secondary-foreground: oklch(0.96 0 0);
-  --muted: oklch(0.225 0.006 264);
-  --muted-foreground: oklch(0.66 0.008 264);
-  --accent: oklch(0.245 0.008 264);
-  --accent-foreground: oklch(0.96 0 0);
-  --destructive: oklch(0.6 0.2 24);
-  --border: oklch(0.29 0.007 264);
-  --input: oklch(0.29 0.007 264);
-  --ring: oklch(0.6 0.19 25);
+  --background: #090d16;
+  --foreground: #e8eef7;
+  --card: #0d1117;
+  --card-foreground: #e8eef7;
+  --popover: #11161f;
+  --popover-foreground: #e8eef7;
+  --primary: #e8eef7;
+  --primary-foreground: #090d16;
+  --secondary: #161c27;
+  --secondary-foreground: #e8eef7;
+  --muted: #161c27;
+  --muted-foreground: #94a3b8;
+  --accent: #1d2533;
+  --accent-foreground: #e8eef7;
+  --destructive: #ff2e63;
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #00f5ff;
 
-  --rule: oklch(0.27 0.007 264);
-  --grid: oklch(0.22 0.006 264);
+  --rule: rgba(255, 255, 255, 0.08);
+  --grid: rgba(255, 255, 255, 0.05);
   --signal: oklch(0.6 0.2 24);
   --elevated: oklch(0.7 0.17 55);
   --warning: oklch(0.78 0.15 85);
@@ -96,25 +102,26 @@
   --chart-4: oklch(0.78 0.15 85);
   --chart-5: oklch(0.68 0.16 300);
 
-  --sidebar: oklch(0.165 0.005 264);
-  --sidebar-foreground: oklch(0.96 0 0);
-  --sidebar-primary: oklch(0.96 0 0);
-  --sidebar-primary-foreground: oklch(0.16 0 0);
-  --sidebar-accent: oklch(0.24 0.008 264);
-  --sidebar-accent-foreground: oklch(0.96 0 0);
-  --sidebar-border: oklch(0.27 0.007 264);
-  --sidebar-ring: oklch(0.6 0.19 25);
+  --sidebar: #0b101a;
+  --sidebar-foreground: #e8eef7;
+  --sidebar-primary: #e8eef7;
+  --sidebar-primary-foreground: #090d16;
+  --sidebar-accent: #1d2533;
+  --sidebar-accent-foreground: #e8eef7;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #00f5ff;
 
   /* Executive risk-surface tokens.
      A deeper, colder base for the high-density screens, plus the three
      indicator accents they use. Kept separate from the console tokens above
      so a dense analyst surface can be tuned without disturbing the rest. */
-  --exec-base: #070a10;
-  --exec-surface: rgba(255, 255, 255, 0.03);
-  --exec-surface-strong: rgba(255, 255, 255, 0.055);
-  --exec-hairline: rgba(255, 255, 255, 0.08);
+  --exec-base: #090d16;
+  --exec-panel: #0d1117;
+  --exec-surface: rgba(255, 255, 255, 0.04);
+  --exec-surface-strong: rgba(255, 255, 255, 0.07);
+  --exec-hairline: rgba(255, 255, 255, 0.1);
   --exec-hairline-strong: rgba(255, 255, 255, 0.16);
-  --exec-ink: #ffffff;
+  --exec-ink: #f1f5f9;
   --exec-ink-dim: #94a3b8;
   --exec-cyan: #00f5ff;
   --exec-amber: #ff9f1c;
@@ -163,6 +170,49 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+
+  /* Global text-wrapping reset.
+     Every text-bearing element in the product is listed here explicitly rather
+     than with `*`, because `*` would also catch `<pre>` and would beat the
+     whitespace utilities that components rely on. `:where()` keeps specificity
+     at zero, so `truncate`, `whitespace-nowrap` and `whitespace-pre-wrap` always
+     win where a component actually wants them.
+     The three properties together are what stop a label from degrading into a
+     one-character-per-line column when its flex or grid parent is squeezed:
+     text may wrap, but only between words, and never by breaking inside one. */
+  :where(
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6,
+      p,
+      span,
+      div,
+      li,
+      ul,
+      ol,
+      dl,
+      dt,
+      dd,
+      td,
+      th,
+      a,
+      button,
+      label,
+      legend,
+      figcaption,
+      blockquote,
+      strong,
+      em,
+      small,
+      summary
+    ) {
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
 }
 
 @layer components {
@@ -207,7 +257,7 @@
      highlight is the only depth cue the dark surface gets, so it stays under
      a percent — enough to separate stacked panels, not enough to look glossy. */
   .panel {
-    @apply border border-rule bg-card;
+    @apply rounded-lg border border-rule bg-card;
     box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
   }
   .panel-head {
@@ -215,20 +265,35 @@
   }
 
   .chip {
-    @apply inline-flex items-center gap-1 border px-1.5 py-0.5 text-[9px] font-medium tracking-[0.14em] uppercase;
+    @apply inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] font-medium tracking-[0.14em] uppercase;
   }
 
   /* Executive surfaces: one hairline, one fill, no drop shadows. Depth comes
      from the border and the backdrop, never from blur stacked on blur. */
   .glass {
-    background: var(--exec-surface);
+    background: color-mix(in srgb, var(--exec-panel) 60%, transparent);
     border: 1px solid var(--exec-hairline);
-    backdrop-filter: blur(14px) saturate(120%);
+    border-radius: var(--radius-lg);
+    /* `clip`, not `hidden`: it stops a child's divider or chart edge from
+       poking through the rounded corner without turning the panel into a scroll
+       container, which would silently break every sticky table header inside
+       it. */
+    overflow: clip;
+    backdrop-filter: blur(12px) saturate(120%);
   }
   .glass-strong {
-    background: var(--exec-surface-strong);
+    background: color-mix(in srgb, var(--exec-panel) 82%, transparent);
     border: 1px solid var(--exec-hairline);
-    backdrop-filter: blur(18px) saturate(130%);
+    border-radius: var(--radius-lg);
+    overflow: clip;
+    backdrop-filter: blur(16px) saturate(130%);
+  }
+  /* Explicit rounding for a surface that sets its own background and so never
+     picks up `.glass`. */
+  .exec-surface {
+    background: color-mix(in srgb, var(--exec-panel) 60%, transparent);
+    border: 1px solid var(--exec-hairline);
+    border-radius: var(--radius-lg);
   }
   .glass-hover {
     transition:
@@ -237,7 +302,7 @@
       transform 160ms ease;
   }
   .glass-hover:hover {
-    background: var(--exec-surface-strong);
+    background: color-mix(in srgb, var(--exec-panel) 78%, transparent);
     border-color: var(--exec-hairline-strong);
   }
   /* One content width for the entire product.

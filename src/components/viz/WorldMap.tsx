@@ -229,7 +229,7 @@ export function WorldMap({
   const hovered = plotted.find((p) => p.nodeId === hover);
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative min-w-0", className)}>
       <svg
         ref={svg}
         viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
@@ -495,7 +495,7 @@ export function WorldMap({
       {/* Hover read-out. The load shown follows the active layer, and says
           plainly when a place has no reading for it. */}
       {hovered ? (
-        <div className="pointer-events-none absolute bottom-3 left-3 max-w-[min(20rem,70%)] border border-rule bg-popover/95 px-3 py-2 backdrop-blur">
+        <div className="pointer-events-none absolute bottom-3 left-3 max-w-[min(20rem,70%)] min-w-0 border border-rule bg-popover/95 px-3 py-2 backdrop-blur">
           <p className="text-[12.5px] font-semibold">{hovered.node.label}</p>
           <p className="num mt-0.5 text-[10px] text-muted-foreground">
             {hovered.node.region} · {hovered.node.kind} ·{" "}
@@ -515,7 +515,7 @@ export function WorldMap({
 /** Legend for the map encoding. */
 export function MapLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-2">
+    <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-2">
       {[
         { label: "Economy", glyph: "circle" },
         { label: "Bloc", glyph: "square" },
@@ -571,9 +571,9 @@ export function MapSelection({
           ["Criticality", node.criticality.toFixed(2)],
           ["Node id", node.id],
         ].map(([k, v]) => (
-          <div key={k}>
+          <div key={k} className="min-w-0">
             <dt className="label text-muted-foreground">{k}</dt>
-            <dd className="num text-[12px]">{v}</dd>
+            <dd className="num min-w-0 text-[12px]">{v}</dd>
           </div>
         ))}
       </dl>

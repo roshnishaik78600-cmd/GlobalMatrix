@@ -71,7 +71,10 @@ export function PageFrame({
   footer?: ReactNode;
 }) {
   return (
-    <ExecPage className="flex min-h-screen flex-col">
+    // `min-h-full`, not `min-h-screen`: the shell owns the viewport height, so a
+    // 100vh minimum here would give every page a permanent phantom scrollbar's
+    // worth of empty space below its footer.
+    <ExecPage className="flex min-h-full flex-col">
       <header className="border-b border-[var(--exec-hairline)] px-4 pt-5 pb-4 lg:px-6">
         <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
           <div className="min-w-0 max-w-2xl">
@@ -90,7 +93,7 @@ export function PageFrame({
       </header>
 
       {controls ? (
-        <div className="border-b border-[var(--exec-hairline)] px-4 lg:px-6">
+        <div className="min-w-0 border-b border-[var(--exec-hairline)] px-4 lg:px-6">
           {controls}
         </div>
       ) : null}
@@ -98,7 +101,10 @@ export function PageFrame({
       <main className="min-w-0 flex-1 px-4 py-4 lg:px-6">
         {/* The one grid, inlined: 12 columns on desktop, one on mobile, a
             single gutter. Not exported, because every page reaches it through
-            PageFrame and a second entry point would be a second thing to drift. */}
+            PageFrame and a second entry point would be a second thing to drift.
+            Tracks stretch by default so regions sharing a row end on the same
+            baseline, and `Region` pins `min-w-0` on both its own box and the
+            panel inside it so a wide child cannot widen the track. */}
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">{children}</div>
       </main>
 
@@ -181,10 +187,10 @@ export function PanelHead({
 }) {
   return (
     <>
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--exec-hairline)] px-3 py-2">
+      <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[var(--exec-hairline)] px-3 py-2">
         <div className="flex min-w-0 items-baseline gap-2">
           <h2 className="exec-label shrink-0 text-[var(--exec-ink)]">{title}</h2>
-          {meta ? <span className="exec-label truncate">{meta}</span> : null}
+          {meta ? <span className="exec-label min-w-0 truncate">{meta}</span> : null}
         </div>
         {actions ? (
           <div className="flex shrink-0 items-center gap-1.5">{actions}</div>
@@ -243,13 +249,13 @@ export function Metric({
         active && "border-[var(--exec-cyan)]/60",
       )}
     >
-      <span className="flex items-baseline justify-between gap-2">
-        <span className="exec-label truncate">{label}</span>
+      <span className="flex min-w-0 items-baseline justify-between gap-2">
+        <span className="exec-label min-w-0 truncate">{label}</span>
         {basis ? <DataType type={basis} /> : null}
       </span>
-      <span className="flex items-baseline gap-1.5">
+      <span className="flex min-w-0 items-baseline gap-1.5">
         <span
-          className="exec-num text-[1.55rem] leading-none font-bold tracking-[-0.02em]"
+          className="exec-num min-w-0 truncate text-[1.55rem] leading-none font-bold tracking-[-0.02em]"
           style={{ color: tone ?? "var(--exec-ink)" }}
         >
           {value}
@@ -348,10 +354,10 @@ export function DataType({ type }: { type: Basis }) {
  */
 export function FilterBar({ children, scope }: { children: ReactNode; scope?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 py-2">
-      <div className="flex flex-wrap items-center gap-2">{children}</div>
+    <div className="flex min-w-0 flex-wrap items-center gap-2 py-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">{children}</div>
       {scope ? (
-        <div className="exec-label ml-auto flex items-center gap-2 truncate">
+        <div className="exec-label ml-auto flex min-w-0 items-center gap-2 truncate">
           {scope}
         </div>
       ) : null}
@@ -373,7 +379,7 @@ export function Segmented<T extends string>({
 }) {
   return (
     <div
-      className="flex items-center gap-px"
+      className="flex min-w-0 items-center gap-px overflow-x-auto"
       role="group"
       aria-label={label}
     >

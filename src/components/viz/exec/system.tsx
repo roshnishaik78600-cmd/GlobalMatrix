@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router";
 import { cn } from "@/lib/utils";
 import {
   FRESHNESS_COLOUR,
@@ -113,7 +114,7 @@ export function PageTitle({
           </p>
         ) : null}
       </div>
-      {right ? <div className="flex flex-wrap items-center gap-2">{right}</div> : null}
+      {right ? <div className="flex min-w-0 flex-wrap items-center gap-2">{right}</div> : null}
     </div>
   );
 }
@@ -132,15 +133,15 @@ export function SectionTitle({
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-3 border-b border-[var(--exec-hairline)] px-3 py-2",
+        "flex min-w-0 items-center justify-between gap-3 border-b border-[var(--exec-hairline)] px-3 py-2",
         className,
       )}
     >
       <div className="flex min-w-0 items-baseline gap-2">
-        <h2 className="exec-label text-[var(--exec-ink)]">{children}</h2>
-        {meta ? <span className="exec-label truncate">{meta}</span> : null}
+        <h2 className="exec-label min-w-0 shrink text-[var(--exec-ink)]">{children}</h2>
+        {meta ? <span className="exec-label min-w-0 truncate">{meta}</span> : null}
       </div>
-      {right ? <div className="flex shrink-0 items-center gap-2">{right}</div> : null}
+      {right ? <div className="flex min-w-0 shrink-0 items-center gap-2">{right}</div> : null}
     </div>
   );
 }
@@ -256,7 +257,7 @@ export function ProvenanceFoot({
 }) {
   const source = sourceId ? sourceById(sourceId) : undefined;
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--exec-hairline)] px-3 py-1.5">
+    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--exec-hairline)] px-3 py-1.5">
       {source ? (
         <a
           href={source.url}
@@ -446,7 +447,10 @@ export function SegmentedControl<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={cn("flex items-center gap-px", className)} role="group">
+    <div
+      className={cn("flex min-w-0 items-center gap-px overflow-x-auto", className)}
+      role="group"
+    >
       {options.map((o) => (
         <button
           key={o.id}
@@ -455,7 +459,7 @@ export function SegmentedControl<T extends string>({
           aria-pressed={o.id === value}
           title={o.hint}
           className={cn(
-            "exec-label border px-2 py-1 transition-colors",
+            "exec-label shrink-0 rounded-sm border px-2 py-1 whitespace-nowrap transition-colors",
             o.id === value
               ? "border-[color-mix(in_srgb,var(--exec-cyan)_60%,transparent)] bg-[color-mix(in_srgb,var(--exec-cyan)_12%,transparent)] text-[var(--exec-ink)]"
               : "border-[var(--exec-hairline)] text-[var(--exec-ink-dim)] hover:text-[var(--exec-ink)]",
@@ -478,14 +482,14 @@ export function ExecLink({
   className?: string;
 }) {
   return (
-    <a
-      href={to}
+    <Link
+      to={to}
       className={cn(
         "exec-label transition-colors hover:text-[var(--exec-ink)]",
         className,
       )}
     >
       {children}
-    </a>
+    </Link>
   );
 }

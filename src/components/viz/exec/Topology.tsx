@@ -78,8 +78,8 @@ export function CompositeGauge({
         active && "border-[color-mix(in_srgb,var(--exec-cyan)_55%,transparent)]",
       )}
     >
-      <span className="flex items-center justify-between gap-2">
-        <span className="exec-label max-w-[16ch] truncate">{label}</span>
+      <span className="flex min-w-0 items-center justify-between gap-2">
+        <span className="exec-label min-w-0 max-w-[16ch] truncate">{label}</span>
         <BasisTag basis={basis} />
       </span>
 
@@ -195,7 +195,7 @@ export function GaugeCluster({ data }: { data: TopologyResult }) {
   const frag = data.fragility;
 
   return (
-    <div>
+    <div className="flex min-w-0 flex-col">
       <SectionTitle
         meta="30-day model output"
         right={
@@ -206,7 +206,7 @@ export function GaugeCluster({ data }: { data: TopologyResult }) {
       >
         Composite gauges
       </SectionTitle>
-      <div className="grid grid-cols-1 gap-2 p-2 sm:grid-cols-3">
+      <div className="grid min-w-0 grid-cols-1 gap-2 p-2 sm:grid-cols-3">
         <CompositeGauge
           label="Global supply chain stress"
           value={supply?.intensity ?? 0}
@@ -263,24 +263,39 @@ export function RiskTopology({
   data,
   onSelect,
   selected,
+  columns = 3,
 }: {
   data: TopologyResult;
   onSelect: (id: string | null) => void;
   selected: string | null;
+  /**
+   * Tiles per row. Explicit rather than viewport-driven: this board is placed
+   * in a 4-column region on one page and a full-width region on another, and a
+   * viewport breakpoint cannot tell the difference — three tiles in a narrow
+   * region land at roughly 120px each, which is not a layout.
+   */
+  columns?: 1 | 2 | 3;
 }) {
   return (
-    <div>
+    <div className="flex min-w-0 flex-col">
       <SectionTitle
         meta="daily model output"
         right={
-          <span className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
+          <span className="exec-num shrink-0 text-[9.5px] text-[var(--exec-ink-dim)]">
             as of {data.latest}
           </span>
         }
       >
         Macro risk topology
       </SectionTitle>
-      <div className="grid grid-cols-2 gap-2 p-2 lg:grid-cols-3">
+      <div
+        className={cn(
+          "grid min-w-0 gap-2 p-2",
+          columns === 1 && "grid-cols-1",
+          columns === 2 && "grid-cols-1 sm:grid-cols-2",
+          columns === 3 && "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
+        )}
+      >
         {data.categories.map((c) => (
           <HeatTile
             key={c.id}
@@ -333,8 +348,8 @@ function HeatTile({
         }}
         aria-hidden
       />
-      <span className="relative flex items-center justify-between gap-2">
-        <span className="exec-label max-w-[15ch] truncate text-[var(--exec-ink)]">
+      <span className="relative flex min-w-0 items-center justify-between gap-2">
+        <span className="exec-label min-w-0 max-w-[15ch] truncate text-[var(--exec-ink)]">
           {category.label}
         </span>
         <Trend
@@ -413,7 +428,7 @@ export function ThreatTicker({
       >
         Threat ticker
       </SectionTitle>
-      <div className="flex snap-x gap-px overflow-x-auto p-2">
+      <div className="flex min-w-0 snap-x gap-px overflow-x-auto p-2">
         {events.map((e) => {
           const colour = CHANNEL_COLOR[e.channel];
           return (
@@ -431,9 +446,9 @@ export function ThreatTicker({
                 !e.inWindow && "opacity-45",
               )}
             >
-              <span className="flex items-center justify-between gap-2">
+              <span className="flex min-w-0 items-center justify-between gap-2">
                 <span
-                  className="exec-label max-w-[11ch] truncate"
+                  className="exec-label min-w-0 max-w-[11ch] truncate"
                   style={{ color: colour }}
                 >
                   {CHANNEL_LABEL[e.channel]}

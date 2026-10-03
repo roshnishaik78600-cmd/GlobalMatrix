@@ -74,12 +74,12 @@ function NavRow({
         title={`Unavailable — ${item.unavailable}`}
         aria-disabled="true"
         className={cn(
-          "flex cursor-not-allowed items-center gap-2.5 rounded-sm px-2 py-1.5 text-[12px] text-[var(--exec-ink-dim)]/40",
+          "flex min-w-0 cursor-not-allowed items-center gap-2.5 rounded-sm px-2 py-1.5 text-[12px] text-[var(--exec-ink-dim)]/40",
           collapsed && "justify-center px-0",
         )}
       >
         <Icon className="size-3.5 shrink-0" aria-hidden />
-        {!collapsed ? <span className="truncate">{item.label}</span> : null}
+        {!collapsed ? <span className="min-w-0 truncate">{item.label}</span> : null}
       </span>
     );
   }
@@ -92,7 +92,7 @@ function NavRow({
       title={collapsed ? item.label : undefined}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2.5 rounded-sm px-2 py-1.5 text-[12px] transition-colors",
+        "flex min-w-0 items-center gap-2.5 rounded-sm px-2 py-1.5 text-[12px] transition-colors",
         collapsed && "justify-center px-0",
         active
           ? "bg-[color-mix(in_srgb,var(--exec-cyan)_12%,transparent)] text-[var(--exec-ink)]"
@@ -113,7 +113,7 @@ function NavRow({
             aria-hidden
           />
           <Icon className="size-3.5 shrink-0" aria-hidden />
-          {!collapsed ? <span className="truncate">{item.label}</span> : null}
+          {!collapsed ? <span className="min-w-0 truncate">{item.label}</span> : null}
         </>
       )}
     </NavLink>
