@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
+import { CHANNEL_LABEL } from "@/lib/intel/types";
 import { pct } from "@/lib/format";
 import { loadColour } from "./Topology";
 import { NoDataAvailable, SectionTitle } from "./system";
@@ -54,8 +54,8 @@ export function CascadeGraph({ eventId }: { eventId: string }) {
 
     // Ring 1: the channels the corpus actually carries this event on. Only the
     // channels with rows are shown — an empty channel is not a weak channel.
-    const carried: Channel[] = (["trade", "energy"] as const).filter((c) =>
-      channelRows(chain, c).length > 0,
+    const carried = (["trade", "energy"] as const).filter(
+      (c) => channelRows(chain, c).length > 0,
     );
     for (const channel of carried) {
       const rows = channelRows(chain, channel);
@@ -79,8 +79,8 @@ export function CascadeGraph({ eventId }: { eventId: string }) {
         id: `route:${row.nodeId}`,
         label: row.label,
         ring: 1,
-        weight: row.load,
-        note: via?.mechanism ?? "Declared route this event travels through.",
+        weight: (via?.impact ?? row.impact) * (via?.confidence ?? row.confidence),
+        note: via?.mechanism ?? row.note,
         lag: via?.lagDays,
         confidence: via?.confidence,
         href: `/app/country/${row.nodeId}`,

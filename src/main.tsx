@@ -12,6 +12,7 @@ import "./index.css";
 
 // Lazy load route components for better code splitting
 const Landing = lazy(() => import("./pages/Landing.tsx"));
+const Methodology = lazy(() => import("./pages/Methodology.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
 const Overview = lazy(() => import("./pages/Overview.tsx"));
 const Detection = lazy(() => import("./pages/Detection.tsx"));
@@ -168,6 +169,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/app/markets" element={console_(<Markets />)} />
               <Route path="/app/policy" element={console_(<NotAvailable />)} />
               <Route path="/app/analogues" element={console_(<NotAvailable />)} />
+              <Route path="/methodology" element={<Methodology />} />
               <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

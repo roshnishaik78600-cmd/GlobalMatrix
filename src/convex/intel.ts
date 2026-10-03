@@ -136,6 +136,12 @@ export const detectionFeed = query({
           evidenceStrength: a.evidenceStrength,
           velocitySeries: a.velocitySeries,
           topNodes,
+          // The single most recent signal's publisher, so a compact feed row can
+          // name its source without shipping the whole ledger to every caller.
+          latestSignal: a.scenario.signals.reduce<(typeof a.scenario.signals)[number] | null>(
+            (best, s) => (!best || s.observedAt > best.observedAt ? s : best),
+            null,
+          ),
           watched: watched.has(a.scenario.id),
         };
       });
