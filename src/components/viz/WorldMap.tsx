@@ -23,6 +23,19 @@ export interface MapNode {
   byChannel?: { channel: Channel; load: number }[];
 }
 
+/**
+ * True when a node has a real coordinate and can therefore be drawn.
+ *
+ * Institutions (SWIFT, the institutional-portfolio node) are part of the intel
+ * model but have no location, and the map deliberately never invents one. Every
+ * page that counts "places" has to use this test, or it prints a number the
+ * reader cannot match against the markers in the picture.
+ */
+export function isPlottable(nodeId: string): boolean {
+  const node = getNode(nodeId);
+  return node.lat !== undefined && node.lon !== undefined;
+}
+
 /** An event anchored to the place it lands on hardest. */
 export interface MapEvent {
   id: string;

@@ -15,7 +15,7 @@
  */
 
 import { action } from "./_generated/server";
-import { api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import {
   type Datum,
   type DataStatus,
@@ -241,15 +241,6 @@ async function pullWorldBank(series: (typeof WB_SERIES)[number]): Promise<Connec
   };
 }
 
-export const worldBankRefresh = action({
-  handler: async (): Promise<ConnectorOutcome[]> => {
-    const out: ConnectorOutcome[] = [];
-    // Sequential on purpose: World Bank throttles bursts.
-    for (const series of WB_SERIES) out.push(await pullWorldBank(series));
-    return out;
-  },
-});
-
 /* ------------------------------------------------------------------ */
 /* UN Comtrade                                                         */
 /* ------------------------------------------------------------------ */
@@ -364,12 +355,6 @@ async function latestComtradeYear(): Promise<string> {
   // UN Comtrade lags by roughly a year for most reporters.
   return String(thisYear - 1);
 }
-
-export const comtradeRefresh = action({
-  handler: async (): Promise<ConnectorOutcome[]> => {
-    return [await pullComtrade(await latestComtradeYear())];
-  },
-});
 
 /* ------------------------------------------------------------------ */
 /* GDELT — media attention                                            */
@@ -553,17 +538,6 @@ async function pullGdeltHeadlines(topic: string): Promise<ConnectorOutcome> {
  * panel empty. Two topics is what the quota actually sustains. */
 const ATTENTION_TOPICS = ["trade war", "sanctions"];
 
-export const gdeltRefresh = action({
-  handler: async (): Promise<ConnectorOutcome[]> => {
-    // Headlines first: a citable, linkable article is worth more to a reader
-    // than another sparkline, so it is what we fight for when throttled.
-    const out: ConnectorOutcome[] = [];
-    for (const topic of ATTENTION_TOPICS) out.push(await pullGdeltHeadlines(topic));
-    for (const topic of ATTENTION_TOPICS) out.push(await pullGdeltAttention(topic));
-    return out;
-  },
-});
-
 /* ------------------------------------------------------------------ */
 /* Persistence                                                         */
 /* ------------------------------------------------------------------ */
@@ -583,10 +557,12 @@ const tally = (out: ConnectorOutcome[]) => ({
 export const refreshMacro = action({
   handler: async (ctx): Promise<{ refreshed: number; failed: number }> => {
     const out: ConnectorOutcome[] = [];
+    // Sequential on purpose: World Bank throttles bursts.
     for (const series of WB_SERIES) out.push(await pullWorldBank(series));
-    // The Node runtime has no database handle, so results go through a
-    // mutation on the Convex runtime that validates them again on the way in.
-    await ctx.runMutation(api.observations.storeObservations, { items: out });
+    // The Node runtime has no database handle, so results go through an
+    // internal mutation on the Convex runtime that validates them again on the
+    // way in and refuses anything not attributable to a real connector run.
+    await ctx.runMutation(internal.observations.storeObservations, { items: out });
     return tally(out);
   },
 });
@@ -594,7 +570,7 @@ export const refreshMacro = action({
 export const refreshTrade = action({
   handler: async (ctx): Promise<{ refreshed: number; failed: number }> => {
     const out = [await pullComtrade(await latestComtradeYear())];
-    await ctx.runMutation(api.observations.storeObservations, { items: out });
+    await ctx.runMutation(internal.observations.storeObservations, { items: out });
     return tally(out);
   },
 });
@@ -602,9 +578,11 @@ export const refreshTrade = action({
 export const refreshAttention = action({
   handler: async (ctx): Promise<{ refreshed: number; failed: number }> => {
     const out: ConnectorOutcome[] = [];
+    // Headlines first: a citable, linkable article is worth more to a reader
+    // than another sparkline, so it is what we fight for when throttled.
     for (const topic of ATTENTION_TOPICS) out.push(await pullGdeltHeadlines(topic));
     for (const topic of ATTENTION_TOPICS) out.push(await pullGdeltAttention(topic));
-    await ctx.runMutation(api.observations.storeObservations, { items: out });
+    await ctx.runMutation(internal.observations.storeObservations, { items: out });
     return tally(out);
   },
 });

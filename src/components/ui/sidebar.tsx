@@ -599,6 +599,11 @@ function SidebarMenuBadge({
   )
 }
 
+/** Fixed placeholder bar width. Deliberately not random: `Math.random()` is impure
+ * during render, so it changed on every re-render and could never be reproduced
+ * on the server. A constant reads the same as the old random draw did. */
+const SKELETON_BAR_WIDTH = "68%"
+
 function SidebarMenuSkeleton({
   className,
   showIcon = false,
@@ -606,10 +611,8 @@ function SidebarMenuSkeleton({
 }: React.ComponentProps<"div"> & {
   showIcon?: boolean
 }) {
-  // Random width between 50 to 90%.
-  const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`
-  }, [])
+  // Placeholder bar width. Fixed rather than random — see SKELETON_BAR_WIDTH.
+  const width = SKELETON_BAR_WIDTH
 
   return (
     <div

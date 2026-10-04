@@ -5,7 +5,7 @@ import { PageFrame } from "@/components/viz/exec/design";
 import { Skeleton } from "@/components/viz/core";
 import { QuestionStrip } from "@/components/viz/Unavailable";
 import { ChainExplorer } from "@/components/viz/ChainExplorer";
-import { MapLegend, MapSelection, WorldMap } from "@/components/viz/WorldMap";
+import { MapLegend, MapSelection, WorldMap, isPlottable } from "@/components/viz/WorldMap";
 import { SignalMatrix } from "@/components/viz/SignalMatrix";
 import { useFocus } from "@/lib/focus";
 
@@ -36,6 +36,9 @@ export default function ChainPage() {
   }
 
   const hottest = overview.hottestCountries[0];
+  // Count only places the map can actually draw, so the number in the caption
+  // matches the markers in the picture.
+  const plottablePlaces = overview.mapNodes.filter((n) => isPlottable(n.nodeId)).length;
   const topEvent = overview.topEvents[0];
 
   return (
@@ -82,7 +85,7 @@ export default function ChainPage() {
               <div className="panel-head">
                 <span className="label">The same model, from above</span>
                 <span className="label text-muted-foreground">
-                  {overview.mapNodes.length} places ·{" "}
+                  {plottablePlaces} places ·{" "}
                   {overview.mapEvents?.length ?? 0} events ·{" "}
                   {overview.flows.length} couplings
                 </span>

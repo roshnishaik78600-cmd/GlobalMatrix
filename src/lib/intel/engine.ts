@@ -296,12 +296,22 @@ export function velocitySeriesOf(scenario: Scenario): number[] {
   });
 }
 
-/** The whole corpus, assessed once. Deterministic, so memoisation is safe. */
+/**
+ * The whole corpus, assessed once.
+ *
+ * Assessment is a pure function of the corpus and is expensive enough that
+ * every query calls it. The memo is keyed on the corpus *identity* rather than
+ * its length: keying on length would silently serve a stale result for any edit
+ * that keeps the same number of scenarios, which is exactly the case you hit
+ * while working on the corpus.
+ */
+let cacheKey: readonly Scenario[] | null = null;
 let cache: EventAssessment[] | null = null;
 
 export function allAssessments(scenarios: Scenario[]): EventAssessment[] {
-  if (cache && cache.length === scenarios.length) return cache;
+  if (cache && cacheKey === scenarios) return cache;
   cache = scenarios.map(assess).sort((a, b) => b.overall - a.overall);
+  cacheKey = scenarios;
   return cache;
 }
 

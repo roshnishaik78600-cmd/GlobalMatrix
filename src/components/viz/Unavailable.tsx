@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router";
 import { Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -72,12 +73,15 @@ export function QuestionStrip({
         return (
           <li key={item.q} className="bg-card">
             {item.href ? (
-              <a
-                href={item.href}
+              // A router Link, not a raw anchor: under BrowserRouter a plain
+              // <a href="/app/..."> triggers a full document reload, which threw
+              // away every open query subscription and the reader's place.
+              <Link
+                to={item.href}
                 className="block h-full p-3 transition-colors hover:bg-white/4"
               >
                 {body}
-              </a>
+              </Link>
             ) : (
               <div className="h-full p-3">{body}</div>
             )}

@@ -9,10 +9,18 @@ import { Link, useNavigate, useParams } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { useConvex } from "convex/react";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Bookmark, BookmarkCheck, Sparkles, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  Bookmark,
+  BookmarkCheck,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { useToggleWatch, useAuthAction } from "@/hooks/use-auth-action";
 import { Panel } from "@/components/intel/AppShell";
+import { NoData } from "@/components/viz/core";
 import {
   BandChip,
   IntervalBar,
@@ -47,17 +55,38 @@ export default function EventAnalysis() {
   const [pending, setPending] = useState(false);
   const [briefError, setBriefError] = useState<string | null>(null);
 
-  if (!eventId || !data) {
+  // `undefined` means the query is still in flight; `null` means the corpus has
+  // no assessment under this id. Collapsing the two left an unknown event id
+  // showing "Resolving…" forever.
+  if (!eventId || data === undefined) {
     return (
       <PageLoading
         eyebrow="Event"
-        title={data ? "Event not found" : "Event analysis"}
-        lede={
-          data
-            ? "No assessment resolved for this identifier."
-            : "Resolving the assessment, its evidence and its propagation."
-        }
+        title="Event analysis"
+        lede="Resolving the assessment, its evidence and its propagation."
       />
+    );
+  }
+
+  if (data === null) {
+    return (
+      <PageFrame
+        eyebrow="Event"
+        title="Event not found"
+        lede={`No event in the current corpus carries the id "${eventId}". It may have been renamed, or the link may be stale.`}
+        actions={
+          <Link
+            to="/app/events"
+            className="exec-label inline-flex items-center gap-1.5 border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+          >
+            <ArrowLeft className="size-3" /> Events
+          </Link>
+        }
+      >
+        <NoData
+          reason="This identifier is not in the current corpus."
+        />
+      </PageFrame>
     );
   }
 
@@ -72,8 +101,12 @@ export default function EventAnalysis() {
       const result = await convex.action(api.brief.generateBrief, { eventId });
       if (!result.ok) setBriefError(result.message);
     } catch (error) {
+      // The action already returns structured refusals for every expected
+      // outcome, so reaching this branch means something unexpected went wrong
+      // at the transport layer. Log the detail; show the reader a plain line.
+      console.error("[brief] action failed:", error);
       setBriefError(
-        error instanceof Error ? error.message : "Brief generation failed.",
+        "The analyst service could not be reached. Your evidence is unaffected — try again shortly.",
       );
     } finally {
       setPending(false);

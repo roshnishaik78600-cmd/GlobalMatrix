@@ -1,293 +1,244 @@
-## Overview
+# GlobalMatrix
 
-This project uses the following tech stack:
-- Vite
-- Typescript
-- React Router v7 (all imports from `react-router` instead of `react-router-dom`)
-- React 19 (for frontend components)
-- Tailwind v4 (for styling)
-- Shadcn UI (for UI components library)
-- Lucide Icons (for icons)
-- Convex (for backend & database)
-- Convex Auth (for authentication)
-- Framer Motion (for animations)
-- Three js (for 3d models)
+**See how the world connects.**
 
-All relevant files live in the 'src' directory.
+A geopolitical and macroeconomic intelligence platform that maps how global events propagate across trade, energy, finance and supply chains — and shows its own work.
 
-Use bun for the package manager.
+[![Convex](https://img.shields.io/badge/backend-Convex-3c6cff)](https://docs.convex.dev)
+[![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)](https://www.typescriptlang.org/)
+[![Tailwind](https://img.shields.io/badge/Tailwind-v4-06b6d4)](https://tailwindcss.com)
+
+---
+
+## The problem
+
+Geopolitical risk is usually presented as a score on a map — a number with no visible
+chain of reasoning behind it. Two teams can look at the same event and reach opposite
+conclusions, and neither can say whether the difference came from the data, the
+formula, or the assumptions.
+
+GlobalMatrix takes the opposite position. Every figure on the platform carries four
+things: the **source** it came from, the **moment** it was retrieved, the **kind** of
+thing it is (observed / model output / scenario / AI interpretation), and the
+**caveat** that qualifies it. Where a source is unreachable, the panel says
+`No verified data available` and shows nothing — the gap is a result, not a bug.
+
+The second problem is propagation. An event does not stop at the country where it
+happened. GlobalMatrix represents it as a graph and follows it: event → country →
+trade → energy → supply chain → industry → market, with each edge weighted by
+magnitude and confidence, and each stage explicitly marked when there is no data
+behind it.
+
+## What it does
+
+| Surface | What it answers |
+| --- | --- |
+| **Overview** | Global map, six-domain global pulse, a visual timeline of what is changing, and the event → world chain |
+| **World map** | Every tracked economy and chokepoint on real Natural Earth geometry, shaded by live load, with coupling arcs |
+| **Events** | The detection feed: ranked events with velocity, evidence strength, dominant channel and latest signal |
+| **Event analysis** | Event → map → propagation graph → timeline → impact → evidence ledger, for one event |
+| **Risk** | Global risk map, drivers, affected regions, trends, connected events and the uncertainty interval behind every score |
+| **Countries** / **Industries** | Exposure profiles: key metrics, channel load, dependencies, peers, trends and the causal path that produced the load |
+| **Trade** | UN Comtrade reporter totals, trade openness against World Bank GDP |
+| **Supply chains** | Which single points of failure are load-bearing right now, and which sectors declare a dependency on them |
+| **Event → world** | One event followed through every stage, with the two unmeasurable stages left open rather than estimated |
+| **Scenarios** | Run a named shock against the model and read the delta it produces, labelled as hypothetical throughout |
+| **AI analyst** | Optional model-written briefs, constrained to re-weigh evidence the deterministic engine already surfaced |
+| **Sources** | `SOURCE │ STATUS │ LAST UPDATED │ DATA TYPE` for every connector, plus what is *not* connected and why |
+
+## Data integrity
+
+This is the part of the project that matters most, so it is worth being precise about.
+
+**Four kinds of number, always labelled.**
+
+- **Observed** — pulled verbatim from a named public source, shown with the period it
+  covers. If the source could not be reached, the figure is hidden, never estimated.
+- **Model output** — computed here from observed inputs under a published formula.
+  Deterministic and re-derivable, but it is our arithmetic, not a measurement.
+- **Scenario** — a hypothetical change the reader asked us to run. Nothing in it has
+  happened and nothing in it is evidence about the world.
+- **AI interpretation** — model-written prose. Permitted only to re-weigh evidence the
+  deterministic engine already surfaced, and required to carry its own caveats.
+
+**No invented data.** The event corpus is code, not a database — a synthetic,
+internally-consistent scenario set (`src/lib/intel/scenarios-*.ts`, corpus
+`v1.0.0`) whose every number is deterministic and reproducible so a researcher can
+audit the arithmetic end to end. It is labelled **Scenario** everywhere it appears.
+External readings only ever come from a live connector, and the write path that stores
+them is an internal Convex mutation that validates each outcome against the source
+registry before it can be read back — a client cannot inject a fabricated World Bank
+figure.
+
+**Honest failure.** A connector that times out, is rate-limited or returns an
+unexpected shape writes an `unavailable` observation with a plain-language reason. The
+UI renders *"No verified data available"* and hides the figures. There is no
+placeholder, no carry-forward and no interpolation anywhere in the read path.
+
+## Real data sources
+
+| Source | Publisher | Covers | Keyless |
+| --- | --- | --- | --- |
+| [World Bank Open Data](https://data.worldbank.org) | The World Bank Group | Annual GDP, inflation, trade openness, population for 18 of the 19 tracked economies | yes |
+| [UN Comtrade](https://comtradeplus.un.org) | UN Statistics Division | Annual merchandise trade totals, US$, 10 reporters | yes |
+| [GDELT Project](https://www.gdeltproject.org) | George Mason University | 7-day news coverage volume and article headlines | yes |
+
+**Not connected, and stated on the Sources page rather than hidden:** Google Trends
+(no supported public API), equity/FX prices (no licensed feed), company filings,
+bilateral trade corridors (the Comtrade preview tier reports reporter totals only),
+commodity-level flows and prices, company supply relationships, and a policy lifecycle
+registry. The product is designed so that each of these absences is visible.
+
+> **GDELT measures media attention, not events.** Coverage volume is not evidence that
+> something happened, nor how severe it is. The UI labels it accordingly.
+
+## Architecture
+
+```
+Browser ── React 19 + Vite ── Convex client
+                                     │
+        ┌────────────────────────────┴───────────────────────────┐
+        │ Convex runtime (queries + mutations)                   │
+        │   schema: observations · watchlist · annotations ·     │
+        │           briefs · auth tables                         │
+        │   queries: intel · macroTopology · chokepoints ·       │
+        │            observations · users                        │
+        │   mutations: research (auth-gated) · observations*     │
+        └────────────────────────────┬───────────────────────────┘
+                                     │
+        ┌────────────────────────────┴───────────────────────────┐
+        │ Convex Node runtime (actions)                          │
+        │   sources: World Bank / Comtrade / GDELT connectors    │
+        │   brief:   Anthropic analyst briefs                    │
+        └────────────────────────────┬───────────────────────────┘
+                                     │
+                    World Bank · UN Comtrade · GDELT · Anthropic
+
+* observations.storeObservations is an internalMutation — connector-only.
+```
+
+**The core model.** The event corpus is the substrate. A deterministic engine
+(`src/lib/intel/engine.ts`) assesses every event once, producing channel pressure,
+risk with an 80% interval, velocity and uncertainty. Everything downstream — country
+profiles, industry profiles, the chokepoint board, the risk radar, the map — is
+*derived* from that one assessment by walking the propagation graph, which is what
+makes every number auditable back to the corpus that produced it.
+
+**Propagation.** Each pathway carries a channel, a magnitude, a confidence and an
+impact per exposed node. Node load is the sum of `impact × magnitude × confidence`.
+Normalisation ceilings are fixed constants rather than corpus maxima, so one severe
+event cannot silently rescale every other profile.
+
+## Tech stack
+
+React 19 · TypeScript (strict) · Vite 7 · Tailwind CSS v4 · Convex · Convex Auth ·
+Recharts · Framer Motion · shadcn/ui · Lucide · Bun
+
+## Authentication model
+
+**Public intelligence requires no account.** Every dashboard, map, profile and report
+is readable while signed out.
+
+An account is needed only for state that belongs to one person:
+
+- watchlists (watched events, countries, sectors)
+- saved research annotations
+- saved analyst briefs
+
+Sign-in offers email OTP or guest. Auth is Convex Auth with `Anonymous` and a custom
+email-OTP provider; the existing configuration is unmodified.
 
 ## Setup
 
-This project is set up already and running on a cloud environment, as well as a convex development in the sandbox.
+Requires [Bun](https://bun.sh) and a [Convex](https://convex.dev) account.
 
-## Environment Variables
-
-The project is set up with project specific CONVEX_DEPLOYMENT and VITE_CONVEX_URL environment variables on the client side.
-
-The convex server has a separate set of environment variables that are accessible by the convex backend.
-
-Currently, these variables include auth-specific keys: JWKS, JWT_PRIVATE_KEY, and SITE_URL.
-
-
-# Using Authentication (Important!)
-
-You must follow these conventions when using authentication.
-
-## Auth is already set up.
-
-All convex authentication functions are already set up. The auth currently uses email OTP and anonymous users, but can support more.
-
-The email OTP configuration is defined in `src/convex/auth/emailOtp.ts`. DO NOT MODIFY THIS FILE.
-
-Also, DO NOT MODIFY THESE AUTH FILES: `src/convex/auth.config.ts` and `src/convex/auth.ts`.
-
-## Using Convex Auth on the backend
-
-On the `src/convex/users.ts` file, you can use the `getCurrentUser` function to get the current user's data.
-
-## Using Convex Auth on the frontend
-
-The `/auth` page is already set up to use auth. Navigate to `/auth` for all log in / sign up sequences.
-
-You MUST use this hook to get user data. Never do this yourself without the hook:
-```typescript
-import { useAuth } from "@/hooks/use-auth";
-
-const { isLoading, isAuthenticated, user, signIn, signOut } = useAuth();
+```bash
+bun install
+bunx convex dev          # link the deployment, push functions, generate types
+bun run dev              # http://localhost:5173
 ```
 
-## Protected Routes
+Push functions once, without the interactive watcher:
 
-The starter `/dashboard` route is protected with `RequireAuth`. Extend that page
-for the product's authenticated experience, and reuse `RequireAuth` when adding
-another protected route — do NOT hand-roll a redirect to `/auth`, since landing
-on a bare sign-in form with no explanation of what was blocked is confusing.
-
-`RequireAuth` states the block on the page the visitor asked for and sends them
-to `/auth?returnTo=<current route>` when they choose to sign in, so they come
-back to it. Pass `title` and `description` to say what the page is:
-
-```tsx
-<Route
-  path="/dashboard"
-  element={
-    <RequireAuth
-      title="Sign in to view your dashboard"
-      description="Your projects and settings live here."
-    >
-      <Dashboard />
-    </RequireAuth>
-  }
-/>
+```bash
+bunx convex dev --once
 ```
 
-Pass `redirectImmediately` for a route where bouncing straight to `/auth` really
-is better.
+### Environment variables
 
-## Auth Page
+| Variable | Where | Purpose |
+| --- | --- | --- |
+| `VITE_CONVEX_URL` | client (`.env.local`) | Convex deployment URL |
+| `CONVEX_SITE_URL` | Convex env | Site URL used by the auth provider |
+| `CONVEX_DEPLOYMENT` | Convex env | Deployment linked by `convex dev` |
+| `ANTHROPIC_API_KEY` | Convex env | **Optional.** Only needed for AI analyst briefs; every other page works without it |
 
-The auth page is defined in `src/pages/Auth.tsx`. Send sign-in and sign-up actions
-to `/auth`.
+`.env*` files are git-ignored (except `.env.example`). No secret is committed.
 
-## Authorization
-
-You can perform authorization checks on the frontend and backend.
-
-On the frontend, you can use the `useAuth` hook to get the current user's data and authentication state.
-
-You should also be protecting queries, mutations, and actions at the base level, checking for authorization securely.
-
-## Adding a redirect after auth
-
-The `/auth` route in `src/main.tsx` redirects to `/dashboard` by default. If the
-product's main authenticated route is different, update `redirectAfterAuth` to
-that route. A validated same-origin `returnTo` query parameter takes priority so
-users can resume the protected page they originally requested. Never leave an
-authenticated product redirecting back to the public landing page.
-
-## Complete authenticated products
-
-When the requested product implies accounts, a workspace, a dashboard, or other
-signed-in functionality, the task is not complete with only a landing page and
-auth form. Build the main authenticated experience, protect its route, and verify
-that signing in reaches it.
-
-# Frontend Conventions
-
-You will be using the Vite frontend with React 19, Tailwind v4, and Shadcn UI.
-
-Generally, pages should be in the `src/pages` folder, and components should be in the `src/components` folder.
-
-Shadcn primitives are located in the `src/components/ui` folder and should be used by default.
-
-## Page routing
-
-Your page component should go under the `src/pages` folder.
-
-When adding a page, update the react router configuration in `src/main.tsx` to include the new route you just added.
-
-## Shad CN conventions
-
-Follow these conventions when using Shad CN components, which you should use by default.
-- Remember to use "cursor-pointer" to make the element clickable
-- For title text, use the "tracking-tight font-bold" class to make the text more readable
-- Always make apps MOBILE RESPONSIVE. This is important
-- AVOID NESTED CARDS. Try and not to nest cards, borders, components, etc. Nested cards add clutter and make the app look messy.
-- AVOID SHADOWS. Avoid adding any shadows to components. stick with a thin border without the shadow.
-- Avoid skeletons; instead, use the loader2 component to show a spinning loading state when loading data.
-
-
-## Landing Pages
-
-You must always create good-looking designer-level styles to your application. 
-- Make it well animated and fit a certain "theme", ie neo brutalist, retro, neumorphism, glass morphism, etc
-
-Use known images and emojis from online.
-
-If the user is logged in already, show the get started button to say "Dashboard" or "Profile" instead to take them there.
-
-## Responsiveness and formatting
-
-Make sure pages are wrapped in a container to prevent the width stretching out on wide screens. Always make sure they are centered aligned and not off-center.
-
-Always make sure that your designs are mobile responsive. Verify the formatting to ensure it has correct max and min widths as well as mobile responsiveness.
-
-- Always create sidebars for protected dashboard pages and navigate between pages
-- Always create navbars for landing pages
-- On these bars, the created logo should be clickable and redirect to the index page
-
-## Animating with Framer Motion
-
-You must add animations to components using Framer Motion. It is already installed and configured in the project.
-
-To use it, import the `motion` component from `framer-motion` and use it to wrap the component you want to animate.
-
-
-### Other Items to animate
-- Fade in and Fade Out
-- Slide in and Slide Out animations
-- Rendering animations
-- Button clicks and UI elements
-
-Animate for all components, including on landing page and app pages.
-
-## Three JS Graphics
-
-Your app comes with three js by default. You can use it to create 3D graphics for landing pages, games, etc.
-
-
-## Colors
-
-You can override colors in: `src/index.css`
-
-This uses the oklch color format for tailwind v4.
-
-Always use these color variable names.
-
-Make sure all ui components are set up to be mobile responsive and compatible with both light and dark mode.
-
-Set theme using `dark` or `light` variables at the parent className.
-
-## Styling and Theming
-
-When changing the theme, always change the underlying theme of the shad cn components app-wide under `src/components/ui` and the colors in the index.css file.
-
-Avoid hardcoding in colors unless necessary for a use case, and properly implement themes through the underlying shad cn ui components.
-
-When styling, ensure buttons and clickable items have pointer-click on them (don't by default).
-
-Always follow a set theme style and ensure it is tuned to the user's liking.
-
-## Toasts
-
-You should always use toasts to display results to the user, such as confirmations, results, errors, etc.
-
-Use the shad cn Sonner component as the toaster. For example:
+## Project structure
 
 ```
-import { toast } from "sonner"
-
-import { Button } from "@/components/ui/button"
-export function SonnerDemo() {
-  return (
-    <Button
-      variant="outline"
-      onClick={() =>
-        toast("Event has been created", {
-          description: "Sunday, December 03, 2023 at 9:00 AM",
-          action: {
-            label: "Undo",
-            onClick: () => console.log("Undo"),
-          },
-        })
-      }
-    >
-      Show Toast
-    </Button>
-  )
-}
+src/
+  convex/
+    schema.ts          tables and indexes
+    intel.ts           the read model: every page's query
+    macroTopology.ts   six-domain 30-day series
+    chokepoints.ts     infrastructure board
+    observations.ts    verified-data cache (internal write path)
+    sources.ts         World Bank / Comtrade / GDELT connectors
+    brief.ts           Anthropic analyst briefs
+    research.ts        watchlists and annotations (auth-gated)
+    auth.ts            Convex Auth providers
+  lib/
+    intel/             the model: corpus, engine, exposure, geography
+    sources.ts         source registry, provenance types, data statuses
+  components/
+    viz/               maps, charts, the console shell, design system
+    intel/             shared app primitives
+  pages/               one file per route
 ```
 
-Remember to import { toast } from "sonner". Usage: `toast("Event has been created.")`
+## Testing and QA
 
-## Dialogs
-
-Always ensure your larger dialogs have a scroll in its content to ensure that its content fits the screen size. Make sure that the content is not cut off from the screen.
-
-Ideally, instead of using a new page, use a Dialog instead. 
-
-# Using the Convex backend
-
-You will be implementing the convex backend. Follow your knowledge of convex and the documentation to implement the backend.
-
-## The Convex Schema
-
-You must correctly follow the convex schema implementation.
-
-The schema is defined in `src/convex/schema.ts`.
-
-Do not include the `_id` and `_creationTime` fields in your queries (it is included by default for each table).
-Do not index `_creationTime` as it is indexed for you. Never have duplicate indexes.
-
-
-## Convex Actions: Using CRUD operations
-
-When running anything that involves external connections, you must use a convex action with "use node" at the top of the file.
-
-You cannot have queries or mutations in the same file as a "use node" action file. Thus, you must use pre-built queries and mutations in other files.
-
-You can also use the pre-installed internal crud functions for the database:
-
-```ts
-// in convex/users.ts
-import { crud } from "convex-helpers/server/crud";
-import schema from "./schema.ts";
-
-export const { create, read, update, destroy } = crud(schema, "users");
-
-// in some file, in an action:
-const user = await ctx.runQuery(internal.users.read, { id: userId });
-
-await ctx.runMutation(internal.users.update, {
-  id: userId,
-  patch: {
-    status: "inactive",
-  },
-});
+```bash
+bun tsc -b --noEmit   # typecheck        — 0 errors
+bunx eslint src       # lint             — 0 errors
+bun run build         # production build — succeeds
+bunx convex dev --once && bunx tsc -b --noEmit   # backend typecheck + codegen
 ```
 
+Current state: **zero TypeScript errors, zero ESLint errors, clean production
+build.** Lint output is limited to `react-refresh/only-export-components` warnings.
 
-## Common Convex Mistakes To Avoid
+There is no automated test suite yet — the QA above is static analysis plus live
+`convex run` probes against the deployed functions. Adding a runner and unit tests
+around the exposure engine is the first item on the roadmap.
 
-When using convex, make sure:
-- Document IDs are referenced as `_id` field, not `id`.
-- Document ID types are referenced as `Id<"TableName">`, not `string`.
-- Document object types are referenced as `Doc<"TableName">`.
-- Keep schemaValidation to false in the schema file.
-- You must correctly type your code so that it passes the type checker.
-- You must handle null / undefined cases of your convex queries for both frontend and backend, or else it will throw an error that your data could be null or undefined.
-- Always use the `@/folder` path, with `@/convex/folder/file.ts` syntax for importing convex files.
-- This includes importing generated files like `@/convex/_generated/server`, `@/convex/_generated/api`
-- Remember to import functions like useQuery, useMutation, useAction, etc. from `convex/react`
-- NEVER have return type validators.
+## Current limitations
+
+Stated plainly, because the product's credibility depends on it.
+
+- **No live event feed.** The 12-event corpus is synthetic and labelled Scenario. It
+  demonstrates the model; it is not reporting.
+- **No price data.** No equity, FX or commodity feed is connected.
+- **No company layer.** No filing or supply-relationship dataset, so the company
+  stage of the chain is deliberately left open.
+- **Reporter totals only.** Comtrade's public preview tier does not give a bilateral
+  corridor matrix.
+- **No automated tests.**
+- **One analyst model.** `claude-sonnet-4-5`, called only when a reader asks for a
+  brief.
+
+## Roadmap
+
+1. Vitest suite covering the exposure engine and the connector validators
+2. Playwright smoke tests over all 24 routes, including the unauthenticated path
+3. A second corpus version to demonstrate delta behaviour
+4. IMF WEO connector (the endpoint currently rejects clients without a contact URL)
+5. Bilateral trade corridors behind a subscription Comtrade key
+6. Export a sourced, citation-complete event brief
+
+---
+
+Built with care for people who need to know where a number came from.

@@ -12,7 +12,7 @@ import {
   nodeExposure,
 } from "../lib/intel/exposure";
 import { SCENARIOS } from "../lib/intel/scenarios";
-import { getNode } from "../lib/intel/nodes";
+import { getNode, isKnownNode } from "../lib/intel/nodes";
 import { COUNTRIES } from "../lib/intel/countries";
 import { getIndustry, INDUSTRIES } from "../lib/intel/industries";
 import { runScenario, SHOCK_LABEL, SHOCK_DESCRIPTION } from "../lib/intel/scenario";
@@ -522,10 +522,18 @@ export const countryTrends = query({
   },
 });
 
-/** Full profile for one country, bloc, chokepoint or institution. */
+/**
+ * Full profile for one country, bloc, chokepoint or institution.
+ *
+ * Returns null for an id the model does not track. `getNode` invents a
+ * placeholder for unknown ids, and without this guard a mistyped or stale link
+ * rendered a complete-looking profile for a node that does not exist — every
+ * metric zero, region "Unclassified", the id printed as the country name.
+ */
 export const countryProfile = query({
   args: { nodeId: v.string() },
   handler: async (ctx, args) => {
+    if (!isKnownNode(args.nodeId)) return null;
     const watched = await watchedKeys(ctx);
     return {
       ...countryProfilePayload(allAssessments(SCENARIOS), args.nodeId),

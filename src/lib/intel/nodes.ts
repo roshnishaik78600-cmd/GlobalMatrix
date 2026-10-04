@@ -50,6 +50,17 @@ export function isAbstract(node: GraphNode): boolean {
 
 const NODE_MAP = new Map(NODES.map((n) => [n.id, n]));
 
+/**
+ * True when the id names a node the intel model actually tracks.
+ *
+ * Callers that build a whole page from one node use this to answer "not found"
+ * honestly, instead of rendering a profile for a placeholder with the id
+ * printed on it and every metric at zero.
+ */
+export function isKnownNode(id: string): boolean {
+  return NODE_MAP.has(id);
+}
+
 export function getNode(id: string): GraphNode {
   return NODE_MAP.get(id) ?? {
     id,

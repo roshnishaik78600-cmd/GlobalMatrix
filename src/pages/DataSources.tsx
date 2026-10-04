@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { PageFrame } from "@/components/viz/exec/design";
 import { Panel, Skeleton } from "@/components/viz/core";
 import { StatusBadge } from "@/components/viz/Provenance";
-import { SOURCE_LIST } from "@/lib/sources";
+import { SOURCE_LIST, formatAsOf } from "@/lib/sources";
 import { timestamp } from "@/lib/format";
 
 /**
@@ -53,17 +53,19 @@ const NOT_CONNECTED = [
   },
 ];
 
+/** Header cells, kept in one place so the grid stays a real grid. */
+const COLUMNS = "minmax(0,2.2fr) 8.5rem 10.5rem minmax(0,2fr)";
+
 export default function DataSources() {
   const health = useQuery(api.observations.sourceHealth);
   const convex = useConvex();
 
   return (
-      <PageFrame
+    <PageFrame
       eyebrow="Sources"
       title="Data sources"
       lede="Every connector, its last successful fetch, how current that makes it, and what it is not evidence of."
     >
-
       <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
         <section className="xl:col-span-7">
           <Panel title="Connected sources" meta="live status" className="h-full">
@@ -74,58 +76,94 @@ export default function DataSources() {
                 ))}
               </div>
             ) : (
-              <ul className="divide-y divide-rule">
-                {SOURCE_LIST.map((source) => {
-                  const row = health.find((h) => h.sourceId === source.id);
-                  return (
-                    <li key={source.id} className="px-3 py-3">
-                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-                        <a
-                          href={source.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium transition-colors hover:text-signal"
-                        >
-                          <span className="truncate">{source.label}</span>
-                          <ExternalLink className="size-3 shrink-0" aria-hidden />
-                        </a>
-                        <StatusBadge
-                          status={
-                            row === undefined
-                              ? "unavailable"
-                              : (row.status as Parameters<typeof StatusBadge>[0]["status"])
-                          }
-                        />
-                        <span className="num ml-auto whitespace-nowrap text-[10px] text-muted-foreground">
-                          {row && row.ok
-                            ? `fetched ${timestamp(row.retrievedAt)}`
-                            : "not yet fetched"}
-                        </span>
-                      </div>
+              <>
+                <div
+                  className="label grid gap-x-3 border-b border-rule px-3 py-2 text-[10px] text-muted-foreground/70"
+                  style={{ gridTemplateColumns: COLUMNS }}
+                >
+                  <span>Source</span>
+                  <span>Status</span>
+                  <span>Last updated</span>
+                  <span className="hidden sm:block">Data type</span>
+                </div>
+                <ul className="divide-y divide-rule">
+                  {SOURCE_LIST.map((source) => {
+                    const row = health.find((h) => h.sourceId === source.id);
+                    const asOf = formatAsOf(row?.asOf ?? "");
+                    // "Never contacted" and "contacted and failed" are different
+                    // facts, and the reader is entitled to tell them apart.
+                    const neverContacted = row === undefined || row.retrievedAt === 0;
+                    return (
+                      <li
+                        key={source.id}
+                        className="grid gap-x-3 gap-y-1.5 px-3 py-3"
+                        style={{ gridTemplateColumns: COLUMNS }}
+                      >
+                        <div className="min-w-0">
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex min-w-0 items-center gap-1.5 text-[13px] font-medium transition-colors hover:text-signal"
+                          >
+                            <span className="truncate">{source.label}</span>
+                            <ExternalLink className="size-3 shrink-0" aria-hidden />
+                          </a>
+                          <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70">
+                            <span className="label text-foreground/60">Limits —</span>{" "}
+                            {source.limits}
+                          </p>
+                        </div>
 
-                      <p className="mt-1.5 text-[11.5px] leading-relaxed text-muted-foreground">
-                        {source.covers}
-                      </p>
-                      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70">
-                        <span className="label text-foreground/60">Limits —</span>{" "}
-                        {source.limits}
-                      </p>
+                        <div className="min-w-0">
+                          <StatusBadge
+                            status={neverContacted ? "unavailable" : row.status}
+                          />
+                          {!neverContacted && !row.ok && row.problem ? (
+                            <p className="mt-1 text-[10px] leading-snug text-warning">
+                              {row.problem}
+                            </p>
+                          ) : null}
+                        </div>
 
-                      {row && !row.ok && row.problem ? (
-                        <p className="mt-1.5 text-[11px] text-warning">
-                          {row.problem} Figures stay hidden until the source
-                          returns verified data.
+                        <div className="num min-w-0 text-[10.5px] leading-snug text-muted-foreground">
+                          {neverContacted ? (
+                            <span className="text-muted-foreground/60">
+                              Never contacted
+                            </span>
+                          ) : (
+                            <>
+                              {row.lastSuccessAt > 0 ? (
+                                <>
+                                  <span className="block text-foreground/80">
+                                    {asOf || "Date unavailable"}
+                                  </span>
+                                  <span className="block text-muted-foreground/70">
+                                    fetched {timestamp(row.lastSuccessAt)}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="block text-warning">
+                                    No successful fetch
+                                  </span>
+                                  <span className="block text-muted-foreground/70">
+                                    last tried {timestamp(row.retrievedAt)}
+                                  </span>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+
+                        <p className="hidden min-w-0 text-[10.5px] leading-relaxed text-muted-foreground sm:block">
+                          {source.dataType}
                         </p>
-                      ) : null}
-                      {row && row.ok && row.asOf ? (
-                        <p className="num mt-1.5 text-[10px] text-muted-foreground/70">
-                          dataset revision {row.asOf}
-                        </p>
-                      ) : null}
-                    </li>
-                  );
-                })}
-              </ul>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
             )}
           </Panel>
         </section>
@@ -169,8 +207,8 @@ export default function DataSources() {
         </section>
 
         <section className="xl:col-span-12">
-          <Panel title="How to read a figure" meta="three kinds of number">
-            <div className="grid grid-cols-1 gap-px bg-rule sm:grid-cols-3">
+          <Panel title="How to read a figure" meta="four kinds of number">
+            <div className="grid grid-cols-1 gap-px bg-rule sm:grid-cols-2 xl:grid-cols-4">
               {[
                 {
                   status: "observed" as const,
@@ -186,6 +224,11 @@ export default function DataSources() {
                   status: "scenario" as const,
                   title: "Scenario",
                   body: "A hypothetical change you asked us to run. Nothing in a scenario has happened, and nothing in it is evidence about the world.",
+                },
+                {
+                  status: "unavailable" as const,
+                  title: "Data unavailable",
+                  body: "No verified reading exists for this field right now. We show the gap rather than filling it with an estimate, a carry-forward, or an interpolation.",
                 },
               ].map((row) => (
                 <div key={row.title} className="bg-card p-4">

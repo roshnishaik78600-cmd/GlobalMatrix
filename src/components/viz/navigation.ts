@@ -7,7 +7,10 @@ import {
   LayoutGrid,
   Network,
   Radar,
+  Route,
   ScrollText,
+  Share2,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,7 +26,7 @@ import {
  *
  * Two rules the grouping enforces:
  *
- * 1. Five groups, eight visible destinations at most per group. Anything that
+ * 1. Six groups, eight visible destinations at most per group. Anything that
  *    cannot justify a slot stays reachable from the palette and the page it
  *    belongs to.
  * 2. A destination with no connected source is shown greyed with its reason
@@ -66,18 +69,27 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/app/countries", label: "Countries", icon: Globe2 },
       { to: "/app/trade", label: "Trade", icon: Boxes },
-      { to: "/app/markets", label: "Markets", icon: Activity },
-      { to: "/app/chain", label: "Energy", icon: Network },
+      { to: "/app/markets", label: "Markets", icon: TrendingUp },
+      { to: "/app/supply", label: "Supply chains", icon: Network },
+    ],
+  },
+  {
+    id: "propagation",
+    label: "Propagation",
+    items: [
+      // Labelled for what the page actually is. It was called "Energy" while
+      // rendering the event→world chain, which sent readers looking for a
+      // commodity view that has no connected price feed behind it.
+      { to: "/app/chain", label: "Event → world", icon: Route },
     ],
   },
   {
     id: "networks",
     label: "Networks",
     items: [
-      { to: "/app/supply", label: "Supply chains", icon: Network },
       { to: "/app/industries", label: "Industries", icon: Boxes },
       { to: "/app/companies", label: "Companies", icon: Factory, unavailable: "no company-level data connected" },
-      { to: "/app/graph", label: "Knowledge graph", icon: Network },
+      { to: "/app/graph", label: "Knowledge graph", icon: Share2 },
     ],
   },
   {

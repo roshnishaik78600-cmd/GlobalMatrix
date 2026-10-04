@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageFrame } from "@/components/viz/exec/design";
 import { Bar, NoData, Panel, Skeleton } from "@/components/viz/core";
-import { MapLegend, MapSelection, WorldMap } from "@/components/viz/WorldMap";
+import { MapLegend, MapSelection, WorldMap, isPlottable } from "@/components/viz/WorldMap";
 import { riskColorForScore } from "@/lib/intel/visual";
 import { useFocus } from "@/lib/focus";
 
@@ -51,6 +51,10 @@ export default function World() {
   }
 
   const corridors = directory?.corridors ?? [];
+  // Institutions have no coordinate, so counting them would put a number on
+  // the page that no marker can be matched against.
+  const plottableTotal = allNodes.filter((n) => isPlottable(n.nodeId)).length;
+  const plottedCount = nodes.filter((n) => isPlottable(n.nodeId)).length;
 
   return (
       <PageFrame
@@ -75,7 +79,7 @@ export default function World() {
         <section className="xl:col-span-9">
           <Panel
             title="World map"
-            meta={`${nodes.length} of ${allNodes.length} places`}
+            meta={`${plottedCount} of ${plottableTotal} places`}
           >
             <WorldMap
               nodes={nodes}

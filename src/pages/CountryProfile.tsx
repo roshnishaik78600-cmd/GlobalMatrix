@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowUpRight, Bookmark, BookmarkCheck } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { useToggleWatch } from "@/hooks/use-auth-action";
 import { Panel } from "@/components/intel/AppShell";
+import { NoData } from "@/components/viz/core";
 import { PathTrace } from "@/components/intel/PathTrace";
 import { ChannelBars, Label, Meter } from "@/components/intel/primitives";
 import { QuestionStrip } from "@/components/viz/Unavailable";
@@ -21,13 +22,38 @@ export default function CountryProfile() {
   );
   const toggleWatch = useToggleWatch();
 
-  if (!nodeId || !data) {
+  if (!nodeId || data === undefined) {
     return (
       <PageLoading
         eyebrow="Country"
         title="Country intelligence"
         lede="Exposure, dependency and the events that land hardest on this place."
       />
+    );
+  }
+
+  // The query answers null for a node the model does not track. Rendering the
+  // old falsy check here produced a complete-looking profile with every metric
+  // at zero for a mistyped or stale link.
+  if (data === null) {
+    return (
+      <PageFrame
+        eyebrow="Country"
+        title="Place not found"
+        lede={`GlobalMatrix does not track a place called "${nodeId}".`}
+        actions={
+          <Link
+            to="/app/countries"
+            className="exec-label inline-flex items-center gap-1.5 border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+          >
+            <ArrowLeft className="size-3" /> Countries
+          </Link>
+        }
+      >
+        <NoData
+          reason="This identifier is not a tracked country, chokepoint or corridor."
+        />
+      </PageFrame>
     );
   }
 

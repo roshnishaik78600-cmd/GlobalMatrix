@@ -12,10 +12,9 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { TopologyResult } from "@/convex/macroTopology";
-import { getNode } from "@/lib/intel/nodes";
 import { CORPUS_LABEL } from "@/lib/intel/scenarios";
 import { riskColorForScore } from "@/lib/intel/visual";
-import { WorldMap } from "@/components/viz/WorldMap";
+import { WorldMap, isPlottable } from "@/components/viz/WorldMap";
 import { Skeleton } from "@/components/viz/core";
 import { CountryDrawer } from "@/components/viz/exec/CountryDrawer";
 import { useFocus } from "@/lib/focus";
@@ -86,7 +85,7 @@ export default function Landing() {
   // before they reach the screen; counting them would put a number on the page
   // that a reader cannot match against the picture.
   const mappable = useMemo(
-    () => (data?.mapNodes ?? []).filter((n) => getNode(n.nodeId).lat !== undefined),
+    () => (data?.mapNodes ?? []).filter((n) => isPlottable(n.nodeId)),
     [data],
   );
 

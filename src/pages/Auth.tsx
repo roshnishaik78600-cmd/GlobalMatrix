@@ -23,15 +23,33 @@ interface AuthProps {
   redirectAfterAuth?: string;
 }
 
+/**
+ * Where to send someone once they are signed in.
+ *
+ * Guards two redirect problems: an off-site target (`//evil.com`, or a scheme
+ * we did not expect), and a loop back into this page. Without the second guard,
+ * `?returnTo=/auth` would navigate to /auth, the effect below would fire again,
+ * and the user would sit in a navigation loop.
+ */
 function resolveRedirectAfterAuth(
   returnTo: string | null,
   fallback = "/app",
 ) {
   if (returnTo?.startsWith("/") && !returnTo.startsWith("//")) {
-    return returnTo;
+    const target = returnTo.split("?")[0].replace(/\/+$/, "");
+    if (target && target !== "/auth" && target !== "/") return returnTo;
   }
   return fallback;
 }
+
+/**
+ * Auth failures are reported in plain language.
+ *
+ * The underlying error from the identity provider can carry provider names,
+ * internal codes and request ids, none of which tell a reader what to do next.
+ * It is logged to the console for diagnosis and never rendered.
+ */
+const AUTH_FAILURE = "We could not complete that sign-in. Please try again.";
 
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const { isLoading: authLoading, isAuthenticated, signIn } = useAuth();
@@ -59,15 +77,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     try {
       const formData = new FormData(event.currentTarget);
       await signIn("email-otp", formData);
-      setStep({ email: formData.get("email") as string });
+      setStep({ email: String(formData.get("email") ?? "") });
       setIsLoading(false);
     } catch (error) {
       console.error("Email sign-in error:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to send verification code. Please try again.",
-      );
+      setError(AUTH_FAILURE);
       setIsLoading(false);
     }
   };
@@ -79,16 +93,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     try {
       const formData = new FormData(event.currentTarget);
       await signIn("email-otp", formData);
-
-      console.log("signed in");
-
       navigate(redirect);
     } catch (error) {
       console.error("OTP verification error:", error);
-
-      setError("The verification code you entered is incorrect.");
+      setError("That code is not correct, or it has expired. Request a new one.");
       setIsLoading(false);
-
       setOtp("");
     }
   };
@@ -97,14 +106,11 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     setIsLoading(true);
     setError(null);
     try {
-      console.log("Attempting anonymous sign in...");
       await signIn("anonymous");
-      console.log("Anonymous sign in successful");
       navigate(redirect);
     } catch (error) {
-      console.error("Guest login error:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
-      setError(`Failed to sign in as guest: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Guest sign-in error:", error);
+      setError(AUTH_FAILURE);
       setIsLoading(false);
     }
   };
@@ -132,7 +138,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       {/* Auth Content */}
       <div className="flex-1 flex items-center justify-center px-5 py-16">
         <div className="flex items-center justify-center h-full flex-col w-full max-w-md">
-        <Card className="min-w-[350px] w-full pb-0 border border-rule shadow-none">
+        <Card className="w-full border border-rule pb-0 shadow-none">
           {step === "signIn" ? (
             <>
               <CardHeader className="text-left">
@@ -143,7 +149,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                 <CardDescription>
                   {reason
                     ? `${reason}. Browsing GlobalMatrix stays free and needs no account.`
-                    : "Browsing every dashboard, map and report on GlobalMatrix is free. An account only saves your own watchlists, notes and scenarios."}
+                    : "Every dashboard, map and report on GlobalMatrix is public. An account is only needed to save a watchlist, keep your own notes, and set alerts."}
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleEmailSubmit}>
@@ -181,25 +187,25 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   <div className="mt-4">
                     <div className="relative">
                       <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t" />
+                        <span className="h-px w-full bg-rule" />
                       </div>
                       <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">
-                          Or
+                        <span className="bg-card px-2 text-muted-foreground">
+                          or
                         </span>
                       </div>
                     </div>
                     
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full mt-4"
-                      onClick={handleGuestLogin}
-                      disabled={isLoading}
-                    >
-                      <UserX className="mr-2 h-4 w-4" />
-                      Explore without an account
-                    </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full mt-4"
+                    onClick={handleGuestLogin}
+                    disabled={isLoading}
+                  >
+                    <UserX className="mr-2 h-4 w-4" />
+                    Continue as guest — no email needed
+                  </Button>
                   </div>
                 </CardContent>
               </form>
@@ -289,7 +295,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
           )}
 
           <div className="py-4 px-6 text-xs text-center text-muted-foreground bg-secondary border-t">
-            Public browsing needs no account
+            Public intelligence needs no account — close this page and keep
+            browsing
           </div>
         </Card>
         </div>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useConvex, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { STALE_AFTER_MS, type Provenance } from "@/lib/sources";
+import { STALE_AFTER_MS, formatAsOf, type Provenance } from "@/lib/sources";
 
 /**
  * Reading and refreshing verified external data.
@@ -94,6 +94,33 @@ const parse = <T,>(rows: Row[], prefix: string): T[] => {
 const newest = (rows: Row[]): number =>
   rows.reduce((max, r) => Math.max(max, r.retrievedAt), 0);
 
+/**
+ * The `asOf` the panel should claim.
+ *
+ * `observations` returns one row per key with no ordering guarantee, so taking
+ * `rows[0].asOf` would show a random key's date. The freshest *successful* run
+ * is the only defensible answer, and it is formatted for humans because
+ * sources disagree on the shape of that string.
+ */
+const latestAsOf = (rows: Row[]): string => {
+  let best: Row | undefined;
+  for (const r of rows) {
+    if (!r.ok || !r.asOf) continue;
+    if (!best || r.retrievedAt > best.retrievedAt) best = r;
+  }
+  return best ? formatAsOf(best.asOf) : "";
+};
+
+/** The freshest failure, so the reason shown is the one that actually happened. */
+const latestProblem = (rows: Row[]): string | undefined => {
+  let best: Row | undefined;
+  for (const r of rows) {
+    if (r.ok || !r.problem) continue;
+    if (!best || r.retrievedAt > best.retrievedAt) best = r;
+  }
+  return best?.problem;
+};
+
 const expired = (rows: Row[], window: number): boolean => {
   if (rows.length === 0) return true;
   return Date.now() - newest(rows) > window;
@@ -181,9 +208,9 @@ export function useMacroData(): Verified<MacroReading[]> {
   return {
     data: rows === undefined ? null : readings,
     status: readings.length > 0 ? "observed" : rows === undefined ? "" : "unavailable",
-    asOf: rows?.[0]?.asOf ?? "",
+    asOf: latestAsOf(rows ?? []),
     retrievedAt: newest(rows ?? []),
-    problem: rows?.find((r) => !r.ok)?.problem,
+    problem: latestProblem(rows ?? []),
     refreshing,
   };
 }
@@ -207,9 +234,9 @@ export function useTradeData(): Verified<TradeFlow[]> {
   return {
     data: rows === undefined ? null : flows,
     status: flows.length > 0 ? "observed" : rows === undefined ? "" : "unavailable",
-    asOf: rows?.[0]?.asOf ?? "",
+    asOf: latestAsOf(rows ?? []),
     retrievedAt: newest(rows ?? []),
-    problem: rows?.find((r) => !r.ok)?.problem,
+    problem: latestProblem(rows ?? []),
     refreshing,
   };
 }
@@ -233,9 +260,9 @@ export function useAttentionData(): Verified<AttentionPoint[]> {
   return {
     data: rows === undefined ? null : points,
     status: points.length > 0 ? "observed" : rows === undefined ? "" : "unavailable",
-    asOf: rows?.[0]?.asOf ?? "",
+    asOf: latestAsOf(rows ?? []),
     retrievedAt: newest(rows ?? []),
-    problem: rows?.find((r) => !r.ok)?.problem,
+    problem: latestProblem(rows ?? []),
     refreshing,
   };
 }
@@ -247,9 +274,9 @@ export function useHeadlinesData(): Verified<Headline[]> {
   return {
     data: rows === undefined ? null : items,
     status: items.length > 0 ? "observed" : rows === undefined ? "" : "unavailable",
-    asOf: rows?.[0]?.asOf ?? "",
+    asOf: latestAsOf(rows ?? []),
     retrievedAt: newest(rows ?? []),
-    problem: rows?.find((r) => !r.ok)?.problem,
+    problem: latestProblem(rows ?? []),
     refreshing: false,
   };
 }

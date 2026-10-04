@@ -2,6 +2,7 @@ import { Database, Info } from "lucide-react";
 import {
   STATUS_HELP,
   STATUS_LABEL,
+  formatAsOf,
   sourceById,
   type DataStatus,
   type Provenance,
@@ -68,6 +69,9 @@ export function SourceLine({
   className?: string;
 }) {
   const source = sourceById(provenance.sourceId);
+  // GDELT publishes `20261002T080000Z`; printing that verbatim puts an API
+  // token on screen. Anything we cannot parse is dropped rather than shown.
+  const asOf = formatAsOf(provenance.asOf);
 
   return (
     <div className={`flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 ${className}`}>
@@ -82,9 +86,9 @@ export function SourceLine({
           <span className="truncate">{source.label}</span>
         </a>
       ) : null}
-      {provenance.asOf ? (
+      {asOf ? (
         <span className="label whitespace-nowrap text-muted-foreground">
-          as of {provenance.asOf}
+          as of {asOf}
         </span>
       ) : null}
       <span className="label whitespace-nowrap text-muted-foreground/70">

@@ -33,6 +33,8 @@ export interface SourceDef {
   covers: string;
   /** What it is NOT evidence of — the guard against over-reading. */
   limits: string;
+  /** The grain and unit of the data, so a reader knows what one row means. */
+  dataType: string;
   /** True when the source needs no credential, so absence means outage not setup. */
   keyless: boolean;
 }
@@ -47,6 +49,7 @@ export const SOURCES = {
       "Annual national accounts and development indicators, as reported by member economies.",
     limits:
       "Annual and lagging — the most recent year is often a partial estimate, and revisions land without notice.",
+    dataType: "Annual national indicators, 5 series × 18 economies",
     keyless: true,
   },
   comtrade: {
@@ -57,6 +60,7 @@ export const SOURCES = {
     covers: "Reported bilateral merchandise trade values by reporter, partner and commodity.",
     limits:
       "The public preview tier is sampled and abbreviated. Mirrored flows do not sum to world totals.",
+    dataType: "Annual merchandise trade totals, US$, 10 reporters",
     keyless: true,
   },
   gdelt: {
@@ -68,6 +72,7 @@ export const SOURCES = {
       "Volume and tone of global news coverage, derived from a continuously monitored global media index.",
     limits:
       "Measures media attention only. Coverage volume is NOT evidence that an event occurred, nor how severe it is.",
+    dataType: "7-day coverage volume (share %) and article headlines",
     keyless: true,
   },
 } as const satisfies Record<string, SourceDef>;
@@ -160,4 +165,33 @@ export function withStaleness(p: Provenance): Provenance {
 
 export function sourceById(id: string): SourceDef | undefined {
   return (SOURCE_LIST as SourceDef[]).find((s) => s.id === id);
+}
+
+/**
+ * Render a source's `asOf` as something a reader can place in time.
+ *
+ * Sources disagree on format: World Bank publishes a bare date, Comtrade a bare
+ * year, GDELT a compact UTC stamp (`20261002T080000Z`). Showing those verbatim
+ * puts a raw API token on screen, so they are normalised here. Anything we
+ * cannot parse returns an empty string — the caller then shows the source's
+ * status without inventing a date.
+ */
+export function formatAsOf(asOf: string): string {
+  const raw = asOf.trim();
+  if (!raw) return "";
+  // GDELT compact stamp: YYYYMMDDTHHMMSSZ
+  const compact = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(raw);
+  if (compact) {
+    const [, y, m, d, hh, mm] = compact;
+    return `${y}-${m}-${d} ${hh}:${mm} UTC`;
+  }
+  // ISO date or full ISO timestamp.
+  const iso = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(raw);
+  if (iso) {
+    const [, y, m, d, hh, mm] = iso;
+    return hh ? `${y}-${m}-${d} ${hh}:${mm} UTC` : `${y}-${m}-${d}`;
+  }
+  // A bare year, as Comtrade reports.
+  if (/^\d{4}$/.test(raw)) return raw;
+  return "";
 }

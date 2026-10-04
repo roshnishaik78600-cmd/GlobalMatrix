@@ -16,7 +16,13 @@ type BriefShape = {
   caveats: string[];
 };
 
-type BriefFailureReason = "missing_key" | "upstream_error" | "empty_response" | "unparseable";
+type BriefFailureReason =
+  | "not_signed_in"
+  | "unknown_event"
+  | "missing_key"
+  | "upstream_error"
+  | "empty_response"
+  | "unparseable";
 
 type BriefActionResult =
   | { ok: true; brief: BriefShape; createdAt: number }
@@ -35,12 +41,27 @@ export const generateBrief = action({
   args: { eventId: v.string() },
   handler: async (ctx, args): Promise<BriefActionResult> => {
     const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("You must be signed in to generate a brief.");
+    // Structured refusals, not thrown errors: an action that throws surfaces its
+    // message as a raw error in the caller's console, and these two cases are
+    // ordinary states the UI knows how to render.
+    if (!userId) {
+      return {
+        ok: false as const,
+        reason: "not_signed_in" as const,
+        message: "Sign in to generate an analyst brief.",
+      };
+    }
 
     const assessment = allAssessments(SCENARIOS).find(
       (a) => a.scenario.id === args.eventId,
     );
-    if (!assessment) throw new Error("Unknown event.");
+    if (!assessment) {
+      return {
+        ok: false as const,
+        reason: "unknown_event" as const,
+        message: "That event is not in the current corpus.",
+      };
+    }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) {

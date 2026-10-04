@@ -24,10 +24,31 @@ export default function IndustryProfile() {
   );
   const toggleWatch = useToggleWatch();
 
-  if (!industryId || !data) {
+  if (!industryId || data === undefined) {
     return (
       <main className="gm-width px-5 py-20 lg:px-8">
         <p className="label text-muted-foreground">Loading sector profile…</p>
+      </main>
+    );
+  }
+
+  // The query answers null for an unknown sector; the old falsy check left the
+  // page reading "Loading sector profile…" for ever on a stale link.
+  if (data === null) {
+    return (
+      <main className="gm-width px-5 py-20 lg:px-8">
+        <Link
+          to="/app/industries"
+          className="label inline-flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="size-3" /> Industries
+        </Link>
+        <h1 className="display mt-6 text-[2rem]">Sector not found</h1>
+        <p className="mt-3 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
+          GlobalMatrix does not track a sector called{" "}
+          <span className="num text-foreground">{industryId}</span>. The link may
+          be stale, or the sector may have been removed from the model.
+        </p>
       </main>
     );
   }

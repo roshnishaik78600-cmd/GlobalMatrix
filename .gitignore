@@ -1,4 +1,9 @@
-.env.local
 node_modules
 dist
 src/convex/_generated
+
+# Secrets and environment files. `.env.keys` is the Freebuff-managed key store
+# and `.env.local` the local runtime config; neither may ever reach the repo.
+.env
+.env.*
+!.env.example

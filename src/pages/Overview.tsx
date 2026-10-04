@@ -7,9 +7,8 @@ import type { TopologyResult } from "@/convex/macroTopology";
 import { useFocus, type TimeWindow } from "@/lib/focus";
 import { CHANNEL_LABEL, type Channel } from "@/lib/intel/types";
 import { riskColorForScore } from "@/lib/intel/visual";
-import { WorldMap } from "@/components/viz/WorldMap";
+import { WorldMap, isPlottable } from "@/components/viz/WorldMap";
 import { Skeleton } from "@/components/viz/core";
-import { getNode } from "@/lib/intel/nodes";
 import { count, num, pct } from "@/lib/numbers";
 import { CORPUS_LABEL } from "@/lib/intel/scenarios";
 import {
@@ -98,7 +97,7 @@ export default function Overview() {
   const inWindow = ticker.filter((e) => e.inWindow).length;
   // Only places the map can actually draw are counted, so the number on the
   // page matches the number of markers in the picture.
-  const mappable = data.mapNodes.filter((n) => getNode(n.nodeId).lat !== undefined);
+  const mappable = data.mapNodes.filter((n) => isPlottable(n.nodeId));
 
   return (
     <PageFrame
