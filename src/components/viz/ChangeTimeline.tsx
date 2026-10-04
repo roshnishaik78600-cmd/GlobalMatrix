@@ -138,11 +138,11 @@ export function ChangeTimeline({ className }: { className?: string }) {
         <Skeleton className="m-3 h-40 w-full" />
       ) : changes.length === 0 ? (
         <div className="p-4">
-          <p className="flex items-center gap-2 text-[12.5px] font-medium">
+          <p className="flex items-center gap-2 text-[13px] font-medium">
             <Radio className="size-3.5 text-muted-foreground" aria-hidden />
             Nothing new in the last {windowId}.
           </p>
-          <p className="mt-1.5 max-w-md text-[11.5px] leading-relaxed text-muted-foreground">
+          <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-muted-foreground">
             That is a real reading, not a gap: GlobalMatrix only reports a change
             when a connected source publishes or returns something new. Open the
             sources page to see what is being watched and when it last answered.
@@ -155,13 +155,13 @@ export function ChangeTimeline({ className }: { className?: string }) {
               <>
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="line-clamp-2 text-[12px] leading-snug">{c.title}</span>
-                  <span className="num shrink-0 text-[9.5px] text-muted-foreground">
+                  <span className="num shrink-0 text-[12px] text-muted-foreground">
                     {ago(c.at)}
                   </span>
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   <SourceTag sourceId={c.sourceId} />
-                  <span className="truncate text-[10px] text-muted-foreground">
+                  <span className="truncate text-[12px] text-muted-foreground">
                     {c.detail}
                   </span>
                 </div>
@@ -174,7 +174,7 @@ export function ChangeTimeline({ className }: { className?: string }) {
                     href={c.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block px-3 py-2.5 transition-colors hover:bg-white/4"
+                    className="block px-3 py-2.5 transition-colors hover:bg-[var(--exec-surface)]"
                   >
                     {body}
                   </a>

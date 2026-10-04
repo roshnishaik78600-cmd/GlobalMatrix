@@ -97,7 +97,7 @@ export function NodeRiskRadar({
             dominantBaseline="middle"
             className="exec-num"
             fill={active ? "var(--exec-ink)" : "var(--exec-ink-dim)"}
-            style={{ fontSize: 8.5, letterSpacing: "0.08em", fontWeight: 600 }}
+            style={{ fontSize: 12, letterSpacing: "0.08em", fontWeight: 600 }}
           >
             {CHANNEL_CODE[c]}
           </text>

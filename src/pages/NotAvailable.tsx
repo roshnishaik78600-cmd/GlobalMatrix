@@ -68,21 +68,21 @@ export default function NotAvailable() {
           },
         ]}
       />
-      <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
-        <section className="xl:col-span-7">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <section className="lg:col-span-7">
           <Panel title="Status" meta="no data available">
             <div className="space-y-3 p-4">
               <div className="flex items-baseline justify-between border-b border-rule pb-2">
                 <span className="label text-muted-foreground">
                   Required data source
                 </span>
-                <span className="text-[12.5px]">{reason?.data ?? "—"}</span>
+                <span className="text-[13px]">{reason?.data ?? "—"}</span>
               </div>
               <p className="text-[13px] leading-relaxed text-muted-foreground">
                 {reason?.because ??
                   "No dataset is connected for this surface, so it renders nothing rather than plausible-looking placeholders."}
               </p>
-              <p className="border-l-2 border-signal pl-3 text-[12.5px] leading-relaxed">
+              <p className="border-l-2 border-signal pl-3 text-[13px] leading-relaxed">
                 Every surface that <em>is</em> populated is driven by the
                 propagation engine and can be traced back to a signal, a
                 pathway or a stated coefficient.
@@ -91,7 +91,7 @@ export default function NotAvailable() {
           </Panel>
         </section>
 
-        <section className="xl:col-span-5">
+        <section className="lg:col-span-5">
           <Panel title="Available now" meta="fully data-backed">
             <ul className="divide-y divide-rule">
               {[
@@ -113,10 +113,10 @@ export default function NotAvailable() {
                 <li key={to}>
                   <a
                     href={to}
-                    className="flex items-center justify-between gap-3 px-3 py-2.5 transition-colors hover:bg-white/4"
+                    className="flex items-center justify-between gap-3 px-3 py-2.5 transition-colors hover:bg-[var(--exec-surface)]"
                   >
-                    <span className="text-[12.5px]">{label}</span>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-[13px]">{label}</span>
+                    <span className="text-[12px] text-muted-foreground">
                       {note}
                     </span>
                   </a>

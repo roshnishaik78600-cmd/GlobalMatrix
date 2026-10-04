@@ -41,8 +41,11 @@ export function RequireAuth({
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      <main className="flex min-h-dvh items-center justify-center bg-[var(--exec-base)]">
+        <Loader2
+          className="size-5 animate-spin text-[var(--exec-ink-dim)]"
+          aria-label="Checking your session"
+        />
       </main>
     );
   }
@@ -56,7 +59,7 @@ export function RequireAuth({
     }
 
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background p-6">
+      <main className="flex min-h-dvh items-center justify-center bg-[var(--exec-base)] p-6">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="flex justify-center">
@@ -64,7 +67,7 @@ export function RequireAuth({
                 <Lock className="size-5 text-muted-foreground" />
               </div>
             </div>
-            <CardTitle className="text-xl">{title}</CardTitle>
+            <CardTitle className="t-card text-[var(--exec-ink)]">{title}</CardTitle>
             <CardDescription>{description}</CardDescription>
           </CardHeader>
           <CardContent className="text-center text-sm text-muted-foreground">

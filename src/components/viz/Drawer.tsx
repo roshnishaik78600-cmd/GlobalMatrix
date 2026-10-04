@@ -76,7 +76,7 @@ export function Drawer({
                 ) : null}
                 <h2 className="text-[15px] leading-tight font-semibold">{title}</h2>
                 {subtitle ? (
-                  <div className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">
+                  <div className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
                     {subtitle}
                   </div>
                 ) : null}

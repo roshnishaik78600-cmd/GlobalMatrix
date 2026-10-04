@@ -132,7 +132,7 @@ export default function Overview() {
       footer={
         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
           <DataType type="scenario" />
-          <span className="exec-num min-w-0 text-[9.5px] text-[var(--exec-ink-dim)]">
+          <span className="exec-num min-w-0 text-[12px] text-[var(--exec-ink-dim)]">
             {CORPUS_NOTE}
           </span>
           <Action to="/methodology">Methodology</Action>
@@ -207,7 +207,7 @@ export default function Overview() {
             nodes={data.mapNodes}
             flows={data.flows}
             events={mapEvents}
-            height={470}
+            className="map-frame"
             selected={selected}
             channel={mapChannel}
             onSelect={setSelected}
@@ -268,13 +268,13 @@ export default function Overview() {
                     {event.topNodes.map((n) => (
                       <span
                         key={n.nodeId}
-                        className="exec-num max-w-[14ch] truncate rounded-sm border border-[var(--exec-hairline)] px-1 text-[8.5px] text-[var(--exec-ink-dim)]"
+                        className="exec-num max-w-[14ch] truncate rounded-sm border border-[var(--exec-hairline)] px-1 text-[12px] text-[var(--exec-ink-dim)]"
                         title={`${n.label} · weight ${num(n.weight, 2)}`}
                       >
                         {n.short}
                       </span>
                     ))}
-                    <span className="exec-num ml-auto shrink-0 text-[9px] text-[var(--exec-ink-dim)]">
+                    <span className="exec-num ml-auto shrink-0 text-[12px] text-[var(--exec-ink-dim)]">
                       {`80% ${num(event.low, 0)}–${num(event.high, 0)}`}
                     </span>
                   </div>
@@ -356,7 +356,7 @@ function VerifiedStrip() {
               </span>
               <FreshnessTag freshness={freshness} />
             </div>
-            <span className="exec-num min-w-0 text-[9.5px] text-[var(--exec-ink-dim)]">
+            <span className="exec-num min-w-0 text-[12px] text-[var(--exec-ink-dim)]">
               {h.asOf ? `as of ${periodLabel(h.asOf)}` : "no reference period"} ·{" "}
               {h.ok ? "reading stored" : (h.problem ?? "no reading")}
             </span>

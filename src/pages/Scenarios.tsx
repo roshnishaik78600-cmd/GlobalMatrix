@@ -72,7 +72,7 @@ export default function Scenarios() {
             <select
               value={mode}
               onChange={(e) => setMode(e.target.value as Mode)}
-              className="mt-2 h-9 w-full border border-rule bg-background px-2 text-[12.5px] outline-none focus:border-foreground"
+              className="mt-2 h-9 w-full border border-rule bg-background px-2 text-[13px] outline-none focus:border-foreground"
               aria-label="Shock type"
             >
               {meta.modes.map((m) => (
@@ -81,7 +81,7 @@ export default function Scenarios() {
                 </option>
               ))}
             </select>
-            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+            <p className="mt-2 text-[12px] leading-snug text-muted-foreground">
               {selectedMode?.description}
             </p>
           </div>
@@ -94,7 +94,7 @@ export default function Scenarios() {
               <select
                 value={nodeId}
                 onChange={(e) => setNodeId(e.target.value)}
-                className="mt-2 h-9 w-full border border-rule bg-background px-2 text-[12.5px] outline-none focus:border-foreground"
+                className="mt-2 h-9 w-full border border-rule bg-background px-2 text-[13px] outline-none focus:border-foreground"
                 aria-label="Node"
               >
                 {GEO_NODES.map((n) => (
@@ -107,7 +107,7 @@ export default function Scenarios() {
               <select
                 value={activeEvent ?? ""}
                 onChange={(e) => setEventId(e.target.value)}
-                className="mt-2 h-9 w-full border border-rule bg-background px-2 text-[12.5px] outline-none focus:border-foreground"
+                className="mt-2 h-9 w-full border border-rule bg-background px-2 text-[13px] outline-none focus:border-foreground"
                 aria-label="Event"
               >
                 {meta.events.map((e) => (
@@ -117,7 +117,7 @@ export default function Scenarios() {
                 ))}
               </select>
             )}
-            <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+            <p className="mt-2 text-[12px] leading-snug text-muted-foreground">
               {mode === "remove_node"
                 ? "The node is deleted from the graph and the whole corpus is re-scored."
                 : "The corpus is re-scored under this assumption."}
@@ -139,7 +139,7 @@ export default function Scenarios() {
                   onClick={() => setMagnitude(step)}
                   aria-label={`${step * 100}%`}
                   className={`h-2 flex-1 transition-colors ${
-                    magnitude >= step ? "bg-signal" : "bg-white/12"
+                    magnitude >= step ? "bg-signal" : "bg-[var(--exec-surface)]"
                   }`}
                 />
               ))}
@@ -232,7 +232,7 @@ export default function Scenarios() {
                       height={6}
                       className="mt-1.5"
                     />
-                    <p className="num mt-1 text-[10px] text-muted-foreground">
+                    <p className="num mt-1 text-[12px] text-muted-foreground">
                       80% interval {result.baselineLow.toFixed(0)}–
                       {result.baselineHigh.toFixed(0)}
                     </p>
@@ -252,12 +252,12 @@ export default function Scenarios() {
                       height={6}
                       className="mt-1.5"
                     />
-                    <p className="num mt-1 text-[10px] text-muted-foreground">
+                    <p className="num mt-1 text-[12px] text-muted-foreground">
                       80% interval {result.scenarioLow.toFixed(0)}–
                       {result.scenarioHigh.toFixed(0)}
                     </p>
                   </div>
-                  <p className="border-t border-rule pt-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                  <p className="border-t border-rule pt-3 text-[13px] leading-relaxed text-muted-foreground">
                     {result.eventTitle}
                   </p>
                 </div>
@@ -275,7 +275,7 @@ export default function Scenarios() {
                       return (
                         <li key={c.channel}>
                           <div className="flex items-baseline justify-between">
-                            <span className="text-[12.5px]">
+                            <span className="text-[13px]">
                               {CHANNEL_LABEL[c.channel as Channel]}
                             </span>
                             <span
@@ -384,12 +384,12 @@ function DeltaRow({
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <Link
           to={to}
-          className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-white/4"
+          className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-[var(--exec-surface)]"
         >
-          <span className="min-w-0 flex-1 truncate text-[12.5px]">
+          <span className="min-w-0 flex-1 truncate text-[13px]">
             {d.label}
           </span>
-          <span className="num w-12 shrink-0 text-right text-[10px] text-muted-foreground">
+          <span className="num w-12 shrink-0 text-right text-[12px] text-muted-foreground">
             {(d.baseline * 100).toFixed(0)}%
           </span>
           <span className="w-16 shrink-0">
@@ -400,7 +400,7 @@ function DeltaRow({
             />
           </span>
           <span
-            className="num w-14 shrink-0 text-right text-[11px] font-semibold"
+            className="num w-14 shrink-0 text-right text-[12px] font-semibold"
             style={{ color: up ? "var(--signal)" : "var(--stable)" }}
           >
             {up ? "+" : "−"}

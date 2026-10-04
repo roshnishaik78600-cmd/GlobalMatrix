@@ -82,7 +82,7 @@ export function CountryCard({
       <header className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className="exec-num text-[11px] font-bold tracking-[0.08em] text-[var(--exec-cyan)]">
+            <span className="exec-num text-[12px] font-bold tracking-[0.08em] text-[var(--exec-cyan)]">
               {row.short}
             </span>
             <h3 className="truncate text-[13.5px] leading-tight font-semibold text-[var(--exec-ink)]">
@@ -159,7 +159,7 @@ export function CountryCard({
             <span
               key={c.channel}
               title={`${CHANNEL_LABEL[c.channel]} exposure ${(c.load * 100).toFixed(0)}%`}
-              className="exec-num inline-flex items-center gap-1 border border-[var(--exec-hairline)] bg-[var(--exec-surface)] px-1.5 py-0.5 text-[9px] font-semibold tracking-[0.06em] text-[var(--exec-ink-dim)]"
+              className="exec-num inline-flex items-center gap-1 border border-[var(--exec-hairline)] bg-[var(--exec-surface)] px-1.5 py-0.5 text-[12px] font-semibold tracking-[0.06em] text-[var(--exec-ink-dim)]"
             >
               <span
                 className="live-dot size-1 rounded-full"

@@ -116,20 +116,23 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-[var(--exec-base)] text-[var(--exec-ink)]">
       <header className="border-b border-rule">
-        <div className="gm-width flex h-14  items-center justify-between px-5 lg:px-8">
+        <div className="gm-width flex h-16 items-center justify-between px-4 lg:px-8">
           <button
             type="button"
             onClick={() => navigate("/")}
             className="flex items-center gap-2.5"
           >
-            <span className="block size-2.5 bg-signal" aria-hidden="true" />
-            <span className="text-[13px] font-semibold tracking-[0.16em] uppercase">
-              GlobalMatrix
+            <span
+              className="size-2 shrink-0 rounded-sm bg-[var(--exec-cyan)]"
+              aria-hidden
+            />
+            <span className="truncate text-[14px] font-semibold tracking-[0.2em] uppercase">
+              Globalmatrix
             </span>
           </button>
-          <span className="label text-muted-foreground">
+          <span className="exec-label text-[var(--exec-ink-dim)]">
             Researcher access
           </span>
         </div>
@@ -181,7 +184,9 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                     </Button>
                   </div>
                   {error && (
-                    <p className="mt-2 text-sm text-red-500">{error}</p>
+                    <p className="mt-2 text-sm text-[var(--critical)]">
+                      {error}
+                    </p>
                   )}
                   
                   <div className="mt-4">
@@ -247,7 +252,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                     </InputOTP>
                   </div>
                   {error && (
-                    <p className="mt-2 text-sm text-red-500 text-center">
+                    <p className="mt-2 text-center text-sm text-[var(--critical)]">
                       {error}
                     </p>
                   )}

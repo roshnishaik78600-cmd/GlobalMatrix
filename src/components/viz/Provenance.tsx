@@ -107,7 +107,7 @@ export function SourceLine({
 export function SourceNote({ note }: { note?: string }) {
   if (!note) return null;
   return (
-    <p className="flex items-start gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+    <p className="flex items-start gap-1.5 text-[12px] leading-relaxed text-muted-foreground">
       <Info className="mt-px size-3 shrink-0" aria-hidden="true" />
       <span>{note}</span>
     </p>

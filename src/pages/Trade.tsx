@@ -140,7 +140,7 @@ export default function Trade() {
                 <p className="exec-label text-[var(--exec-ink)]">
                   NO VERIFIED GEOGRAPHIC DATA AVAILABLE
                 </p>
-                <p className="mt-1.5 max-w-md text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
+                <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
                   {trade.data === null
                     ? "UN Comtrade has not returned a reading, so there is nothing to place on a map. GlobalMatrix does not fall back to approximate national output shares to fill it."
                     : "No reporter returned a total for a place GlobalMatrix can plot. Nothing is drawn rather than substituting an estimate."}
@@ -149,14 +149,14 @@ export default function Trade() {
             ) : (
               <WorldMap
                 nodes={mapNodes}
-                height={330}
+                height={380}
                 onSelect={(id) => toggle({ kind: "node", id })}
               />
             )}
             <div className="border-t border-[var(--exec-hairline)]">
               <MapLegend />
             </div>
-            <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+            <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
               Marker size and shading are each reporter&apos;s own total
               merchandise trade. No arcs are drawn between economies: this tier
               has no counterparty detail, and an arc would imply a shipping lane
@@ -172,7 +172,7 @@ export default function Trade() {
               Reporter ledger
             </SectionTitle>
             {flows.length === 0 ? (
-              <p className="px-3 py-6 text-[11.5px] text-[var(--exec-ink-dim)]">
+              <p className="px-3 py-6 text-[13px] text-[var(--exec-ink-dim)]">
                 No reported values stored.
               </p>
             ) : (
@@ -206,17 +206,17 @@ export default function Trade() {
                               isFocused("node", f.reporter) ? "bg-[var(--exec-surface-strong)]" : ""
                             }`}
                           >
-                            <td className="px-3 py-1.5 text-[11.5px] text-[var(--exec-ink)]">
+                            <td className="px-3 py-1.5 text-[13px] text-[var(--exec-ink)]">
                               {getNode(f.reporter).label}
                             </td>
-                            <td className="exec-num px-3 py-1.5 text-right text-[11px] whitespace-nowrap">
+                            <td className="exec-num px-3 py-1.5 text-right text-[12px] whitespace-nowrap">
                               {compact(f.exportsUsd)}
                             </td>
-                            <td className="exec-num px-3 py-1.5 text-right text-[11px] whitespace-nowrap">
+                            <td className="exec-num px-3 py-1.5 text-right text-[12px] whitespace-nowrap">
                               {compact(f.importsUsd)}
                             </td>
                             <td
-                              className="exec-num px-3 py-1.5 text-right text-[11px] font-semibold"
+                              className="exec-num px-3 py-1.5 text-right text-[12px] font-semibold"
                               style={{
                                 color:
                                   balance >= 0
@@ -253,7 +253,7 @@ export default function Trade() {
               Trade-channel events
             </SectionTitle>
             {tradeEvents.length === 0 ? (
-              <p className="px-3 py-4 text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
+              <p className="px-3 py-4 text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
                 No event in the current corpus carries material pressure on the
                 trade channel. No tariff, quota or sanctions registry is
                 connected, so no policy change is asserted here in either
@@ -282,7 +282,7 @@ export default function Trade() {
                       <span className="line-clamp-2 text-[12px] leading-snug text-[var(--exec-ink)]">
                         {e.title}
                       </span>
-                      <span className="exec-num mt-auto text-[9.5px] text-[var(--exec-ink-dim)]">
+                      <span className="exec-num mt-auto text-[12px] text-[var(--exec-ink-dim)]">
                         {e.detectedAt} · 80% {e.low30.toFixed(0)}–{e.high30.toFixed(0)}
                       </span>
                     </button>

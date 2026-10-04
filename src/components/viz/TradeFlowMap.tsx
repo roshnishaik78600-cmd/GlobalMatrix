@@ -61,11 +61,11 @@ export function TradeFlowMap() {
       title="Reported trade, by reporter"
       meta={`${nodes.length} economies · ${trade.asOf || "latest period"}`}
     >
-      <WorldMap nodes={nodes} height={280} />
+      <WorldMap nodes={nodes} height={320} />
       <div className="border-t border-rule">
         <MapLegend />
       </div>
-      <p className="px-3 py-2 text-[11px] leading-relaxed text-muted-foreground">
+      <p className="px-3 py-2 text-[12px] leading-relaxed text-muted-foreground">
         Size and shading are each reporter&apos;s own total merchandise trade.
         No bilateral arrows are drawn: this tier returns reporter totals, not
         counterparty detail.

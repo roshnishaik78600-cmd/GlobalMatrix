@@ -31,10 +31,10 @@ export function NoVerifiedData({
         <Database className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
         <span className="label text-foreground/85">{title}</span>
       </div>
-      <p className="text-[12.5px] font-medium">
+      <p className="text-[13px] font-medium">
         No verified data available.
       </p>
-      <p className="max-w-md text-[11.5px] leading-relaxed text-muted-foreground">
+      <p className="max-w-md text-[13px] leading-relaxed text-muted-foreground">
         GlobalMatrix has no {domain} data source connected. Rather than show
         estimates or placeholders, this panel stays empty until a real feed is
         connected.
@@ -65,7 +65,7 @@ export function QuestionStrip({
             <span className="label text-muted-foreground">
               {String(i + 1).padStart(2, "0")} · {item.q}
             </span>
-            <span className="mt-1.5 block text-[12.5px] leading-snug">
+            <span className="mt-1.5 block text-[13px] leading-snug">
               {item.a}
             </span>
           </>
@@ -78,7 +78,7 @@ export function QuestionStrip({
               // away every open query subscription and the reader's place.
               <Link
                 to={item.href}
-                className="block h-full p-3 transition-colors hover:bg-white/4"
+                className="block h-full p-3 transition-colors hover:bg-[var(--exec-surface)]"
               >
                 {body}
               </Link>

@@ -58,7 +58,7 @@ export function PathTrace({
               >
                 {c.title}
               </Link>
-              <p className="num mt-0.5 text-[10px] text-muted-foreground">
+              <p className="num mt-0.5 text-[12px] text-muted-foreground">
                 {c.reference} · {STAGE_LABEL[c.stage as Stage]}
               </p>
             </div>
@@ -70,25 +70,25 @@ export function PathTrace({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="label">{CHANNEL_LABEL[c.channel]}</span>
-                <span className="num text-[10px] text-muted-foreground">
+                <span className="num text-[12px] text-muted-foreground">
                   magnitude {pct(c.magnitude)} · confidence{" "}
                   {pct(c.confidence)}
                 </span>
-                <span className="num text-[10px] text-muted-foreground">
+                <span className="num text-[12px] text-muted-foreground">
                   lag {c.lagDays[0]}–{c.lagDays[1]}d
                 </span>
                 {c.affinity > 1 ? (
-                  <span className="label border border-signal px-1.5 py-0.5 text-[8px] text-signal">
+                  <span className="label border border-signal px-1.5 py-0.5 text-[12px] text-signal">
                     structural affinity ×{c.affinity.toFixed(1)}
                   </span>
                 ) : (
-                  <span className="label border border-rule px-1.5 py-0.5 text-[8px] text-muted-foreground">
+                  <span className="label border border-rule px-1.5 py-0.5 text-[12px] text-muted-foreground">
                     off-affinity
                   </span>
                 )}
               </div>
               {showMechanism ? (
-                <p className="mt-1.5 max-w-prose text-[11.5px] leading-relaxed text-muted-foreground">
+                <p className="mt-1.5 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
                   {c.mechanism}
                 </p>
               ) : null}
@@ -101,11 +101,11 @@ export function PathTrace({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-medium">{c.viaNodeLabel}</span>
-                <span className="num text-[10px] text-muted-foreground">
+                <span className="num text-[12px] text-muted-foreground">
                   impact {pct(c.impact)}
                 </span>
                 {c.share !== 1 ? (
-                  <span className="num text-[10px] text-muted-foreground">
+                  <span className="num text-[12px] text-muted-foreground">
                     structural share {pct(c.share)}
                   </span>
                 ) : null}
@@ -128,7 +128,7 @@ export function PathTrace({
                 tone={c.contribution / ceiling > 0.55 ? "signal" : "ink"}
                 className="mt-1.5"
               />
-              <p className="num mt-1 text-[10px] text-muted-foreground">
+              <p className="num mt-1 text-[12px] text-muted-foreground">
                 {c.impact.toFixed(2)} impact × {c.share.toFixed(2)} share ×{" "}
                 {c.magnitude.toFixed(2)} magnitude × {c.confidence.toFixed(2)}{" "}
                 confidence
@@ -142,7 +142,7 @@ export function PathTrace({
 
       {contributions.length > limit ? (
         <li className="px-4 py-3 text-center">
-          <p className="num text-[11px] text-muted-foreground">
+          <p className="num text-[12px] text-muted-foreground">
             + {contributions.length - limit} further pathway exposures below
           </p>
         </li>
@@ -153,7 +153,7 @@ export function PathTrace({
 
 function Step({ n }: { n: string }) {
   return (
-    <span className="num mt-0.5 flex size-5 shrink-0 items-center justify-center border border-rule text-[9px] text-muted-foreground">
+    <span className="num mt-0.5 flex size-5 shrink-0 items-center justify-center border border-rule text-[12px] text-muted-foreground">
       {n}
     </span>
   );
@@ -171,7 +171,7 @@ export function PathInline({
 }) {
   return (
     <span className="flex items-center gap-2">
-      <span className="label text-[8px] text-muted-foreground">
+      <span className="label text-[12px] text-muted-foreground">
         {channel}
       </span>
       <ArrowRight className="size-3 text-muted-foreground" />

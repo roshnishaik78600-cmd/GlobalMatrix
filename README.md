@@ -34,18 +34,18 @@ behind it.
 
 | Surface | What it answers |
 | --- | --- |
-| **Overview** | Global map, six-domain global pulse, a visual timeline of what is changing, and the event → world chain |
+| **Overview** | Six headline metrics, a dominant world map, the six-domain risk board, a streamed event feed and a threat timeline |
 | **World map** | Every tracked economy and chokepoint on real Natural Earth geometry, shaded by live load, with coupling arcs |
 | **Events** | The detection feed: ranked events with velocity, evidence strength, dominant channel and latest signal |
-| **Event analysis** | Event → map → propagation graph → timeline → impact → evidence ledger, for one event |
-| **Risk** | Global risk map, drivers, affected regions, trends, connected events and the uncertainty interval behind every score |
-| **Countries** / **Industries** | Exposure profiles: key metrics, channel load, dependencies, peers, trends and the causal path that produced the load |
+| **Event analysis** | Impact → where it spreads → how it moves → timeline → evidence, for one event |
+| **Risk** | A global risk hero, a large interactive world map, then risk drivers, affected regions, historical movement and evidence |
+| **Countries** / **Industries** | Premium profiles: a hero (flag, global exposure, change over the window), then exposure, connections, trade, energy, supply chain, recent events and the arithmetic behind the load |
 | **Trade** | UN Comtrade reporter totals, trade openness against World Bank GDP |
 | **Supply chains** | Which single points of failure are load-bearing right now, and which sectors declare a dependency on them |
 | **Event → world** | One event followed through every stage, with the two unmeasurable stages left open rather than estimated |
 | **Scenarios** | Run a named shock against the model and read the delta it produces, labelled as hypothetical throughout |
 | **AI analyst** | Optional model-written briefs, constrained to re-weigh evidence the deterministic engine already surfaced |
-| **Sources** | `SOURCE │ STATUS │ LAST UPDATED │ DATA TYPE` for every connector, plus what is *not* connected and why |
+| **Sources** | A monitoring board: one card per connector with VERIFIED / DELAYED / UNAVAILABLE, plus every domain that is not connected and why |
 
 ## Data integrity
 
@@ -92,6 +92,63 @@ registry. The product is designed so that each of these absences is visible.
 
 > **GDELT measures media attention, not events.** Coverage volume is not evidence that
 > something happened, nor how severe it is. The UI labels it accordingly.
+
+## Design system
+
+One palette, one card, one container, one type scale. All of it lives in
+`src/index.css`; no page defines a colour or a radius of its own.
+
+| Token | Value | Meaning |
+| --- | --- | --- |
+| `--background` | `#070A0F` | Deep obsidian, the only page background |
+| `--card` | `#0D121A` | The card surface |
+| `--surface-2` | `#111923` | A nested well, a meter bed, a hover |
+| `--rule` | `#202B38` | The single hairline |
+| `--exec-cyan` | `#00E5FF` | Live and interactive |
+| `--exec-violet` | `#7C5CFF` | The propagation / uncertainty layer |
+| `--exec-emerald` | `#22C55E` | Positive, verified |
+| `--exec-amber` | `#F59E0B` | Warning, delayed |
+| `--exec-crimson` | `#FF4D6D` | Critical, rising, unavailable |
+| `--exec-ink` | `#F8FAFC` | Primary text |
+| `--exec-ink-dim` | `#94A3B8` | Secondary text |
+| `--exec-ink-muted` | `#64748B` | Muted text — chart labels, legend captions, hints a reader may skip |
+
+Cyan and violet are rationed: cyan marks something live or clickable, violet marks
+the propagation and uncertainty layer, and every rising or elevated meaning is a
+status colour instead. An accent never carries a status. Violet appears on exactly
+two things — the propagation connectors and their stage numbers — so it reads as
+"this is how a shock travels" rather than as decoration.
+
+Three text rungs, not two: `--exec-ink` for primary, `--exec-ink-dim` for
+supporting copy, `--exec-ink-muted` (`.exec-label-muted`) for the lowest-priority
+register — labels inside a chart, a legend caption. Text a reader must act on is
+never muted.
+
+**The card.** `.card`, `.glass`, `.exec-surface` and `.panel` are one object,
+declared once in a shared selector list — 18px radius, one hairline, one step of
+surface contrast, no drop shadow. `.glass-strong` is the same object lifted one
+step. There is no second card style anywhere in the product.
+
+**Layout.** Every page resolves to one `max-width: 1440px` container
+(`.gm-width`), one 32px desktop gutter and one 12-column body grid
+(`PageFrame` → `BodyGrid`). A host element that declares no column span is given
+the full row automatically, so a section can never be silently squeezed into one
+twelfth of the viewport.
+
+**Type.** Six registers, defined once: `t-hero` (40–72px), `t-page` (32–44px),
+`t-section` (22–28px), `t-card` (18px), `t-body` (15px) and `t-meta` (13px).
+`.label` and `.exec-label` — the two micro-label classes — are floored at 12px;
+nothing in the product, including SVG chart labels, renders below it.
+
+**Maps.** Height is owned by exactly one of three things, in a fixed order: an
+explicit pixel `height` for a supporting map inside an already-sized panel,
+otherwise a caller-supplied class, otherwise `.map-frame` (400px phone / 440px
+tablet / 600px desktop). Two height utilities can never race.
+
+**Motion.** Framer Motion only: 240–320ms entrances, `whileInView` once, and one
+slow travelling dash along propagation connectors. Nothing loops except the live
+status dot and the map coupling arcs. All of it collapses under
+`prefers-reduced-motion`.
 
 ## Architecture
 
@@ -194,8 +251,13 @@ src/
     intel/             the model: corpus, engine, exposure, geography
     sources.ts         source registry, provenance types, data statuses
   components/
-    viz/               maps, charts, the console shell, design system
+    viz/               maps, charts, the shell, the page frame
+      exec/design.tsx  PageFrame, BodyGrid, Region, Metric, DataTable, states
+      exec/system.tsx  ExecCard, SectionTitle, BasisTag, FreshnessTag, StatTile
+    landing/           homepage sections and the discovery rail
     intel/             shared app primitives
+  lib/
+    flags.ts           flag emoji, only for ISO-3166 nodes
   pages/               one file per route
 ```
 
@@ -227,6 +289,10 @@ Stated plainly, because the product's credibility depends on it.
 - **Reporter totals only.** Comtrade's public preview tier does not give a bilateral
   corridor matrix.
 - **No automated tests.**
+- **No browser in the build environment.** The rebuild was verified by typecheck,
+  lint, production build and `convex run` probes against every query the rebuilt
+  pages bind to. Responsive behaviour at 1440 / 1280 / 1024 / 768 / 390 and the
+  browser console have *not* been visually confirmed.
 - **One analyst model.** `claude-sonnet-4-5`, called only when a reader asks for a
   brief.
 

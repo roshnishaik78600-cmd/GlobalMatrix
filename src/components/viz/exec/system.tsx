@@ -48,7 +48,10 @@ export function ExecGrid({
 }) {
   return (
     <div
-      className={cn("grid grid-cols-4 gap-3 px-4 py-3 lg:grid-cols-12", className)}
+      className={cn(
+        "gm-width grid grid-cols-4 gap-3 px-4 py-4 lg:grid-cols-12 lg:px-8",
+        className,
+      )}
     >
       {children}
     </div>
@@ -103,16 +106,10 @@ export function PageTitle({
   right?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 px-4 pt-4 pb-1">
+    <div className="flex flex-wrap items-end justify-between gap-3 px-4 pt-6 pb-1 lg:px-8">
       <div className="min-w-0 max-w-3xl">
-        <h1 className="text-[19px] leading-tight font-semibold tracking-[-0.02em] text-[var(--exec-ink)]">
-          {title}
-        </h1>
-        {lede ? (
-          <p className="mt-1 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
-            {lede}
-          </p>
-        ) : null}
+        <h1 className="t-page text-[var(--exec-ink)]">{title}</h1>
+        {lede ? <p className="t-body mt-2 text-[var(--exec-ink-dim)]">{lede}</p> : null}
       </div>
       {right ? <div className="flex min-w-0 flex-wrap items-center gap-2">{right}</div> : null}
     </div>
@@ -133,12 +130,14 @@ export function SectionTitle({
   return (
     <div
       className={cn(
-        "flex min-w-0 items-center justify-between gap-3 border-b border-[var(--exec-hairline)] px-3 py-2",
+        "flex min-w-0 items-center justify-between gap-3 border-b border-[var(--exec-hairline)] px-4 py-3",
         className,
       )}
     >
       <div className="flex min-w-0 items-baseline gap-2">
-        <h2 className="exec-label min-w-0 shrink text-[var(--exec-ink)]">{children}</h2>
+        <h2 className="min-w-0 shrink text-[15px] leading-tight font-semibold text-[var(--exec-ink)]">
+          {children}
+        </h2>
         {meta ? <span className="exec-label min-w-0 truncate">{meta}</span> : null}
       </div>
       {right ? <div className="flex min-w-0 shrink-0 items-center gap-2">{right}</div> : null}
@@ -162,8 +161,8 @@ export function ExecCard({
   return (
     <section
       className={cn(
-        "glass flex min-w-0 flex-col",
-        interactive && "glass-hover cursor-pointer",
+        "card flex min-w-0 flex-col",
+        interactive && "card-hover cursor-pointer",
         className,
       )}
     >
@@ -190,10 +189,10 @@ export function DominantCard({
 }) {
   return (
     <section
-      className={cn("glass flex min-w-0 flex-col", className)}
+      className={cn("card flex min-w-0 flex-col", className)}
       style={{
-        boxShadow:
-          "0 0 0 1px color-mix(in srgb, var(--exec-cyan) 12%, transparent), 0 18px 60px -40px rgba(0,0,0,0.9)",
+        borderColor:
+          "color-mix(in srgb, var(--exec-cyan) 45%, var(--exec-hairline))",
       }}
     >
       <SectionTitle meta={meta} right={right}>
@@ -257,7 +256,7 @@ export function ProvenanceFoot({
 }) {
   const source = sourceId ? sourceById(sourceId) : undefined;
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--exec-hairline)] px-3 py-1.5">
+    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--exec-hairline)] px-4 py-2.5">
       {source ? (
         <a
           href={source.url}
@@ -270,13 +269,13 @@ export function ProvenanceFoot({
       ) : null}
       {period ? <span className="exec-label">as of {period}</span> : null}
       {retrievedAt ? (
-        <span className="exec-num text-[10px] text-[var(--exec-ink-dim)]">
+        <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
           UPDATED {utcStamp(retrievedAt)}
         </span>
       ) : null}
       <FreshnessTag freshness={freshness} className="ml-auto" />
       {note ? (
-        <span className="w-full text-[10.5px] leading-snug text-[var(--exec-ink-dim)]">
+        <span className="w-full text-[12px] leading-snug text-[var(--exec-ink-dim)]">
           {note}
         </span>
       ) : null}
@@ -351,9 +350,9 @@ export function StatTile({
       onClick={onClick}
       disabled={!onClick}
       className={cn(
-        "glass glass-hover flex min-w-0 flex-col gap-1 px-3 py-2 text-left",
+        "card card-hover flex min-w-0 flex-col gap-1.5 p-4 text-left",
         !onClick && "cursor-default",
-        active && "border-[var(--exec-cyan)]/60",
+        active && "border-[var(--exec-cyan)]",
       )}
     >
       <span className="flex items-center justify-between gap-2">
@@ -362,7 +361,7 @@ export function StatTile({
       </span>
       <span className="flex items-baseline gap-1">
         <span
-          className="exec-num text-[20px] leading-none font-bold tracking-[-0.02em]"
+          className="exec-num text-[1.75rem] leading-none font-bold tracking-[-0.025em]"
           style={{ color: tone ?? "var(--exec-ink)" }}
         >
           {value}
@@ -424,8 +423,8 @@ export function NoDataAvailable({
         />
         <span className="exec-label text-[var(--exec-ink)]">NO VERIFIED DATA AVAILABLE</span>
       </div>
-      <p className="text-[12.5px] font-medium text-[var(--exec-ink)]">{title}</p>
-      <p className="max-w-md text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
+      <p className="text-[13px] font-medium text-[var(--exec-ink)]">{title}</p>
+      <p className="max-w-md text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
         {reason}
       </p>
       {hint}
@@ -459,10 +458,10 @@ export function SegmentedControl<T extends string>({
           aria-pressed={o.id === value}
           title={o.hint}
           className={cn(
-            "exec-label shrink-0 rounded-sm border px-2 py-1 whitespace-nowrap transition-colors",
+            "exec-label shrink-0 rounded-full border px-3 py-1.5 whitespace-nowrap transition-colors",
             o.id === value
               ? "border-[color-mix(in_srgb,var(--exec-cyan)_60%,transparent)] bg-[color-mix(in_srgb,var(--exec-cyan)_12%,transparent)] text-[var(--exec-ink)]"
-              : "border-[var(--exec-hairline)] text-[var(--exec-ink-dim)] hover:text-[var(--exec-ink)]",
+              : "border-[var(--exec-hairline)] text-[var(--exec-ink-dim)] hover:border-[var(--exec-hairline-strong)] hover:text-[var(--exec-ink)]",
           )}
         >
           {o.label}

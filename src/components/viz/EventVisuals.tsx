@@ -46,7 +46,7 @@ export function RiskTrajectory({
                 {r.score.toFixed(1)}
               </span>
             </div>
-            <div className="relative mt-2 h-2.5 w-full bg-white/8">
+            <div className="relative mt-2 h-2.5 w-full bg-[var(--exec-surface)]">
               <span
                 className="absolute top-0 h-full"
                 style={{
@@ -63,7 +63,7 @@ export function RiskTrajectory({
                 }}
               />
             </div>
-            <p className="num mt-1 text-[10px] text-muted-foreground">
+            <p className="num mt-1 text-[12px] text-muted-foreground">
               80% interval {r.low.toFixed(0)}–{r.high.toFixed(0)} · wider means
               less certain, not worse
             </p>
@@ -114,7 +114,7 @@ export function EventFootprintMap({
     >
       <WorldMap
         nodes={nodes}
-        height={260}
+        height={300}
         selected={selected}
         onSelect={(id) => setSelected(id === selected ? null : id)}
       />
@@ -127,10 +127,10 @@ export function EventFootprintMap({
           <ul className="mt-1.5 space-y-1">
             {channels.map(([channel, value]) => (
               <li key={channel} className="flex items-center gap-2">
-                <span className="w-20 shrink-0 text-[11px]">
+                <span className="w-20 shrink-0 text-[12px]">
                   {CHANNEL_LABEL[channel as Channel]}
                 </span>
-                <span className="h-1.5 flex-1 bg-white/8">
+                <span className="h-1.5 flex-1 bg-[var(--exec-surface)]">
                   <span
                     className="block h-full"
                     style={{
@@ -139,7 +139,7 @@ export function EventFootprintMap({
                     }}
                   />
                 </span>
-                <span className="num w-8 shrink-0 text-right text-[10px] text-muted-foreground">
+                <span className="num w-8 shrink-0 text-right text-[12px] text-muted-foreground">
                   {(value * 100).toFixed(0)}%
                 </span>
               </li>

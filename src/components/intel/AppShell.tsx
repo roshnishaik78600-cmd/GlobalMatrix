@@ -1,10 +1,16 @@
 import type { ReactNode } from "react";
+import { SectionTitle } from "@/components/viz/exec/system";
 import { cn } from "@/lib/utils";
 
 /**
- * Legacy layout helpers retained for the screens built before the workstation
- * shell existed. They now emit the compact dark treatment so those screens
- * match the rest of the console without a full rewrite.
+ * Layout helpers retained for the screens built before the workstation shell
+ * existed.
+ *
+ * These used to be a second, parallel design system with its own surface, its
+ * own header treatment and its own spacing. They now resolve to the single card
+ * and the single section header the rest of the product uses, so a page written
+ * against these names is visually indistinguishable from one written against the
+ * executive kit. Nothing here introduces a style; it only forwards to the one.
  */
 
 export function SectionHeader({
@@ -19,21 +25,17 @@ export function SectionHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 border-b border-rule px-4 py-5 lg:flex-row lg:items-end lg:justify-between lg:px-6">
+    <div className="flex flex-col gap-4 border-b border-[var(--exec-hairline)] px-4 py-6 lg:flex-row lg:items-end lg:justify-between lg:px-8">
       <div className="max-w-3xl">
         <div className="flex items-center gap-2.5">
-          <span className="num text-[10px] font-semibold tracking-[0.16em] text-signal">
+          <span className="exec-num text-[12px] font-semibold tracking-[0.16em] text-[var(--exec-cyan)]">
             {index}
           </span>
-          <span className="h-px w-8 bg-rule" />
-          <span className="label text-muted-foreground">
-            Propagation model
-          </span>
+          <span className="h-px w-8 bg-[var(--exec-hairline)]" />
+          <span className="exec-label">Propagation model</span>
         </div>
-        <h1 className="h-display mt-3">{title}</h1>
-        <p className="mt-2 text-[13px] leading-relaxed text-muted-foreground">
-          {lede}
-        </p>
+        <h1 className="t-page mt-2 text-[var(--exec-ink)]">{title}</h1>
+        <p className="t-body mt-2 text-[var(--exec-ink-dim)]">{lede}</p>
       </div>
       {actions ? <div className="shrink-0">{actions}</div> : null}
     </div>
@@ -55,10 +57,10 @@ export function FilterToggle({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "label border px-2.5 py-1.5 transition-colors",
+        "rounded-full border px-3.5 py-2 text-[13px] font-medium transition-colors",
         active
-          ? "border-foreground bg-foreground text-background"
-          : "border-rule text-muted-foreground hover:border-foreground hover:text-foreground",
+          ? "border-[var(--exec-cyan)] bg-[color-mix(in_srgb,var(--exec-cyan)_12%,transparent)] text-[var(--exec-ink)]"
+          : "border-[var(--exec-hairline)] text-[var(--exec-ink-dim)] hover:border-[var(--exec-hairline-strong)] hover:text-[var(--exec-ink)]",
       )}
     >
       {children}
@@ -66,6 +68,10 @@ export function FilterToggle({
   );
 }
 
+/**
+ * The card. Delegates its header to the shared `SectionTitle` so the two header
+ * treatments the product once had are now one.
+ */
 export function Panel({
   caption,
   aside,
@@ -78,13 +84,8 @@ export function Panel({
   className?: string;
 }) {
   return (
-    <section className={cn("panel", className)}>
-      <div className="panel-head">
-        <span className="label text-foreground/85">{caption}</span>
-        {aside ? (
-          <span className="label text-muted-foreground">{aside}</span>
-        ) : null}
-      </div>
+    <section className={cn("card flex min-w-0 flex-col", className)}>
+      <SectionTitle meta={aside}>{caption}</SectionTitle>
       {children}
     </section>
   );

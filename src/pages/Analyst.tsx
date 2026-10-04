@@ -131,26 +131,36 @@ export default function Analyst() {
     >
 
       {error ? (
-        <div className="border-b border-rule bg-signal/10 px-4 py-2">
-          <p className="text-[12px] text-signal">{error}</p>
+        <div className="lg:col-span-12">
+          <div
+            className="rounded-lg border border-[color-mix(in_srgb,var(--exec-crimson)_45%,transparent)] px-4 py-3"
+            role="status"
+          >
+            <p className="exec-label text-[var(--exec-crimson)]">
+              TEMPORARILY UNAVAILABLE
+            </p>
+            <p className="mt-1 text-[13px] leading-relaxed text-[var(--exec-ink)]">
+              {error}
+            </p>
+          </div>
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         {/* The answer, shown rather than told: what the numbers look like. */}
         {assessment ? (
           <>
-            <section className="xl:col-span-5">
+            <section className="lg:col-span-5">
               <EventFootprintMap assessment={assessment} className="h-full" />
             </section>
-            <section className="xl:col-span-3">
+            <section className="lg:col-span-3">
               <RiskTrajectory assessment={assessment} className="h-full" />
             </section>
           </>
         ) : null}
 
         {/* Answer */}
-        <section className={cn("min-w-0", assessment ? "xl:col-span-4" : "xl:col-span-6")}>
+        <section className={cn("min-w-0", assessment ? "lg:col-span-4" : "lg:col-span-6")}>
           <Panel
             title="Answer"
             meta={brief ? `generated ${timestamp(brief.createdAt)}` : "no brief yet"}
@@ -180,7 +190,7 @@ export default function Analyst() {
                           key={i}
                           className="flex gap-2.5 text-[12px] leading-relaxed"
                         >
-                          <span className="num shrink-0 text-[10px] text-signal">
+                          <span className="num shrink-0 text-[12px] text-signal">
                             {String(i + 1).padStart(2, "0")}
                           </span>
                           <span>{c}</span>
@@ -221,15 +231,15 @@ export default function Analyst() {
         </section>
 
         {/* Drivers + model output */}
-        <section className="min-w-0 space-y-3 xl:col-span-3">
+        <section className="min-w-0 space-y-3 lg:col-span-3">
           <Panel title="Model output" meta="deterministic">
             {assessment ? (
               <div className="space-y-2.5 p-3">
                 {assessment.risk[30].drivers.map((d) => (
                   <div key={d.id}>
                     <div className="flex items-baseline justify-between">
-                      <span className="text-[11.5px]">{d.label}</span>
-                      <span className="num text-[11.5px]">
+                      <span className="text-[13px]">{d.label}</span>
+                      <span className="num text-[13px]">
                         {d.contribution >= 0 ? "+" : "−"}
                         {Math.abs(d.contribution).toFixed(1)}
                       </span>
@@ -272,7 +282,7 @@ export default function Analyst() {
         </section>
 
         {/* Evidence */}
-        <section className="min-w-0 xl:col-span-3">
+        <section className="min-w-0 lg:col-span-3">
           <Panel
             title="Evidence"
             meta={`${assessment?.scenario.signals.length ?? 0} observations`}
@@ -282,15 +292,15 @@ export default function Analyst() {
               {(assessment?.scenario.signals ?? []).map((s) => (
                 <li key={s.id} className="px-3 py-2.5">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="label text-[9px] text-muted-foreground">
+                    <span className="label text-[12px] text-muted-foreground">
                       {SOURCE_CLASS_LABEL[s.sourceClass]}
                     </span>
-                    <span className="num shrink-0 text-[9px] text-muted-foreground">
+                    <span className="num shrink-0 text-[12px] text-muted-foreground">
                       {dayMonth(s.observedAt)}
                     </span>
                   </div>
                   <p className="mt-1 text-[12px] leading-snug">{s.headline}</p>
-                  <p className="mt-1 text-[10.5px] leading-snug text-muted-foreground">
+                  <p className="mt-1 text-[12px] leading-snug text-muted-foreground">
                     {s.source}
                   </p>
                   <div className="mt-1.5 flex items-center gap-2">
@@ -300,7 +310,7 @@ export default function Analyst() {
                       height={2}
                       className="flex-1"
                     />
-                    <span className="num text-[9px] text-muted-foreground">
+                    <span className="num text-[12px] text-muted-foreground">
                       {(s.reliability * 100).toFixed(0)}% · ×{s.corroborations} ·{" "}
                       {s.anomalyZ.toFixed(1)}σ
                     </span>
@@ -313,8 +323,8 @@ export default function Analyst() {
       </div>
 
       {assessment ? (
-        <div className="grid grid-cols-1 gap-3 px-3 pb-4 xl:grid-cols-12">
-          <div className="panel min-w-0 xl:col-span-6">
+        <div className="grid grid-cols-1 gap-4 pb-2 lg:grid-cols-12">
+          <div className="panel min-w-0 lg:col-span-6">
             <div className="panel-head">
               <span className="label">Reported context, outside the model</span>
               <span className="label text-muted-foreground">
@@ -330,7 +340,7 @@ export default function Analyst() {
               />
             )}
           </div>
-          <div className="xl:col-span-6">
+          <div className="lg:col-span-6">
             <Link
               to={`/app/event/${assessment.scenario.id}`}
               className="label flex h-full items-center justify-center gap-2 border border-rule px-3 py-3 transition-colors hover:border-foreground"

@@ -342,11 +342,11 @@ export default function Countries() {
                   onDoubleClick={() => navigate(`/app/country/${c.nodeId}`)}
                   className="glass glass-hover flex items-center gap-3 px-3 py-2 text-left"
                 >
-                  <span className="exec-num w-9 shrink-0 text-[11px] font-bold text-[var(--exec-cyan)]">
+                  <span className="exec-num w-9 shrink-0 text-[12px] font-bold text-[var(--exec-cyan)]">
                     {c.short}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[12.5px] font-medium text-[var(--exec-ink)]">
+                    <span className="block truncate text-[13px] font-medium text-[var(--exec-ink)]">
                       {c.label}
                     </span>
                     <span className="exec-label mt-0.5 block truncate">

@@ -49,13 +49,13 @@ function Step({
   return (
     <div className="flex min-w-0 flex-col border border-rule bg-card">
       <div className="flex items-center gap-2 border-b border-rule px-3 py-2">
-        <span className="num text-[10px] text-muted-foreground">
+        <span className="num text-[12px] text-muted-foreground">
           {String(step).padStart(2, "0")}
         </span>
         {icon}
         <span className="label text-foreground/85">{title}</span>
       </div>
-      <p className="px-3 pt-2 text-[10.5px] text-muted-foreground">{question}</p>
+      <p className="px-3 pt-2 text-[12px] text-muted-foreground">{question}</p>
       <div className="min-w-0 flex-1 px-3 pt-2 pb-3">{children}</div>
     </div>
   );
@@ -90,11 +90,11 @@ export function PropagationRibbon({ result }: { result: ScenarioResult }) {
           <span className="num text-[18px] leading-none font-semibold">
             {result.scenarioEventScore.toFixed(1)}
           </span>
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-[12px] text-muted-foreground">
             from {result.baselineEventScore.toFixed(1)}
           </span>
         </div>
-        <div className="mt-2 h-1.5 w-full bg-white/8">
+        <div className="mt-2 h-1.5 w-full bg-[var(--exec-surface)]">
           <div
             className="h-full"
             style={{
@@ -120,7 +120,7 @@ export function PropagationRibbon({ result }: { result: ScenarioResult }) {
         icon={<ArrowRight className="size-3 text-signal" aria-hidden />}
       >
         {moved.length === 0 ? (
-          <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+          <p className="text-[13px] leading-relaxed text-muted-foreground">
             No channel pressure moved under this assumption.
           </p>
         ) : (
@@ -130,11 +130,11 @@ export function PropagationRibbon({ result }: { result: ScenarioResult }) {
               return (
                 <li key={c.channel} className="min-w-0">
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-[11.5px]">
+                    <span className="truncate text-[13px]">
                       {CHANNEL_LABEL[c.channel as Channel]}
                     </span>
                     <span
-                      className="num shrink-0 text-[11px]"
+                      className="num shrink-0 text-[12px]"
                       style={{
                         color: delta >= 0 ? "var(--signal)" : "var(--stable)",
                       }}
@@ -157,7 +157,7 @@ export function PropagationRibbon({ result }: { result: ScenarioResult }) {
         icon={<Layers className="size-3 text-signal" aria-hidden />}
       >
         {result.topDrivers.length === 0 ? (
-          <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+          <p className="text-[13px] leading-relaxed text-muted-foreground">
             No driver decomposition is available for this run.
           </p>
         ) : (
@@ -165,8 +165,8 @@ export function PropagationRibbon({ result }: { result: ScenarioResult }) {
             {result.topDrivers.slice(0, 4).map((d) => (
               <li key={d.id} className="min-w-0">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-[11.5px]">{d.label}</span>
-                  <span className="num shrink-0 text-[11px]">
+                  <span className="truncate text-[13px]">{d.label}</span>
+                  <span className="num shrink-0 text-[12px]">
                     {d.contribution >= 0 ? "+" : "−"}
                     {Math.abs(d.contribution).toFixed(1)}
                   </span>
@@ -193,8 +193,8 @@ export function PropagationRibbon({ result }: { result: ScenarioResult }) {
                   to={`/app/country/${d.id}`}
                   className="flex items-baseline justify-between gap-2 hover:text-signal"
                 >
-                  <span className="truncate text-[11.5px]">{d.label}</span>
-                  <span className="num shrink-0 text-[11px] text-signal">
+                  <span className="truncate text-[13px]">{d.label}</span>
+                  <span className="num shrink-0 text-[12px] text-signal">
                     +{(d.delta * 100).toFixed(1)}
                   </span>
                 </Link>
@@ -206,11 +206,11 @@ export function PropagationRibbon({ result }: { result: ScenarioResult }) {
                   to={`/app/industry/${d.id}`}
                   className="flex items-baseline justify-between gap-2 hover:text-signal"
                 >
-                  <span className="truncate text-[11.5px]">
+                  <span className="truncate text-[13px]">
                     <span className="text-muted-foreground">sector · </span>
                     {d.label}
                   </span>
-                  <span className="num shrink-0 text-[11px] text-signal">
+                  <span className="num shrink-0 text-[12px] text-signal">
                     +{(d.delta * 100).toFixed(1)}
                   </span>
                 </Link>
@@ -237,7 +237,7 @@ export function PropagationRibbon({ result }: { result: ScenarioResult }) {
           <div className="space-y-1.5 pt-1">
             <div>
               <span className="label text-muted-foreground">Baseline width</span>
-              <span className="mt-1 block h-1.5 w-full bg-white/8">
+              <span className="mt-1 block h-1.5 w-full bg-[var(--exec-surface)]">
                 <span
                   className="block h-full bg-muted-foreground"
                   style={{
@@ -251,7 +251,7 @@ export function PropagationRibbon({ result }: { result: ScenarioResult }) {
             </div>
             <div>
               <span className="label text-muted-foreground">Scenario width</span>
-              <span className="mt-1 block h-1.5 w-full bg-white/8">
+              <span className="mt-1 block h-1.5 w-full bg-[var(--exec-surface)]">
                 <span
                   className="block h-full bg-warning"
                   style={{
@@ -264,7 +264,7 @@ export function PropagationRibbon({ result }: { result: ScenarioResult }) {
               </span>
             </div>
           </div>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
+          <p className="text-[12px] leading-relaxed text-muted-foreground">
             {widened >= 0 ? "Wider by " : "Narrower by "}
             {Math.abs(widened).toFixed(1)} points than the baseline. A wider band
             means the model is less sure about this world, not that it is worse.

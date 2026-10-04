@@ -58,7 +58,7 @@ export function FlowDiagram({
                 <span className="label leading-tight text-foreground/90">
                   {stage.label}
                 </span>
-                <span className="num text-[10px] text-muted-foreground">
+                <span className="num text-[12px] text-muted-foreground">
                   {stage.nodeIds.length} nodes
                 </span>
                 <div className="mt-1 flex flex-wrap justify-center gap-0.5">
@@ -66,14 +66,14 @@ export function FlowDiagram({
                     <Link
                       key={id}
                       to={`/app/country/${id}`}
-                      className="num border border-rule px-1 text-[8px] text-muted-foreground transition-colors hover:border-signal hover:text-signal"
+                      className="num border border-rule px-1 text-[12px] text-muted-foreground transition-colors hover:border-signal hover:text-signal"
                       title={getNode(id).label}
                     >
                       {getNode(id).short}
                     </Link>
                   ))}
                   {stage.nodeIds.length > 6 ? (
-                    <span className="num text-[8px] text-muted-foreground">
+                    <span className="num text-[12px] text-muted-foreground">
                       +{stage.nodeIds.length - 6}
                     </span>
                   ) : null}
@@ -97,7 +97,7 @@ export function FlowDiagram({
                       </svg>
                     </div>
                   ))}
-                  <span className="num text-[8px] text-muted-foreground">
+                  <span className="num text-[12px] text-muted-foreground">
                     max {max.toFixed(2)}
                   </span>
                 </div>
@@ -294,7 +294,7 @@ export function GraphExplorer({
                 textAnchor="middle"
                 className="num"
                 fill={active ? "var(--foreground)" : "var(--muted-foreground)"}
-                style={{ fontSize: 9 }}
+                style={{ fontSize: 12 }}
               >
                 {n.label.length > 16 ? `${n.label.slice(0, 15)}…` : n.label}
               </text>

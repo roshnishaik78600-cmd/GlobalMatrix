@@ -59,7 +59,7 @@ export function NodeEvidence({
           </div>
           <div className="mt-1.5 flex items-center gap-2">
             <MiniSpark values={growth.history.map((h) => h.value)} width={96} />
-            <span className="num text-[10px] text-muted-foreground">
+            <span className="num text-[12px] text-muted-foreground">
               {growth.history.length} reported years · latest{" "}
               {growth.latest.period}
             </span>
@@ -67,7 +67,7 @@ export function NodeEvidence({
           <div className="mt-2">
             <SourceLine
               provenance={growth.latest.provenance}
-              className="text-[9px]"
+              className="text-[12px]"
             />
           </div>
         </div>
@@ -85,7 +85,7 @@ export function NodeEvidence({
             <span className="label text-muted-foreground">imports</span>
           </div>
           <div className="mt-2">
-            <SourceLine provenance={flow.provenance} className="text-[9px]" />
+            <SourceLine provenance={flow.provenance} className="text-[12px]" />
           </div>
           <SourceNote note="Reported totals; the balance shown elsewhere is arithmetic on these two figures." />
         </div>

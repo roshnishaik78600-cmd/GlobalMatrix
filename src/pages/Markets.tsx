@@ -67,8 +67,8 @@ export default function Markets() {
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
-        <section className="xl:col-span-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <section className="lg:col-span-5">
           <Panel
             title="Price feed"
             meta="not connected"
@@ -78,7 +78,7 @@ export default function Markets() {
               title="Market prices"
               domain="live quotes, indices or rates"
               action={
-                <p className="text-[11.5px] leading-relaxed text-muted-foreground">
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
                   Connecting a price source needs a licensed feed. Until one is
                   connected, no panel on this site will print a price, a return
                   or a spread — an unattributed number is worse than an absent
@@ -89,15 +89,15 @@ export default function Markets() {
           </Panel>
         </section>
 
-        <section className="xl:col-span-7">
+        <section className="lg:col-span-7">
           <MacroTrend className="h-full" />
         </section>
 
-        <section className="xl:col-span-6">
+        <section className="lg:col-span-6">
           <MacroTable />
         </section>
 
-        <section className="xl:col-span-6">
+        <section className="lg:col-span-6">
           {attentionSeries.length > 1 ? (
             <TemporalSlider
               className="h-full"
@@ -117,7 +117,7 @@ export default function Markets() {
           )}
         </section>
 
-        <section className="xl:col-span-12">
+        <section className="lg:col-span-12">
           <Panel
             title="Finance-channel pressure"
             meta="model output, not a market move"
@@ -133,12 +133,12 @@ export default function Markets() {
                   <li key={e.id}>
                     <Link
                       to={`/app/event/${e.id}`}
-                      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 transition-colors hover:bg-white/4"
+                      className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5 transition-colors hover:bg-[var(--exec-surface)]"
                     >
-                      <span className="min-w-0 flex-1 truncate text-[12.5px]">
+                      <span className="min-w-0 flex-1 truncate text-[13px]">
                         {e.title}
                       </span>
-                      <span className="num text-[11px] text-muted-foreground">
+                      <span className="num text-[12px] text-muted-foreground">
                         {CHANNEL_LABEL.finance}{" "}
                         {(e.channelPressure.finance * 100).toFixed(0)}%
                       </span>

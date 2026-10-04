@@ -114,7 +114,7 @@ export function ExecFilters({
         title="Search (⌘K)"
       >
         <span className="exec-label">Search</span>
-        <kbd className="exec-num border border-[var(--exec-hairline)] px-1 text-[9px] text-[var(--exec-ink-dim)]">
+        <kbd className="exec-num border border-[var(--exec-hairline)] px-1 text-[12px] text-[var(--exec-ink-dim)]">
           ⌘K
         </kbd>
       </button>
@@ -165,7 +165,7 @@ function FilterChip({
       aria-pressed={active}
       title={title}
       className={cn(
-        "flex h-7 items-center gap-1.5 border px-2 text-[11px] font-medium transition-colors",
+        "flex h-7 items-center gap-1.5 border px-2 text-[12px] font-medium transition-colors",
         active
           ? "border-[var(--exec-cyan)]/70 bg-[color-mix(in_srgb,var(--exec-cyan)_12%,transparent)] text-[var(--exec-ink)]"
           : "border-[var(--exec-hairline)] text-[var(--exec-ink-dim)] hover:text-[var(--exec-ink)]",

@@ -114,7 +114,7 @@ export function FragilityArc({
           y={cy + 8}
           textAnchor="middle"
           className="exec-label"
-          style={{ fontSize: 8 }}
+          style={{ fontSize: 12 }}
         >
           {BAND_LABEL[band]}
           {direction ? ` · ${direction}` : ""}

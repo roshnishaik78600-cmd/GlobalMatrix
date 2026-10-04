@@ -52,7 +52,7 @@ export function MiniSpark({
   width?: number;
   height?: number;
 }) {
-  if (values.length < 2) return <span className="text-[10px] text-muted-foreground">—</span>;
+  if (values.length < 2) return <span className="text-[12px] text-muted-foreground">—</span>;
   const max = Math.max(...values, 0);
   const min = Math.min(...values, 0);
   const span = max - min || 1;
@@ -92,7 +92,7 @@ function Delta({ history }: { history: MacroReading[] }) {
   const Up = change >= 0 ? TrendingUp : TrendingDown;
   return (
     <span
-      className={`num inline-flex items-center gap-0.5 text-[10px] ${
+      className={`num inline-flex items-center gap-0.5 text-[12px] ${
         change >= 0 ? "text-stable" : "text-warning"
       }`}
       title={`Change from ${history[history.length - 2].period}`}
@@ -175,7 +175,7 @@ export function MacroPanel({ limit = 7 }: { limit?: number }) {
                 >
                   {node?.label ?? latest.node}
                 </Link>
-                <span className="num w-8 shrink-0 text-[10px] text-muted-foreground">
+                <span className="num w-8 shrink-0 text-[12px] text-muted-foreground">
                   {latest.period}
                 </span>
                 <span className="hidden shrink-0 sm:block">
@@ -265,11 +265,11 @@ export function TradePanel({ limit = 7 }: { limit?: number }) {
                 >
                   {node?.label ?? f.reporter}
                 </Link>
-                <span className="num w-16 shrink-0 text-right text-[11px]">
+                <span className="num w-16 shrink-0 text-right text-[12px]">
                   {usd(total)}
                 </span>
                 <span
-                  className={`num w-16 shrink-0 text-right text-[10px] ${
+                  className={`num w-16 shrink-0 text-right text-[12px] ${
                     balance >= 0 ? "text-stable" : "text-warning"
                   }`}
                   title="Exports minus imports"
@@ -400,7 +400,7 @@ function AttentionPanel() {
                   {titleCase(s.topic)}
                 </span>
                 <span
-                  className={`num shrink-0 text-[10px] ${
+                  className={`num shrink-0 text-[12px] ${
                     change > 0 ? "text-elevated" : "text-muted-foreground"
                   }`}
                 >
@@ -484,10 +484,10 @@ function HeadlinesPanel() {
               href={h.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block px-3 py-2 transition-colors hover:bg-white/4"
+              className="block px-3 py-2 transition-colors hover:bg-[var(--exec-surface)]"
             >
               <p className="line-clamp-2 text-[12px] leading-snug">{h.title}</p>
-              <p className="num mt-1 truncate text-[9.5px] text-muted-foreground">
+              <p className="num mt-1 truncate text-[12px] text-muted-foreground">
                 {h.domain}
                 {h.seenAt ? ` · ${h.seenAt.slice(0, 13).replace(/(\d{4})(\d{2})(\d{2})T(\d{2})/, "$1-$2-$3 $4:00")} UTC` : ""}
               </p>

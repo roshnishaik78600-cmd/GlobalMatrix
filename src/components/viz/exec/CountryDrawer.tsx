@@ -159,7 +159,7 @@ function Row({
 }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-[var(--exec-hairline)] px-3 py-1.5 last:border-b-0">
-      <span className="min-w-0 truncate text-[11.5px] text-[var(--exec-ink-dim)]">
+      <span className="min-w-0 truncate text-[13px] text-[var(--exec-ink-dim)]">
         {label}
         {hint ? <span className="exec-label ml-1.5 normal-case">{hint}</span> : null}
       </span>
@@ -186,7 +186,7 @@ function OverviewTab({ nodeId }: { nodeId: string }) {
         <FragilityArc value={profile?.country?.structuralFragility ?? 0} size={104} />
         <div className="min-w-0">
           <p className="exec-label">Structural fragility</p>
-          <p className="mt-1 text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
+          <p className="mt-1 text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
             A modelled structural parameter for this economy, independent of any
             current event. It is not a default probability, a credit rating, or a
             forecast of instability.
@@ -197,7 +197,7 @@ function OverviewTab({ nodeId }: { nodeId: string }) {
         <NodeRiskRadar pressure={pressure} size={104} />
         <div className="min-w-0">
           <RadarLegend pressure={pressure} />
-          <p className="mt-1 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+          <p className="mt-1 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
             Only axes with a real reading are drawn. Hover an axis to read it.
           </p>
         </div>
@@ -258,7 +258,7 @@ function EventsTab({ nodeId }: { nodeId: string }) {
                 >
                   {CHANNEL_LABEL[c.channel]}
                 </span>
-                <span className="exec-num text-[10.5px] text-[var(--exec-ink)]">
+                <span className="exec-num text-[12px] text-[var(--exec-ink)]">
                   {c.contribution.toFixed(3)}
                 </span>
               </div>
@@ -330,7 +330,7 @@ function TradeTab({ nodeId }: { nodeId: string }) {
           ))}
         </ul>
       )}
-      <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+      <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
         Reporter totals only. Where a bilateral figure is not published, the
         honest answer is that it is unknown — not an estimate drawn from a
         different dataset.
@@ -412,7 +412,7 @@ function EconomyTab({ nodeId }: { nodeId: string }) {
               <li key={key} className="px-3 py-2">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-[12px] text-[var(--exec-ink)]">{latest.label}</span>
-                  <span className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
+                  <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
                     {latest.period}
                   </span>
                 </div>
@@ -423,7 +423,7 @@ function EconomyTab({ nodeId }: { nodeId: string }) {
                   </span>
                   {delta !== null ? (
                     <span
-                      className="exec-num text-[10px]"
+                      className="exec-num text-[12px]"
                       style={{
                         color: delta >= 0 ? "var(--exec-emerald)" : "var(--exec-crimson)",
                       }}
@@ -497,7 +497,7 @@ function CompaniesTab() {
       title="Company-level data is not connected"
       reason="GlobalMatrix models exposure at the level of countries, chokepoints and industries. No filings database, registry or supply-chain disclosure feed is connected to this build, so there is no company figure to show here — and a plausible-looking one would be invented."
       hint={
-        <p className="mt-2 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+        <p className="mt-2 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
           What is measurable today: industry exposure, the countries that carry it,
           and the events that drive it. Open Industries to see the same
           propagation at sector level.
@@ -521,7 +521,7 @@ function SupplyTab({ nodeId }: { nodeId: string }) {
       <div className="px-3 py-2">
         <p className="exec-label mb-1.5">Industries carried by this node</p>
         {industries.length === 0 ? (
-          <p className="text-[11.5px] text-[var(--exec-ink-dim)]">
+          <p className="text-[13px] text-[var(--exec-ink-dim)]">
             No industry declares this node in its structure.
           </p>
         ) : (
@@ -530,7 +530,7 @@ function SupplyTab({ nodeId }: { nodeId: string }) {
               <li key={i.id} className="flex items-center gap-2">
                 <Link
                   to={`/app/industry/${i.id}`}
-                  className="min-w-0 flex-1 truncate text-[11.5px] text-[var(--exec-ink)] hover:underline"
+                  className="min-w-0 flex-1 truncate text-[13px] text-[var(--exec-ink)] hover:underline"
                 >
                   {i.label}
                 </Link>
@@ -540,7 +540,7 @@ function SupplyTab({ nodeId }: { nodeId: string }) {
                     style={{ width: pct(i.live), background: loadColour(i.live) }}
                   />
                 </span>
-                <span className="exec-num w-9 text-right text-[10px] text-[var(--exec-ink-dim)]">
+                <span className="exec-num w-9 text-right text-[12px] text-[var(--exec-ink-dim)]">
                   {pct(i.live)}
                 </span>
               </li>
@@ -551,7 +551,7 @@ function SupplyTab({ nodeId }: { nodeId: string }) {
       <div className="px-3 py-2">
         <p className="exec-label mb-1.5">Depends on</p>
         {peers.length === 0 ? (
-          <p className="text-[11.5px] text-[var(--exec-ink-dim)]">
+          <p className="text-[13px] text-[var(--exec-ink-dim)]">
             No structural dependency declared.
           </p>
         ) : (
@@ -568,7 +568,7 @@ function SupplyTab({ nodeId }: { nodeId: string }) {
       <div className="px-3 py-2">
         <p className="exec-label mb-1.5">Depended on by</p>
         {dependents.length === 0 ? (
-          <p className="text-[11.5px] text-[var(--exec-ink-dim)]">
+          <p className="text-[13px] text-[var(--exec-ink-dim)]">
             No tracked economy declares a strong dependency on this node.
           </p>
         ) : (
@@ -632,7 +632,7 @@ function PolicyTab({ nodeId }: { nodeId: string }) {
         </ul>
       )}
       {tagged.length > 0 ? (
-        <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[11px] text-[var(--exec-ink-dim)]">
+        <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[12px] text-[var(--exec-ink-dim)]">
           {tagged.length} contribution(s) on this node come from a
           policy-tagged event.
         </p>
@@ -647,7 +647,7 @@ function MarketsTab() {
       title="No market price feed is connected"
       reason="FX, rates, commodity futures and volatility all require a price feed. None is connected to this build, so no level, change or return is shown. GlobalMatrix does not fill a markets panel with modelled placeholders, because a price that is not a price is worse than no price."
       hint={
-        <p className="mt-2 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+        <p className="mt-2 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
           The macro figures that *are* connected — reported growth, reported trade
           totals — appear under Economy and Trade, each with its publisher and
           reference period.
@@ -679,7 +679,7 @@ function RiskTab({
           const value = pressure[channel] ?? 0;
           return (
             <div key={channel} className="mb-1.5 flex items-center gap-2">
-              <span className="w-24 shrink-0 text-[11px] text-[var(--exec-ink-dim)]">
+              <span className="w-24 shrink-0 text-[12px] text-[var(--exec-ink-dim)]">
                 {CHANNEL_LABEL[channel]}
               </span>
               <span className="h-1.5 flex-1 bg-[var(--exec-hairline)]">
@@ -688,7 +688,7 @@ function RiskTab({
                   style={{ width: pct(value / peak), background: loadColour(value) }}
                 />
               </span>
-              <span className="exec-num w-10 shrink-0 text-right text-[10.5px] text-[var(--exec-ink)]">
+              <span className="exec-num w-10 shrink-0 text-right text-[12px] text-[var(--exec-ink)]">
                 {pct(value)}
               </span>
             </div>
@@ -704,7 +704,7 @@ function RiskTab({
       />
       <Row label="Network criticality" value={(profile?.node.criticality ?? 0).toFixed(2)} />
       <Row label="Mean model uncertainty" value="see the event analysis" />
-      <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+      <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
         Every figure in this module is GlobalMatrix model output derived from the
         scenario corpus. None of it is an observed measurement, and none of it is
         a sovereign-risk probability.

@@ -48,7 +48,7 @@ export default function Industries() {
     >
 
       <div className="border-b border-rule bg-card">
-        <dl className="grid gm-width grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-4 lg:px-8">
+        <dl className="grid grid-cols-2 divide-x divide-rule px-4 py-3 lg:grid-cols-4 lg:px-6">
           <Stat
             caption="Sectors modelled"
             value={String(allIndustries.length)}
@@ -81,7 +81,7 @@ export default function Industries() {
       </div>
 
       <div className="border-b border-rule">
-        <div className="flex gm-width items-center justify-between gap-4 px-5 py-3 lg:px-8">
+        <div className="flex items-center justify-between gap-4 px-4 py-3 lg:px-6">
           <span className="label text-muted-foreground">
             Showing {industries.length} of {allIndustries.length} sectors
           </span>
@@ -94,8 +94,7 @@ export default function Industries() {
         </div>
       </div>
 
-      <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
-        <Panel
+      <Panel
           caption={`Sectors · ${industries.length}`}
           aside="Ranked by live exposure to the current corpus"
         >
@@ -122,7 +121,7 @@ export default function Industries() {
                   className="grid grid-cols-12 items-start gap-x-4 gap-y-3 px-4 py-5 transition-colors hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none"
                 >
                   <div className="col-span-6 lg:col-span-1">
-                    <span className="num text-[11px] text-muted-foreground">
+                    <span className="num text-[12px] text-muted-foreground">
                       {String(i + 1).padStart(2, "0")}
                     </span>
                   </div>
@@ -132,14 +131,14 @@ export default function Industries() {
                     <h3 className="mt-1.5 text-[15px] font-semibold tracking-[-0.01em]">
                       {row.label}
                     </h3>
-                    <p className="mt-1.5 max-w-prose text-[12.5px] leading-relaxed text-muted-foreground">
+                    <p className="mt-1.5 max-w-prose text-[13px] leading-relaxed text-muted-foreground">
                       {row.summary}
                     </p>
                   </div>
 
                   <div className="col-span-6 lg:col-span-2">
                     <Label>Live load</Label>
-                    <p className="num display mt-1 text-2xl leading-none">
+                    <p className="exec-num mt-1 text-[1.75rem] leading-none font-bold text-[var(--exec-ink)]">
                       {pct(row.load)}
                     </p>
                     <ChannelBars
@@ -148,7 +147,7 @@ export default function Industries() {
                       ) as Record<Channel, number>}
                       className="mt-2.5"
                     />
-                    <p className="mt-1 text-[10px] text-muted-foreground">
+                    <p className="mt-1 text-[12px] text-muted-foreground">
                       dominant {CHANNEL_LABEL[row.topChannel]}
                     </p>
                   </div>
@@ -157,10 +156,10 @@ export default function Industries() {
                     <div className="space-y-3">
                       <div>
                         <div className="flex items-baseline justify-between">
-                          <span className="label text-[9px] text-muted-foreground">
+                          <span className="label text-[12px] text-muted-foreground">
                             Concentration
                           </span>
-                          <span className="num text-[11px]">
+                          <span className="num text-[12px]">
                             {pct(row.concentration)}
                           </span>
                         </div>
@@ -169,21 +168,21 @@ export default function Industries() {
                           tone={row.concentration > 0.3 ? "signal" : "ink"}
                           className="mt-1.5"
                         />
-                        <p className="mt-1 text-[10px] text-muted-foreground">
+                        <p className="mt-1 text-[12px] text-muted-foreground">
                           Largest single-producer share
                         </p>
                       </div>
                       <div>
                         <div className="flex items-baseline justify-between">
-                          <span className="label text-[9px] text-muted-foreground">
+                          <span className="label text-[12px] text-muted-foreground">
                             Structural fragility
                           </span>
-                          <span className="num text-[11px]">
+                          <span className="num text-[12px]">
                             {pct(row.fragility)}
                           </span>
                         </div>
                         <Meter value={row.fragility} tone="ink" className="mt-1.5" />
-                        <p className="mt-1 text-[10px] text-muted-foreground">
+                        <p className="mt-1 text-[12px] text-muted-foreground">
                           {row.substitutionMonths}-month substitution lead
                         </p>
                       </div>
@@ -194,17 +193,17 @@ export default function Industries() {
                     <Label>Leading event</Label>
                     {row.topEvent ? (
                       <>
-                        <p className="mt-1 line-clamp-2 text-[11px] leading-snug">
+                        <p className="mt-1 line-clamp-2 text-[12px] leading-snug">
                           {row.topEvent.title}
                         </p>
-                        <p className="num mt-1 text-[10px] text-muted-foreground">
+                        <p className="num mt-1 text-[12px] text-muted-foreground">
                           {CHANNEL_LABEL[row.topEvent.channel]} ·{" "}
                           {row.topEvent.contribution.toFixed(3)} ·{" "}
                           {row.eventCount} events
                         </p>
                       </>
                     ) : (
-                      <p className="mt-1 text-[11px] text-muted-foreground">
+                      <p className="mt-1 text-[12px] text-muted-foreground">
                         None
                       </p>
                     )}
@@ -242,7 +241,6 @@ export default function Industries() {
             ))}
           </ul>
         </Panel>
-      </div>
   </PageFrame>
   );
 }
@@ -259,8 +257,10 @@ function Stat({
   return (
     <div className="border-b border-rule py-5 last:border-b-0 lg:border-b-0 lg:px-6 lg:first:pl-0">
       <dt className="label text-muted-foreground">{caption}</dt>
-      <dd className="num display mt-2 text-2xl leading-none">{value}</dd>
-      <dd className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+      <dd className="exec-num mt-2 text-[1.5rem] leading-none font-bold text-[var(--exec-ink)]">
+        {value}
+      </dd>
+      <dd className="mt-1.5 text-[12px] leading-snug text-muted-foreground">
         {note}
       </dd>
     </div>

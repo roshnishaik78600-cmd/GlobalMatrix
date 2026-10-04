@@ -128,7 +128,7 @@ export function CompositeGauge({
             >
               {(pct * 100).toFixed(0)}
             </span>
-            <span className="exec-num text-[11px] text-[var(--exec-ink-dim)]">/100</span>
+            <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">/100</span>
           </span>
           <span className="exec-label mt-1 flex items-center gap-1 normal-case">
             <Trend className="size-3" style={{ color: colour }} aria-hidden />
@@ -148,7 +148,7 @@ export function CompositeGauge({
 function Sparkline({ values, colour }: { values: number[]; colour: string }) {
   if (values.length < 2) {
     return (
-      <p className="exec-label text-[9px] normal-case">
+      <p className="exec-label text-[12px] normal-case">
         No series available for this window.
       </p>
     );
@@ -199,7 +199,7 @@ export function GaugeCluster({ data }: { data: TopologyResult }) {
       <SectionTitle
         meta="30-day model output"
         right={
-          <span className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
+          <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
             as of {data.latest}
           </span>
         }
@@ -239,7 +239,7 @@ export function GaugeCluster({ data }: { data: TopologyResult }) {
           onClick={() => setActive((a) => (a === "fragility" ? null : "fragility"))}
         />
       </div>
-      <p className="px-3 pb-2.5 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+      <p className="px-3 pb-2.5 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
         Each dial is scaled to its own 30-day peak, so a high reading means
         &ldquo;near the top of its own recent range&rdquo; rather than &ldquo;high
         in absolute terms&rdquo;. These are indices derived from the scenario
@@ -281,7 +281,7 @@ export function RiskTopology({
       <SectionTitle
         meta="daily model output"
         right={
-          <span className="exec-num shrink-0 text-[9.5px] text-[var(--exec-ink-dim)]">
+          <span className="exec-num shrink-0 text-[12px] text-[var(--exec-ink-dim)]">
             as of {data.latest}
           </span>
         }
@@ -365,17 +365,17 @@ function HeatTile({
         >
           {(intensity * 100).toFixed(0)}
         </span>
-        <span className="exec-num text-[10px] text-[var(--exec-ink-dim)]">
+        <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
           {category.change >= 0 ? "+" : ""}
           {category.change.toFixed(2)}
         </span>
       </span>
       <Sparkline values={category.values} colour={colour} />
       <span className="relative flex items-center justify-between gap-2">
-        <span className="exec-num text-[9px] text-[var(--exec-ink-dim)]">
+        <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
           {category.values.length}d trace
         </span>
-        <span className="exec-num text-[9px] text-[var(--exec-ink-dim)]">
+        <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
           {latest}
         </span>
       </span>
@@ -454,7 +454,7 @@ export function ThreatTicker({
                   {CHANNEL_LABEL[e.channel]}
                 </span>
                 <span
-                  className="exec-num text-[11px] font-semibold"
+                  className="exec-num text-[12px] font-semibold"
                   style={{ color: BAND_COLOUR[gaugeBand(e.score)] }}
                 >
                   {e.score.toFixed(0)}
@@ -463,15 +463,15 @@ export function ThreatTicker({
               <span className="line-clamp-2 text-[12px] leading-snug font-medium text-[var(--exec-ink)]">
                 {e.title}
               </span>
-              <span className="exec-num mt-auto text-[9.5px] text-[var(--exec-ink-dim)]">
+              <span className="exec-num mt-auto text-[12px] text-[var(--exec-ink-dim)]">
                 {e.location} · {e.at}
               </span>
-              <span className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
+              <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
                 impact {e.score.toFixed(0)} · confidence{" "}
                 {(e.confidence * 100).toFixed(0)}% · {e.source}
               </span>
               {!e.inWindow ? (
-                <span className="exec-label text-[9px] text-[var(--exec-amber)]">
+                <span className="exec-label text-[12px] text-[var(--exec-amber)]">
                   outside {windowLabel}
                 </span>
               ) : null}

@@ -10,8 +10,8 @@
   --radius-lg: var(--radius);
   /* Written out rather than as `var(--radius) + 4px`: the optimizer cannot fold
      a var() inside an addition, and it warns on every build that it left
-     `.rounded-xl` unevaluated. 0.75rem is `--radius` (0.5rem) plus 4px. */
-  --radius-xl: 0.75rem;
+     `.rounded-xl` unevaluated. 1.375rem is `--radius` (1.125rem) plus 4px. */
+  --radius-xl: 1.375rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -24,6 +24,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-muted-text: var(--muted-text);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -52,6 +53,7 @@
   --color-critical: var(--critical);
   --color-signal: var(--signal);
   --color-cyan: var(--cyan);
+  --color-violet: var(--violet);
   --color-grid: var(--grid);
   --font-sans: "Inter", "Helvetica Neue", Helvetica, ui-sans-serif, system-ui,
     -apple-system, "Segoe UI", Arial, sans-serif;
@@ -59,86 +61,117 @@
     monospace;
 }
 
-/* CHANGE VALUES FOR THEME */
-/* Obsidian workstation. The base and panel are literal hex rather than oklch on
-   purpose: the sidebar, the command bar and every page body all resolve to
-   these two values, so there is exactly one background in the product and no
-   seam where the chrome meets the page. Hairlines are alpha, not a third
-   colour, so a divider reads as "the surface, cut" at any nesting depth. */
+/* ------------------------------------------------------------------ tokens --
+   GlobalMatrix, obsidian edition.
+
+   One base, two surface lifts, one hairline, two accents. The accents are
+   rationed deliberately: cyan marks "this is live or interactive", violet marks
+   "this is the second system" (propagation, uncertainty). Everything that means
+   *rising* or *elevated* is a status colour, never an accent, so a reader never
+   has to learn a second language for "hot".
+
+   Surface contrast is done with literal hex rather than alpha so a card sitting
+   on a card is always exactly one step lighter than the card beneath it, at any
+   nesting depth, with no compositing surprises. */
 :root {
-  --radius: 0.5rem;
+  /* 18px sits inside the 16–20px band the card system is specified to use, and
+     every control derives from it, so a button and a card share one radius
+     language rather than two. */
+  --radius: 1.125rem;
 
-  --background: #090d16;
-  --foreground: #e8eef7;
-  --card: #0d1117;
-  --card-foreground: #e8eef7;
-  --popover: #11161f;
-  --popover-foreground: #e8eef7;
-  --primary: #e8eef7;
-  --primary-foreground: #090d16;
-  --secondary: #161c27;
-  --secondary-foreground: #e8eef7;
-  --muted: #161c27;
+  --background: #070a0f;
+  --foreground: #f8fafc;
+  --card: #0d121a;
+  --card-foreground: #f8fafc;
+  --popover: #111923;
+  --popover-foreground: #f8fafc;
+  --primary: #f8fafc;
+  --primary-foreground: #070a0f;
+  --secondary: #111923;
+  --secondary-foreground: #f8fafc;
+  --muted: #111923;
+  /* Secondary text. The overwhelming majority of supporting copy sits here. */
   --muted-foreground: #94a3b8;
-  --accent: #1d2533;
-  --accent-foreground: #e8eef7;
-  --destructive: #ff2e63;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.12);
-  --ring: #00f5ff;
+  /* Muted text. Reserved for the lowest-priority register — labels inside a
+     chart, a legend caption, anything a reader should be able to skip without
+     missing an argument. Three text rungs, not two, because a design system
+     that claims a muted colour and never defines it is a design system with a
+     hole in it. */
+  --muted-text: #64748b;
+  --accent: #18222f;
+  --accent-foreground: #f8fafc;
+  --destructive: #ff4d6d;
+  --border: #202b38;
+  --input: #202b38;
+  --ring: #00e5ff;
 
-  --rule: rgba(255, 255, 255, 0.08);
-  --grid: rgba(255, 255, 255, 0.05);
-  --signal: oklch(0.6 0.2 24);
-  --elevated: oklch(0.7 0.17 55);
-  --warning: oklch(0.78 0.15 85);
-  --stable: oklch(0.72 0.15 155);
-  --critical: oklch(0.58 0.22 24);
-  --cyan: oklch(0.72 0.13 205);
+  /* The secondary surface, as a first-class name. Two lifts only: a card sits
+     on `--card`, a nested well or a control bed sits on this. */
+  --surface-2: #111923;
 
-  --chart-1: oklch(0.6 0.2 24);
-  --chart-2: oklch(0.72 0.13 205);
-  --chart-3: oklch(0.72 0.15 155);
-  --chart-4: oklch(0.78 0.15 85);
-  --chart-5: oklch(0.68 0.16 300);
+  --rule: #202b38;
+  --grid: #1a2430;
 
-  --sidebar: #0b101a;
-  --sidebar-foreground: #e8eef7;
-  --sidebar-primary: #e8eef7;
-  --sidebar-primary-foreground: #090d16;
-  --sidebar-accent: #1d2533;
-  --sidebar-accent-foreground: #e8eef7;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
-  --sidebar-ring: #00f5ff;
+  /* Status ramp. Green means "measured and improving", red means "measured and
+     worse", amber means "measured but stale or unresolved". None of them are
+     decorative and none of them are ever used for a non-status meaning. */
+  --stable: #22c55e;
+  --warning: #f59e0b;
+  --elevated: #f59e0b;
+  --critical: #ff4d6d;
+  --signal: #ff4d6d;
 
-  /* Executive risk-surface tokens.
-     A deeper, colder base for the high-density screens, plus the three
-     indicator accents they use. Kept separate from the console tokens above
-     so a dense analyst surface can be tuned without disturbing the rest. */
-  --exec-base: #090d16;
-  --exec-panel: #0d1117;
-  --exec-surface: rgba(255, 255, 255, 0.04);
-  --exec-surface-strong: rgba(255, 255, 255, 0.07);
-  --exec-hairline: rgba(255, 255, 255, 0.1);
-  --exec-hairline-strong: rgba(255, 255, 255, 0.16);
-  --exec-ink: #f1f5f9;
+  /* Accents. Rationed: cyan for live/interactive, violet for the propagation
+     and uncertainty layer. */
+  --cyan: #00e5ff;
+  --violet: #7c5cff;
+
+  --chart-1: #ff4d6d;
+  --chart-2: #00e5ff;
+  --chart-3: #22c55e;
+  --chart-4: #f59e0b;
+  --chart-5: #7c5cff;
+
+  --sidebar: #070a0f;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #f8fafc;
+  --sidebar-primary-foreground: #070a0f;
+  --sidebar-accent: #111923;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: #202b38;
+  --sidebar-ring: #00e5ff;
+
+  /* Executive risk-surface tokens. Values mirror the tokens above; they are
+     kept as separate names because a large share of the console is written
+     against `--exec-*`, and retuning one register must not silently retune the
+     other. The mapping is enforced by the fact that both ramps resolve to the
+     same six colours. */
+  --exec-base: #070a0f;
+  --exec-panel: #0d121a;
+  --exec-surface: #111923;
+  --exec-surface-strong: #18222f;
+  --exec-hairline: #202b38;
+  --exec-hairline-strong: #2b3a4a;
+  --exec-ink: #f8fafc;
   --exec-ink-dim: #94a3b8;
-  --exec-cyan: #00f5ff;
-  --exec-amber: #ff9f1c;
-  --exec-crimson: #ff2e63;
-  --exec-emerald: #00e676;
+  --exec-ink-muted: #64748b;
+  --exec-cyan: #00e5ff;
+  --exec-violet: #7c5cff;
+  --exec-amber: #f59e0b;
+  --exec-crimson: #ff4d6d;
+  --exec-emerald: #22c55e;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas,
     monospace;
 }
 
-/* The workstation is dark by default. This class exists so components that
-   need an explicit surface can opt in without depending on a theme provider. */
+/* The workstation is dark by default. These exist so a component that needs an
+   explicit surface can opt in without depending on a theme provider. */
 .surface-raised {
-  background: color-mix(in oklch, var(--card) 60%, var(--background));
+  background: var(--card);
 }
 
 .surface-sunken {
-  background: color-mix(in oklch, var(--background) 88%, black);
+  background: var(--background);
 }
 
 @layer base {
@@ -163,12 +196,15 @@
     cursor: pointer;
   }
   ::selection {
-    background: var(--signal);
-    color: white;
+    background: color-mix(in srgb, var(--ring) 35%, transparent);
+    color: var(--foreground);
   }
+  /* Visible focus everywhere, in the accent, at a size that survives being seen
+     on a dark card as well as on the bare background. */
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
+    border-radius: 4px;
   }
 
   /* Global text-wrapping reset.
@@ -216,12 +252,16 @@
 }
 
 @layer components {
-  /* Uppercase micro-label — the caption voice used throughout the console. */
+  /* ------------------------------------------------------------- Typography --
+     Two label classes, both at the 12–13px metadata floor. Nothing in the
+     product is allowed below that: the previous build carried 9px and 9.5px
+     micro-labels in roughly forty places, and on a laptop at arm's length they
+     were not labels, they were smudges. */
   .label {
-    @apply text-[10px] font-medium uppercase tracking-[0.14em];
+    @apply text-[12px] leading-tight font-medium text-[var(--exec-ink-dim)];
   }
   .label-lg {
-    @apply text-[11px] font-medium uppercase tracking-[0.16em];
+    @apply text-[12px] leading-tight font-semibold text-[var(--exec-ink)];
   }
   .num {
     font-variant-numeric: tabular-nums;
@@ -231,19 +271,39 @@
     font-family: var(--font-mono);
   }
 
-  /* Section headers stay compact inside the app — no marketing typography. */
-  .h-display {
-    @apply text-[1.6rem] leading-tight font-semibold tracking-[-0.02em] sm:text-[1.9rem];
+  /* The type scale, in one place. Six registers, used everywhere: a hero never
+     competes with a page title, and a card title never shrinks into body copy. */
+  .t-hero {
+    font-size: clamp(2.5rem, 6.2vw, 4.5rem);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    font-weight: 700;
   }
-  .h-metric {
-    @apply text-[1.75rem] leading-none font-semibold tracking-[-0.02em];
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum" 1;
+  .t-page {
+    font-size: clamp(2rem, 3.6vw, 2.75rem);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    font-weight: 650;
   }
-  .h-figure {
-    @apply text-[2.5rem] leading-none font-semibold tracking-[-0.03em];
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum" 1;
+  .t-section {
+    font-size: clamp(1.375rem, 2vw, 1.75rem);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+  .t-card {
+    font-size: 1.125rem;
+    line-height: 1.3;
+    letter-spacing: -0.012em;
+    font-weight: 600;
+  }
+  .t-body {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+  .t-meta {
+    font-size: 0.8125rem;
+    line-height: 1.45;
   }
 
   .rule-t {
@@ -253,66 +313,73 @@
     @apply border-b border-rule;
   }
 
-  /* Panel: the atomic container for every visualisation block. The inset
-     highlight is the only depth cue the dark surface gets, so it stays under
-     a percent — enough to separate stacked panels, not enough to look glossy. */
+  /* -------------------------------------------------------------- The card --
+     ONE card. `.card`, `.glass`, `.exec-surface` and `.panel` are the same
+     object, declared once in a shared selector list rather than as four
+     near-identical rules; `.glass-strong` is the same object lifted one step to
+     the secondary surface. A component written against the old executive names
+     and one written against the new ones are therefore indistinguishable on
+     screen, which is the only way two naming conventions stop drifting apart.
+
+     They are written as plain declarations rather than `@apply`-ing one class
+     from another: Tailwind v4 resolves `@apply` against real utilities only, so
+     a custom class composed from a sibling custom class fails the build.
+
+     Radius 18px (from `--radius`), a single hairline, one step of surface
+     contrast, no drop shadow. Depth on a dark surface comes from the border and
+     the lift; a shadow at this contrast is indistinguishable from a smudge. */
+  .card,
+  .glass,
+  .exec-surface,
   .panel {
-    @apply rounded-lg border border-rule bg-card;
-    box-shadow: inset 0 1px 0 color-mix(in oklch, var(--foreground) 5%, transparent);
-  }
-  .panel-head {
-    @apply flex items-center justify-between gap-3 border-b border-rule px-3 py-2;
-  }
-
-  .chip {
-    @apply inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[9px] font-medium tracking-[0.14em] uppercase;
+    border-radius: var(--radius);
+    border: 1px solid #202b38;
+    background: var(--card);
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease;
   }
 
-  /* Executive surfaces: one hairline, one fill, no drop shadows. Depth comes
-     from the border and the backdrop, never from blur stacked on blur. */
-  .glass {
-    background: color-mix(in srgb, var(--exec-panel) 60%, transparent);
-    border: 1px solid var(--exec-hairline);
-    border-radius: var(--radius-lg);
-    /* `clip`, not `hidden`: it stops a child's divider or chart edge from
-       poking through the rounded corner without turning the panel into a scroll
-       container, which would silently break every sticky table header inside
-       it. */
-    overflow: clip;
-    backdrop-filter: blur(12px) saturate(120%);
-  }
   .glass-strong {
-    background: color-mix(in srgb, var(--exec-panel) 82%, transparent);
-    border: 1px solid var(--exec-hairline);
-    border-radius: var(--radius-lg);
-    overflow: clip;
-    backdrop-filter: blur(16px) saturate(130%);
+    border-radius: var(--radius);
+    border: 1px solid #202b38;
+    background: var(--surface-2);
+    transition:
+      border-color 160ms ease,
+      background-color 160ms ease;
   }
-  /* Explicit rounding for a surface that sets its own background and so never
-     picks up `.glass`. */
-  .exec-surface {
-    background: color-mix(in srgb, var(--exec-panel) 60%, transparent);
-    border: 1px solid var(--exec-hairline);
-    border-radius: var(--radius-lg);
+
+  .panel-head {
+    @apply flex items-center justify-between gap-3 px-4 py-3;
   }
+
+  /* The one hover. A card that is a link lifts its border and its surface, and
+     nothing else — no translate, no shadow, no colour change on the text. */
+  .card-hover,
   .glass-hover {
     transition:
       border-color 160ms ease,
-      background-color 160ms ease,
-      transform 160ms ease;
+      background-color 160ms ease;
   }
+  .card-hover:hover,
   .glass-hover:hover {
-    background: color-mix(in srgb, var(--exec-panel) 78%, transparent);
-    border-color: var(--exec-hairline-strong);
+    background: var(--surface-2);
+    border-color: #2b3a4a;
   }
-  /* One content width for the entire product.
-     Every page frame, every landing surface and every methodology section
-     resolves to this, so the left edge of a chart lines up with the left edge
-     of the table beneath it at every breakpoint. Defined once, because a
-     max-width repeated per page is a max-width that will drift. */
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-[#202B38] px-2 py-0.5 text-[12px] leading-tight font-medium;
+  }
+
+  /* One content width for the entire product. Every page frame, every landing
+     surface and every methodology section resolves to this, so the left edge of
+     a chart lines up with the left edge of the table beneath it at every
+     breakpoint. Defined once, because a max-width repeated per page is a
+     max-width that will drift. 1440px, plus the 32px page gutter, means the
+     content never touches the viewport edge on a wide monitor. */
   .gm-width {
     width: 100%;
-    max-width: 1600px;
+    max-width: 1440px;
     margin-inline: auto;
   }
 
@@ -325,13 +392,59 @@
     padding-block: 2.5rem;
   }
 
+  /* Page gutter. One value, so the left edge of every page in the product is
+     the same number of pixels from the viewport edge at every breakpoint. */
+  .gm-gutter {
+    padding-inline: 1rem;
+  }
+  @media (min-width: 768px) {
+    .gm-gutter {
+      padding-inline: 1.5rem;
+    }
+  }
+  @media (min-width: 1280px) {
+    .gm-gutter {
+      padding-inline: 2rem;
+    }
+  }
+
+  /* --------------------------------------------------------------- Map box --
+     Maps are the one element that must never cover its neighbours, so their
+     height is declared once here rather than passed as an arbitrary pixel
+     number from each of the nine call sites. 400px on a phone, 440px on a
+     tablet, 600px on a desktop — inside the specified bands at every width. */
+  .map-frame {
+    height: 400px;
+  }
+  @media (min-width: 640px) {
+    .map-frame {
+      height: 440px;
+    }
+  }
+  @media (min-width: 1024px) {
+    .map-frame {
+      height: 600px;
+    }
+  }
+
   .exec-num {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;
   }
   .exec-label {
-    @apply text-[9px] font-semibold uppercase tracking-[0.16em];
-    color: var(--exec-ink-dim);
+    @apply text-[12px] leading-tight font-medium text-[var(--exec-ink-dim)];
+  }
+  /* The lowest-priority text register: chart labels, legend captions, hints a
+     reader may skip. Never used for anything they need to act on. */
+  .exec-label-muted {
+    @apply text-[12px] leading-tight font-medium text-[var(--exec-ink-muted)];
+  }
+  /* Violet marks the propagation and uncertainty layer, and nothing else. */
+  .accent-violet {
+    color: var(--exec-violet);
+  }
+  .border-violet {
+    border-color: color-mix(in srgb, var(--exec-violet) 45%, transparent);
   }
 
   /* Alert rings for cards carrying live pressure. One slow pulse, no colour
@@ -419,9 +532,9 @@
   .shimmer {
     background: linear-gradient(
       90deg,
-      var(--muted) 0%,
-      color-mix(in oklch, var(--muted) 55%, var(--foreground)) 50%,
-      var(--muted) 100%
+      #111923 0%,
+      #1a2430 50%,
+      #111923 100%
     );
     background-size: 200% 100%;
     animation: shimmer 1.6s linear infinite;

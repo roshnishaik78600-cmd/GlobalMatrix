@@ -1,41 +1,50 @@
 import {
   Activity,
+  Bell,
   Boxes,
+  Compass,
   Database,
   Factory,
+  GitBranch,
   Globe2,
+  Home,
   LayoutGrid,
   Network,
   Radar,
   Route,
   ScrollText,
   Share2,
+  Search,
   TrendingUp,
+  User,
   type LucideIcon,
 } from "lucide-react";
 
 /**
- * The information architecture of the console.
+ * The information architecture of GlobalMatrix.
  *
- * Navigation used to be one flat list of sixteen entries, which is past the
- * point where a reader can hold it in their head — every item looks equally
- * important, so none of them is. Grouping them by *kind of question* rather
- * than by feature lets a reader find a section by asking what they want
- * ("where does this land?" → World; "what does it touch?" → Networks) instead
- * of by remembering a name.
+ * Three tiers, and the reason they are three rather than one is legibility. A
+ * single flat list of eighteen destinations is past the point where a reader can
+ * hold it in their head — every item looks equally important, so none of them
+ * is. The tiers each answer one question:
+ *
+ *   1. `PRIMARY`   — the five a visitor is most likely to want. Top bar, always
+ *                    visible, never more than five of them.
+ *   2. `NAV_GROUPS` — the complete directory, grouped by *kind of question*
+ *                    rather than by feature. Reached from Explore.
+ *   3. `MOBILE`    — the five that survive a 390px viewport.
  *
  * Two rules the grouping enforces:
  *
- * 1. Six groups, eight visible destinations at most per group. Anything that
- *    cannot justify a slot stays reachable from the palette and the page it
- *    belongs to.
- * 2. A destination with no connected source is shown greyed with its reason
+ * 1. A destination with no connected source is shown greyed with its reason
  *    rather than hidden. Hiding it would imply the capability does not exist;
  *    showing it greyed states the honest reason and still teaches the reader
  *    what the product is *for*.
+ * 2. Every route reachable from the old rail is still reachable from the
+ *    Explore panel. The navigation was restructured, not reduced.
  *
- * This module holds no JSX so both the desktop rail and the mobile sheet can
- * render from one definition and can never drift apart.
+ * This module holds no JSX so the top bar, the explore panel, the mobile bar and
+ * the command palette can all render from one definition and cannot drift.
  */
 
 export interface NavItem {
@@ -81,6 +90,7 @@ export const NAV_GROUPS: NavGroup[] = [
       // rendering the event→world chain, which sent readers looking for a
       // commodity view that has no connected price feed behind it.
       { to: "/app/chain", label: "Event → world", icon: Route },
+      { to: "/app/graph", label: "Knowledge graph", icon: Share2 },
     ],
   },
   {
@@ -89,7 +99,6 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { to: "/app/industries", label: "Industries", icon: Boxes },
       { to: "/app/companies", label: "Companies", icon: Factory, unavailable: "no company-level data connected" },
-      { to: "/app/graph", label: "Knowledge graph", icon: Share2 },
     ],
   },
   {
@@ -108,6 +117,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Data",
     items: [
       { to: "/app/data", label: "Sources", icon: Database },
+      { to: "/methodology", label: "Methodology", icon: GitBranch },
     ],
   },
 ];
@@ -117,3 +127,37 @@ export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 
 /** How many destinations are actually reachable — stated, not implied. */
 export const NAV_AVAILABLE_COUNT = NAV_ITEMS.filter((i) => !i.unavailable).length;
+
+/**
+ * The top bar. Five, because a sixth would start to wrap at 1280px and a wrapped
+ * centre section pushes the wordmark and the account cluster out of alignment.
+ */
+export const PRIMARY_NAV: NavItem[] = [
+  { to: "/app", label: "Explore", icon: Compass, end: true },
+  { to: "/app/world", label: "World", icon: Globe2 },
+  { to: "/app/events", label: "Events", icon: Activity },
+  { to: "/app/markets", label: "Markets", icon: TrendingUp },
+  { to: "/app/supply", label: "Supply chain", icon: Network },
+];
+
+/**
+ * The mobile bar. Same rule, and the same reason: Home and Profile are the two
+ * things you want from anywhere, and only three slots remain, so the three that
+ * remain are the three answers — what is happening, where, and what changed.
+ * Search is here rather than Markets because on a phone the most common action
+ * is jumping to a specific country, not reading an index.
+ */
+export const MOBILE_NAV: NavItem[] = [
+  { to: "/app", label: "Home", icon: Home, end: true },
+  { to: "/app/events", label: "Explore", icon: Compass },
+  { to: "/app/world", label: "Map", icon: Globe2 },
+  { to: "/app", label: "Search", icon: Search },
+  { to: "/auth", label: "Profile", icon: User },
+];
+
+/** The right-hand cluster, in the order it is rendered. */
+export const UTILITY_NAV = {
+  search: { label: "Search", icon: Search },
+  alerts: { label: "Alerts", icon: Bell, to: "/app/events" },
+  profile: { label: "Profile", icon: User, to: "/auth" },
+} as const;

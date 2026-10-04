@@ -195,7 +195,7 @@ export default function Detection() {
                             {CHANNEL_LABEL[r.dominantChannel]} · {STAGE_LABEL[r.stage]}
                           </span>
                           <span
-                            className="exec-num shrink-0 text-[12.5px] font-bold"
+                            className="exec-num shrink-0 text-[13px] font-bold"
                             style={{ color: loadColour(r.score30 / 100) }}
                           >
                             {r.score30.toFixed(1)}
@@ -205,14 +205,14 @@ export default function Detection() {
                           {r.title}
                         </span>
                         <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                          <span className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
+                          <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
                             {r.detectedAt}
                           </span>
-                          <span className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
+                          <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
                             impact {r.score30.toFixed(0)} · conf{" "}
                             {pct(r.confidence)}
                           </span>
-                          <span className="exec-num ml-auto text-[9.5px] text-[var(--exec-ink-dim)]">
+                          <span className="exec-num ml-auto text-[12px] text-[var(--exec-ink-dim)]">
                             {r.signalCount} signals
                           </span>
                         </span>
@@ -230,7 +230,7 @@ export default function Detection() {
                             <span
                               key={n.nodeId}
                               title={`${n.label} · weight ${n.weight.toFixed(2)}`}
-                              className="exec-num border border-[var(--exec-hairline)] px-1 text-[8.5px] text-[var(--exec-ink-dim)]"
+                              className="exec-num border border-[var(--exec-hairline)] px-1 text-[12px] text-[var(--exec-ink-dim)]"
                             >
                               {n.short}
                             </span>
@@ -262,7 +262,7 @@ export default function Detection() {
               <WorldMap
                 nodes={mapNodes}
                 events={mapEvents}
-                height={360}
+                className="map-frame"
                 selected={active?.topNodes[0]?.nodeId ?? null}
                 onSelect={(nodeId) => {
                   // A marker click selects the strongest event landing there,
@@ -276,7 +276,7 @@ export default function Detection() {
             <div className="border-t border-[var(--exec-hairline)]">
               <MapLegend />
             </div>
-            <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+            <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
               Markers are anchored where each event lands hardest, sized by its
               30-day composite. Overlapping markers are separate events at one
               place, not a cluster count. Hover a country to preview it; click to
@@ -302,7 +302,7 @@ export default function Detection() {
               Selected event
             </SectionTitle>
             {!active ? (
-              <p className="px-3 py-4 text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
+              <p className="px-3 py-4 text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
                 Choose an event from the stream or a marker on the map. Its
                 channel decomposition, evidence strength and defended interval
                 appear here without leaving this page.

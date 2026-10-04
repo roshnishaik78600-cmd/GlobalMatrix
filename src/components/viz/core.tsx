@@ -57,7 +57,7 @@ export function NoData({
       )}
     >
       <span className="label text-muted-foreground">No data</span>
-      <p className="max-w-xs text-[11px] leading-relaxed text-muted-foreground/80">
+      <p className="max-w-xs text-[12px] leading-relaxed text-muted-foreground/80">
         {reason}
       </p>
     </div>
@@ -98,7 +98,7 @@ export function Expandable({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/4"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-[var(--exec-surface)]"
       >
         <span className="min-w-0 flex-1">{summary}</span>
         <span className="label flex shrink-0 items-center gap-1 text-muted-foreground">
@@ -147,7 +147,7 @@ export function Bar({
   const ratio = clamp01(value / (max || 1));
   return (
     <div
-      className={cn("w-full bg-white/8", className)}
+      className={cn("w-full bg-[var(--exec-surface)]", className)}
       style={{ height }}
       role="meter"
       aria-valuenow={Math.round(ratio * 100)}
@@ -192,7 +192,7 @@ export function Gauge({
         <Bar value={score} tone={RISK_COLOR[band]} height={6} />
         <div className="pointer-events-none absolute inset-0 flex justify-between">
           {[0, 1, 2, 3, 4].map((t) => (
-            <span key={t} className="h-full w-px bg-white/10" />
+            <span key={t} className="h-full w-px bg-[var(--exec-surface)]" />
           ))}
         </div>
       </div>
@@ -208,7 +208,7 @@ export function Gauge({
           {band}
         </span>
         {detail ? (
-          <span className="text-[10px] text-muted-foreground">{detail}</span>
+          <span className="text-[12px] text-muted-foreground">{detail}</span>
         ) : null}
       </div>
     </div>
@@ -304,8 +304,8 @@ export function Radar({
               textAnchor="middle"
               dominantBaseline="middle"
               className="label"
-              fill={active ? "var(--foreground)" : "var(--muted-foreground)"}
-              style={{ fontSize: 9 }}
+              fill={active ? "var(--foreground)" : "var(--muted-text)"}
+              style={{ fontSize: 12 }}
             >
               {a.label}
             </text>
@@ -315,7 +315,7 @@ export function Radar({
               textAnchor="middle"
               className="num"
               fill="var(--muted-foreground)"
-              style={{ fontSize: 9 }}
+              style={{ fontSize: 12 }}
             >
               {Math.round(a.value * 100)}
               {a.count !== undefined ? ` · ${a.count}` : ""}
@@ -398,15 +398,15 @@ export function Timeline({
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="truncate text-[12.5px] font-medium">
+              <span className="truncate text-[13px] font-medium">
                 {item.title}
               </span>
-              <span className="num shrink-0 text-[10px] text-muted-foreground">
+              <span className="num shrink-0 text-[12px] text-muted-foreground">
                 {item.time}
               </span>
             </div>
             {item.detail ? (
-              <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+              <p className="mt-0.5 line-clamp-2 text-[12px] leading-snug text-muted-foreground">
                 {item.detail}
               </p>
             ) : null}

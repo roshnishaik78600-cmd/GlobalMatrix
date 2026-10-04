@@ -134,7 +134,7 @@ export function TradeSankey({ flows }: { flows: TradeFlow[] }) {
                 textAnchor="end"
                 className="exec-num"
                 fill="var(--exec-ink)"
-                style={{ fontSize: 11, paintOrder: "stroke", stroke: "var(--exec-base)", strokeWidth: 3 }}
+                style={{ fontSize: 12, paintOrder: "stroke", stroke: "var(--exec-base)", strokeWidth: 3 }}
               >
                 {row.node.label}
               </text>
@@ -144,7 +144,7 @@ export function TradeSankey({ flows }: { flows: TradeFlow[] }) {
                 textAnchor="end"
                 className="exec-num"
                 fill="var(--exec-ink-dim)"
-                style={{ fontSize: 9, paintOrder: "stroke", stroke: "var(--exec-base)", strokeWidth: 3 }}
+                style={{ fontSize: 12, paintOrder: "stroke", stroke: "var(--exec-base)", strokeWidth: 3 }}
               >
                 {usd(row.total)}
               </text>
@@ -178,7 +178,7 @@ export function TradeSankey({ flows }: { flows: TradeFlow[] }) {
                 textAnchor="end"
                 className="exec-num"
                 fill="var(--exec-ink-dim)"
-                style={{ fontSize: 10, paintOrder: "stroke", stroke: "var(--exec-base)", strokeWidth: 3 }}
+                style={{ fontSize: 12, paintOrder: "stroke", stroke: "var(--exec-base)", strokeWidth: 3 }}
               >
                 {usd(s.value)}
               </text>
@@ -405,7 +405,7 @@ export function TradeBalance({ flows }: { flows: TradeFlow[] }) {
                 dim && "opacity-45",
               )}
             >
-              <span className="exec-num w-9 shrink-0 text-[10px] text-[var(--exec-ink-dim)]">
+              <span className="exec-num w-9 shrink-0 text-[12px] text-[var(--exec-ink-dim)]">
                 {r.node.short}
               </span>
               <span className="min-w-0 flex-1">
@@ -426,7 +426,7 @@ export function TradeBalance({ flows }: { flows: TradeFlow[] }) {
                 </span>
               </span>
               <span
-                className="exec-num w-[4.5rem] shrink-0 text-right text-[11.5px] font-semibold"
+                className="exec-num w-[4.5rem] shrink-0 text-right text-[13px] font-semibold"
                 style={{
                   color: surplus ? "var(--exec-emerald)" : "var(--exec-crimson)",
                 }}
@@ -437,7 +437,7 @@ export function TradeBalance({ flows }: { flows: TradeFlow[] }) {
           );
         })}
       </ul>
-      <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+      <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
         Mirrored flows do not sum to a world total: Comtrade records each
         direction as reported by its own reporter, so summing surpluses across
         countries is not a meaningful aggregate. The ranking is the claim here,
@@ -497,7 +497,7 @@ export function TradeOpenness() {
       <ul className="divide-y divide-[var(--exec-hairline)]">
         {rows.map((r) => (
           <li key={`${r.node.id}-${r.period}`} className="flex items-center gap-2.5 px-3 py-1.5">
-            <span className="w-28 shrink-0 truncate text-[11.5px] text-[var(--exec-ink)]">
+            <span className="w-28 shrink-0 truncate text-[13px] text-[var(--exec-ink)]">
               {r.node.label}
             </span>
             <span className="h-1.5 min-w-0 flex-1 bg-[var(--exec-hairline)]">
@@ -506,16 +506,16 @@ export function TradeOpenness() {
                 style={{ width: `${(r.value / max) * 100}%`, background: "var(--exec-cyan)" }}
               />
             </span>
-            <span className="exec-num w-11 shrink-0 text-right text-[11px] text-[var(--exec-ink)]">
+            <span className="exec-num w-11 shrink-0 text-right text-[12px] text-[var(--exec-ink)]">
               {r.value.toFixed(0)}%
             </span>
-            <span className="exec-num w-9 shrink-0 text-right text-[9.5px] text-[var(--exec-ink-dim)]">
+            <span className="exec-num w-9 shrink-0 text-right text-[12px] text-[var(--exec-ink-dim)]">
               {r.period}
             </span>
           </li>
         ))}
       </ul>
-      <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+      <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
         Merchandise trade as a share of GDP, as reported by the World Bank. This
         is an annual national-account indicator, so it is never live — it
         describes a closed year.

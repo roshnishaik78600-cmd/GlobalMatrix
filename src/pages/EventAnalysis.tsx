@@ -1,48 +1,58 @@
 import { useState } from "react";
-import {
-  DataTable,
-  DataType,
-  PageFrame,
-  PageLoading,
-} from "@/components/viz/exec/design";
 import { Link, useNavigate, useParams } from "react-router";
-import { useMutation, useQuery } from "convex/react";
-import { useConvex } from "convex/react";
+import { useMutation, useQuery, useConvex } from "convex/react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
-  ArrowUpRight,
   Bookmark,
   BookmarkCheck,
   Sparkles,
   Trash2,
+  ExternalLink,
 } from "lucide-react";
+import {
+  DataType,
+  ErrorState,
+  PageFrame,
+  PageLoading,
+} from "@/components/viz/exec/design";
+import { SectionTitle } from "@/components/viz/exec/system";
 import { api } from "@/convex/_generated/api";
 import { useToggleWatch, useAuthAction } from "@/hooks/use-auth-action";
-import { Panel } from "@/components/intel/AppShell";
 import { NoData } from "@/components/viz/core";
-import {
-  BandChip,
-  IntervalBar,
-  Label,
-  Meter,
-} from "@/components/intel/primitives";
+import { WorldMap } from "@/components/viz/WorldMap";
+import { GraphExplorer } from "@/components/viz/Flow";
+import { BandChip, IntervalBar } from "@/components/intel/primitives";
 import { pct, shortDate, signed, timestamp } from "@/lib/format";
-import { num } from "@/lib/numbers";
 import { getNode } from "@/lib/intel/nodes";
+import { riskColorForScore } from "@/lib/intel/visual";
 import {
-  CHANNELS,
-  CHANNEL_CODE,
   CHANNEL_LABEL,
+  CHANNELS,
   SOURCE_CLASS_LABEL,
   STAGE_LABEL,
+  type EventAssessment,
 } from "@/lib/intel/types";
 
+/**
+ * One event, read in five moves.
+ *
+ * IMPACT → WHERE IT SPREADS → HOW IT MOVES → TIMELINE → EVIDENCE. That order is
+ * the order a reader asks the questions in, and each section answers with one
+ * picture rather than a paragraph: the score is a number you can see, the spread
+ * is a map, the movement is a graph, the history is a timeline, and the evidence
+ * is a set of source cards. The prose that used to sit between them is gone; what
+ * remains of it — the scenario summary — is one sentence at the top.
+ */
 export default function EventAnalysis() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
   const data = useQuery(
     api.intel.eventDetail,
+    eventId ? { eventId } : "skip",
+  );
+  const graph = useQuery(
+    api.intel.eventGraph,
     eventId ? { eventId } : "skip",
   );
   const toggleWatch = useToggleWatch();
@@ -77,21 +87,26 @@ export default function EventAnalysis() {
         actions={
           <Link
             to="/app/events"
-            className="exec-label inline-flex items-center gap-1.5 border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--exec-hairline-strong)] px-3.5 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
           >
-            <ArrowLeft className="size-3" /> Events
+            <ArrowLeft className="size-3.5" /> Events
           </Link>
         }
       >
-        <NoData
-          reason="This identifier is not in the current corpus."
-        />
+        <div className="lg:col-span-12">
+          <NoData reason="This identifier is not in the current corpus." />
+        </div>
       </PageFrame>
     );
   }
 
   const { assessment, risk, watched, annotations, brief } = data;
   const s = assessment.scenario;
+  const primary = risk.find((r) => r.horizonDays === 30) ?? risk[0];
+  const where = topExposures(assessment, 8);
+  // The place the event lands on hardest, from the same exposure walk the map
+  // draws. Never invented: with no resolved exposure the chip says so.
+  const primaryPlace = where[0] ? getNode(where[0].nodeId).label : null;
 
   const onGenerateBrief = async () => {
     if (!requireAuth("Generate and save analyst briefs")) return;
@@ -123,461 +138,540 @@ export default function EventAnalysis() {
 
   return (
     <PageFrame
-      eyebrow={`Event · ${STAGE_LABEL[s.stage]}`}
+      eyebrow={s.reference}
       title={s.title}
       lede={s.summary}
       actions={
         <>
           <button
             type="button"
-            onClick={() => navigate("/app/events")}
-            className="exec-label border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+            onClick={() => toggleWatch(`EVENT:${s.id}`)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--exec-hairline-strong)] px-3.5 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
           >
-            ← Back to events
+            {watched ? (
+              <BookmarkCheck className="size-3.5" />
+            ) : (
+              <Bookmark className="size-3.5" />
+            )}
+            {watched ? "Tracking" : "Track"}
           </button>
+          <Link
+            to="/app/events"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[var(--exec-hairline-strong)] px-3.5 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+          >
+            <ArrowLeft className="size-3.5" /> Back to events
+          </Link>
         </>
       }
     >
-
-      {/* The reference, tags and watch control that the bespoke masthead
-          used to carry inline. The frame owns the title and the lede; these
-          are the event-specific facts that have nowhere else to live. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pb-3">
-        <span className="exec-num text-[10px] font-semibold tracking-[0.16em] text-[var(--exec-cyan)]">
-          {s.reference}
-        </span>
-        <span className="label">First signal {shortDate(s.firstSignalAt)}</span>
-        <span className="label">Detected {shortDate(s.detectedAt)}</span>
-        <DataType type="scenario" />
-        <button
-          type="button"
-          onClick={() => toggleWatch(`EVENT:${s.id}`)}
-          className="exec-label ml-auto inline-flex items-center gap-1.5 border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
-        >
-          {watched ? <BookmarkCheck className="size-3" /> : <Bookmark className="size-3" />}
-          {watched ? "Tracking" : "Track"}
-        </button>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5 pb-4">
-        {s.tags.map((tag) => (
-          <span
-            key={tag}
-            className="exec-num border border-[var(--exec-hairline)] px-2 py-1 text-[9px] text-[var(--exec-ink-dim)]"
-          >
-            {tag}
+      {/* The one metadata line: category, country, time. Everything the reader
+          needs to place the event before they read anything else. */}
+      <div className="lg:col-span-12">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="chip text-[var(--exec-cyan)]">
+            {CHANNEL_LABEL[assessment.dominantChannel]}
           </span>
-        ))}
-      </div>
-
-
-      {/* Readouts */}
-      <div className="border-b border-rule bg-card">
-        <dl className="grid gm-width grid-cols-2 divide-x divide-rule px-5 lg:grid-cols-5 lg:px-8">
-          <Readout caption="Model confidence" value={pct(s.confidence)} note="Corroboration across independent source classes" />
-          <Readout caption="Novelty" value={pct(s.novelty)} note="Distance from the corpus's own precedent set" />
-          <Readout caption="Signal velocity" value={pct(s.velocity)} note="Rate of new observation, 30-day window" />
-          <Readout caption="Evidence strength" value={pct(assessment.evidenceStrength)} note="Reliability × weight × corroborations" />
-          <Readout caption="Dominant channel" value={CHANNEL_LABEL[assessment.dominantChannel]} note={`Propagation weighted ${CHANNEL_CODE[assessment.dominantChannel]}`} />
-        </dl>
-      </div>
-
-      {/* Risk by horizon */}
-      <div className="border-b border-rule">
-        <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
-          <Panel caption="Risk by horizon" aside="Central estimate with 80% interval">
-            <div className="divide-y divide-rule">
-              {risk.map((r) => (
-                <div key={r.horizonDays} className="grid grid-cols-12 items-center gap-x-4 gap-y-2 px-4 py-4 lg:px-6">
-                  <div className="col-span-3 lg:col-span-2">
-                    <span className="num label text-muted-foreground">
-                      {r.horizonDays} days
-                    </span>
-                  </div>
-                  <div className="col-span-9 lg:col-span-2">
-                    <span className="num display text-2xl leading-none">
-                      {r.score.toFixed(1)}
-                    </span>
-                  </div>
-                  <div className="col-span-12 lg:col-span-6">
-                    <IntervalBar
-                      score={r.score}
-                      low={r.low}
-                      high={r.high}
-                      band={r.band}
-                    />
-                    <p className="num mt-1 text-[10px] text-muted-foreground">
-                      ±{((r.high - r.score)).toFixed(1)} points ·{" "}
-                      {r.band}
-                    </p>
-                  </div>
-                  <div className="col-span-12 lg:col-span-2">
-                    <BandChip band={r.band} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Panel>
+          <span className="chip">{primaryPlace ?? "No dominant location"}</span>
+          <span className="exec-label">First signal {shortDate(s.firstSignalAt)}</span>
+          <span className="exec-label">Detected {shortDate(s.detectedAt)}</span>
+          <span className="exec-label">{STAGE_LABEL[s.stage]}</span>
+          <DataType type="scenario" />
+          <div className="flex flex-wrap items-center gap-1.5">
+            {s.tags.slice(0, 4).map((tag) => (
+              <span key={tag} className="chip text-[var(--exec-ink-dim)]">
+                {tag}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Propagation map */}
-      <div className="border-b border-rule">
-        <div className="gm-width px-5 py-8 lg:px-8 lg:py-10">
-          <Panel
-            caption="Propagation map · trade / energy / finance / diplomatic"
-            aside="Pressure, transmission lag and exposed nodes per channel"
-          >
-            <div className="grid grid-cols-1 divide-y divide-rule lg:grid-cols-4 lg:divide-x lg:divide-y-0">
-              {CHANNELS.map((channel, ci) => {
-                const pathway = s.pathways.find((p) => p.channel === channel);
-                return (
-                  <motion.div
-                    key={channel}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: ci * 0.06 }}
-                    className="flex flex-col"
-                  >
-                    <div className="border-b border-rule px-4 py-4">
-                      <div className="flex items-baseline justify-between">
-                        <span className="label">{CHANNEL_LABEL[channel]}</span>
-                        <span className="num text-[10px] text-muted-foreground">
-                          {CHANNEL_CODE[channel]}
-                        </span>
-                      </div>
-                      <p className="num display mt-2 text-3xl leading-none">
-                        {pathway
-                          ? `${Math.round(pathway.magnitude * 100)}%`
-                          : "—"}
-                      </p>
-                      {pathway ? (
-                        <>
-                          <Meter
-                            value={pathway.magnitude}
-                            tone={
-                              pathway.direction === "escalatory"
-                                ? "signal"
-                                : pathway.direction === "stabilising"
-                                  ? "blue"
-                                  : "ink"
-                            }
-                            className="mt-3"
-                          />
-                          <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
-                            {pathway.mechanism}
-                          </p>
-                          <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-rule pt-3">
-                            <div>
-                              <dt className="label text-[9px] text-muted-foreground">
-                                Lag
-                              </dt>
-                              <dd className="num text-[12px]">
-                                {pathway.lagDays[0]}–{pathway.lagDays[1]}d
-                              </dd>
-                            </div>
-                            <div>
-                              <dt className="label text-[9px] text-muted-foreground">
-                                Confidence
-                              </dt>
-                              <dd className="num text-[12px]">
-                                {pct(pathway.confidence)}
-                              </dd>
-                            </div>
-                          </dl>
-                        </>
-                      ) : (
-                        <p className="mt-3 text-[12px] leading-relaxed text-muted-foreground">
-                          No material transmission observed on this channel.
-                        </p>
-                      )}
-                    </div>
+      {/* ------------------------------------------------------------ IMPACT -- */}
+      <div className="lg:col-span-12">
+        <SectionTitle
+          meta="30-day composite · 80% interval"
+          right={<DataType type="scenario" />}
+        >
+          Impact
+        </SectionTitle>
 
-                    {pathway && pathway.exposures.length > 0 ? (
-                      <div className="flex-1 px-4 py-4">
-                        <Label className="mb-3 block">Exposed nodes</Label>
-                        <ul className="space-y-3">{pathway.exposures
-                              .slice()
-                              .sort((a, b) => b.impact - a.impact)
-                              .map((exposure) => {
-                                const node = getNode(exposure.nodeId);
-                                return (
-                                  <li key={exposure.nodeId}>
-                                    <div className="flex items-baseline justify-between gap-2">
-                                      <Link
-                                        to={`/app/country/${exposure.nodeId}`}
-                                        className="group flex items-baseline gap-1.5"
-                                      >
-                                        <span className="text-[12px] font-medium transition-colors group-hover:text-signal">
-                                          {node.label}
-                                        </span>
-                                        <ArrowUpRight className="size-2.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                                      </Link>
-                                      <span className="num text-[10px] text-muted-foreground">
-                                        {node.short}
-                                      </span>
-                                    </div>
-                                  <Meter
-                                    value={exposure.impact}
-                                    tone={
-                                      exposure.impact > 0.55 ? "signal" : "ink"
-                                    }
-                                    className="mt-1.5"
-                                  />
-                                  <p className="num mt-1 text-[10px] text-muted-foreground">
-                                    impact {pct(exposure.impact)} · exposure{" "}
-                                    {pct(exposure.exposure)} · lag {exposure.lagDays}d
-                                  </p>
-                                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                                    {exposure.note}
-                                  </p>
-                                </li>
-                              );
-                            })}
-                        </ul>
-                      </div>
-                    ) : (
-                      <div className="flex-1 px-4 py-4">
-                        <p className="text-[11px] text-muted-foreground">
-                          No node-level exposure resolved.
-                        </p>
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
+        <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* The score itself, at a size it can be read from across a desk. */}
+          <div className="flex flex-col gap-3 sm:col-span-2 lg:col-span-2">
+            <div className="flex items-end gap-4">
+              <span
+                className="exec-num text-[4.5rem] leading-none font-bold tracking-[-0.04em]"
+                style={{ color: riskColorForScore(primary.score) }}
+              >
+                {primary.score.toFixed(1)}
+              </span>
+              <span className="mb-2 flex flex-col gap-1.5">
+                <span className="exec-label">out of 100</span>
+                <BandChip band={primary.band} />
+              </span>
             </div>
-          </Panel>
+            {/* The interval, drawn at full width. A score without its interval is
+                a number pretending to be a fact. */}
+            <IntervalBar
+              score={primary.score}
+              low={primary.low}
+              high={primary.high}
+              band={primary.band}
+              className="h-7"
+            />
+            <p className="exec-num text-[13px] text-[var(--exec-ink-dim)]">
+              80% interval {primary.low.toFixed(0)}–{primary.high.toFixed(0)} ·
+              wider means less certain, not worse
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            <Readout
+              caption="Model confidence"
+              value={pct(s.confidence)}
+              note="Corroboration across independent source classes"
+            />
+            <Readout
+              caption="Evidence strength"
+              value={pct(assessment.evidenceStrength)}
+              note="Reliability × weight × corroborations"
+            />
+          </div>
+          <div className="flex flex-col gap-4">
+            <Readout
+              caption="Novelty"
+              value={pct(s.novelty)}
+              note="Distance from the corpus's own precedent set"
+            />
+            <Readout
+              caption="Signal velocity"
+              value={pct(s.velocity)}
+              note="Rate of new observation, 30-day window"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Drivers + scenario */}
-      <div className="border-b border-rule">
-        <div className="grid gm-width gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
-          <div className="lg:col-span-7">
-            <Panel
-              caption="Risk decomposition"
-              aside="Share of the 0–100 composite"
-              className="h-full"
-            >
-              <ul className="divide-y divide-rule">
-                {assessment.risk[30].drivers.map((driver) => (
-                  <li key={driver.id} className="px-4 py-3.5">
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className="text-[13px] font-medium">
-                        {driver.label}
+      {/* --------------------------------------------------- WHERE IT SPREADS -- */}
+      <div className="lg:col-span-12">
+        <div className="card flex min-w-0 flex-col">
+          <SectionTitle meta={`${where.length} exposed places · hover to preview`}>
+            Where it spreads
+          </SectionTitle>
+          {where.length > 0 ? (
+            <>
+              <WorldMap
+                nodes={where.map((w) => ({
+                  nodeId: w.nodeId,
+                  label: getNode(w.nodeId).label,
+                  load: w.load,
+                  eventCount: 0,
+                  criticality: getNode(w.nodeId).criticality,
+                }))}
+                events={[]}
+                className="map-frame"
+                onInspect={(id) => navigate(`/app/country/${id}`)}
+              />
+              <ul className="grid grid-cols-2 divide-x divide-y divide-[var(--exec-hairline)] border-t border-[var(--exec-hairline)] sm:grid-cols-3 lg:grid-cols-4">
+                {where.map((w) => (
+                  <li key={w.nodeId}>
+                    <Link
+                      to={`/app/country/${w.nodeId}`}
+                      className="flex items-baseline justify-between gap-2 px-4 py-3 transition-colors hover:bg-[var(--exec-surface)]"
+                    >
+                      <span className="min-w-0 truncate text-[14px] text-[var(--exec-ink)]">
+                        {getNode(w.nodeId).label}
                       </span>
-                      <span className="num text-[13px] font-semibold">
-                        {signed(driver.contribution)}
+                      <span className="exec-num shrink-0 text-[13px] font-semibold text-[var(--exec-ink)]">
+                        {(w.load * 100).toFixed(0)}
                       </span>
-                    </div>
-                    <Meter
-                      value={Math.min(1, driver.contribution / 30)}
-                      tone={
-                        driver.channel === "energy" ? "signal" : "ink"
-                      }
-                      className="mt-2"
-                    />
-                      <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
-                        {driver.note}
-                      </p>
-                    </li>
+                    </Link>
+                  </li>
                 ))}
               </ul>
-          </Panel>
-        </div>
+            </>
+          ) : (
+            <NoData reason="This event resolves no node-level exposure." />
+          )}
         </div>
       </div>
 
-      {/* LEVEL 5 — the evidence ledger. Every signal that moved this score,
-          in one table, because this is where precise comparison matters: the
-          reader is meant to check reliability, corroboration and anomaly
-          against each other column by column. */}
-      <div className="border-b border-rule">
-        <Panel
-          caption="Evidence ledger"
-          aside={`${s.signals.length} observations · newest first`}
-        >
-          <DataTable
-            columns={[
-              { key: "date", label: "Date" },
-              { key: "source", label: "Source" },
-              { key: "class", label: "Class" },
-              { key: "channel", label: "Channel" },
-              { key: "observation", label: "Observation" },
-              { key: "reliability", label: "Rel.", numeric: true },
-              { key: "corr", label: "Corr.", numeric: true },
-              { key: "z", label: "Anomaly", numeric: true },
-            ]}
-            rows={[...s.signals]
-              .sort((a, b) => b.observedAt.localeCompare(a.observedAt))
-              .map((signal) => ({
-                date: shortDate(signal.observedAt),
-                source: signal.source,
-                class: (
-                  <span className="exec-label">
-                    {SOURCE_CLASS_LABEL[signal.sourceClass]}
-                  </span>
-                ),
-                channel: (
-                  <span className="exec-label">{CHANNEL_LABEL[signal.channel]}</span>
-                ),
-                observation: (
-                  <span className="block min-w-[16rem] whitespace-normal">
-                    <span className="block text-[12px] font-medium text-[var(--exec-ink)]">
-                      {signal.headline}
-                    </span>
-                    <span className="mt-1 block text-[11px] leading-snug text-[var(--exec-ink-dim)]">
-                      {signal.detail}
-                    </span>
-                  </span>
-                ),
-                reliability: pct(signal.reliability),
-                corr: `×${signal.corroborations}`,
-                z: `${num(signal.anomalyZ, 1)}σ`,
-              }))}
-          />
-        </Panel>
-      </div>
-
-      {/* Brief + annotations */}
-      <div className="grid gm-width gap-8 px-5 py-8 lg:grid-cols-12 lg:px-8 lg:py-10">
-        <div className="lg:col-span-7">
-          <Panel
-            caption="Analyst brief"
-            aside={brief ? `Generated ${timestamp(brief.createdAt)}` : "Not generated"}
-            className="h-full"
-          >
-            <div className="px-4 py-4">
-              {brief ? (
-                <>
-                  <p className="text-[13px] leading-relaxed">{brief.thesis}</p>
-                  {brief.channels.length > 0 ? (
-                    <>
-                      <Label className="mt-5 block">Transmission reading</Label>
-                      <ul className="mt-2 space-y-2">
-                        {brief.channels.map((c, i) => (
-                          <li key={i} className="flex gap-3 text-[12px] leading-relaxed">
-                            <span className="num text-[10px] text-signal">
-                              {String(i + 1).padStart(2, "0")}
-                            </span>
-                            <span>{c}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : null}
-                  {brief.caveats.length > 0 ? (
-                    <>
-                      <Label className="mt-5 block">Caveats & falsifiers</Label>
-                      <ul className="mt-2 space-y-2">
-                        {brief.caveats.map((c, i) => (
-                          <li key={i} className="flex gap-3 text-[12px] leading-relaxed">
-                            <span className="num text-[10px] text-muted-foreground">
-                              —
-                            </span>
-                            <span className="text-muted-foreground">{c}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : null}
-                </>
-              ) : (
-                <p className="text-[13px] leading-relaxed text-muted-foreground">
-                  Generate a written reading of this evidence set. The brief may
-                  only re-weigh observations already in the ledger above — it
-                  cannot introduce new facts — and it must return the caveat list
-                  alongside the thesis.
-                </p>
-              )}
-
-              <div className="mt-5 flex items-center gap-3">
-                <button
-                  type="button"
-                  disabled={pending}
-                  onClick={onGenerateBrief}
-                  className="label flex items-center gap-2 border border-foreground bg-foreground px-4 py-2.5 text-background transition-opacity hover:opacity-85 disabled:opacity-50"
-                >
-                  <Sparkles className="size-3.5" />
-                  {pending ? "Generating…" : brief ? "Regenerate brief" : "Generate brief"}
-                </button>
-                {brief ? (
-                  <span className="num text-[10px] text-muted-foreground">
-                    {brief.model}
-                  </span>
-                ) : null}
+      {/* ------------------------------------------------------- HOW IT MOVES -- */}
+      <div className="lg:col-span-7">
+        <div className="card flex min-w-0 flex-col">
+          <SectionTitle meta="event → channel → place" className="border-violet">
+            How it moves
+          </SectionTitle>
+          {graph === undefined ? (
+            <NoData reason="Resolving the propagation graph." />
+          ) : graph === null ? (
+            <NoData reason="No propagation path resolved for this event." />
+          ) : (
+            <>
+              <GraphExplorer nodes={graph.nodes} edges={graph.edges} height={380} />
+              <div className="border-t border-[var(--exec-hairline)] px-4 py-3">
+                <p className="exec-label">Channel pressure</p>
+                <ul className="mt-2 flex flex-col gap-2">
+                  {CHANNELS.map((channel) => {
+                    const value = assessment.channelPressure[channel];
+                    const pathway = s.pathways.find((p) => p.channel === channel);
+                    return (
+                      <li key={channel} className="flex items-center gap-3">
+                        <span className="w-28 shrink-0 text-[13px] text-[var(--exec-ink-dim)]">
+                          {CHANNEL_LABEL[channel]}
+                        </span>
+                        <span className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-[var(--exec-surface)]">
+                          <span
+                            className="block h-full rounded-full"
+                            style={{
+                              width: `${Math.max(1, value * 100)}%`,
+                              background: riskColorForScore(value * 100),
+                            }}
+                          />
+                        </span>
+                        <span className="exec-num w-10 shrink-0 text-right text-[13px] text-[var(--exec-ink)]">
+                          {(value * 100).toFixed(0)}%
+                        </span>
+                        <span className="exec-num w-16 shrink-0 text-right text-[12px] text-[var(--exec-ink-dim)]">
+                          {pathway
+                            ? `${pathway.lagDays[0]}–${pathway.lagDays[1]}d`
+                            : "no lag"}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
-              {briefError ? (
-                <p className="mt-3 text-[12px] text-signal">{briefError}</p>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ---------------------------------------------------------- TIMELINE -- */}
+      <div className="lg:col-span-5">
+        <div className="card flex h-full min-w-0 flex-col">
+          <SectionTitle
+            meta="central estimate with 80% interval"
+            right={<DataType type="model" />}
+          >
+            Timeline
+          </SectionTitle>
+          <ol className="flex min-w-0 flex-col p-4">
+            {risk.map((r, i) => (
+              <motion.li
+                key={r.horizonDays}
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.07 }}
+                className="relative flex flex-col gap-2 pb-5 pl-6 last:pb-0"
+              >
+                {/* The rail is the `li`'s own left border, so it cannot drift
+                    out of alignment with the node that heads it. */}
+                <span
+                  aria-hidden
+                  className="absolute top-2 bottom-0 left-[7px] w-px bg-[var(--exec-hairline)] last:hidden"
+                />
+                <span
+                  aria-hidden
+                  className="absolute top-1 left-0 size-4 rounded-full border-2 bg-[var(--card)]"
+                  style={{ borderColor: riskColorForScore(r.score) }}
+                />
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="text-[14px] font-medium text-[var(--exec-ink)]">
+                    {r.horizonDays} days out
+                  </span>
+                  <span
+                    className="exec-num text-[1.25rem] leading-none font-bold"
+                    style={{ color: riskColorForScore(r.score) }}
+                  >
+                    {r.score.toFixed(1)}
+                  </span>
+                </div>
+                <IntervalBar
+                  score={r.score}
+                  low={r.low}
+                  high={r.high}
+                  band={r.band}
+                />
+                <div className="flex items-center gap-3">
+                  <BandChip band={r.band} />
+                  <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
+                    ±{(r.high - r.score).toFixed(1)} points
+                  </span>
+                </div>
+              </motion.li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      {/* ---------------------------------------------------------- EVIDENCE -- */}
+      <div className="lg:col-span-12">
+        <div className="card flex min-w-0 flex-col">
+          <SectionTitle
+            meta={`${s.signals.length} observations · newest first`}
+            right={<DataType type="scenario" />}
+          >
+            Evidence
+          </SectionTitle>
+
+          {/* Source cards, not a table. A ledger needs to be *scanned* — source,
+              reliability, corroboration and anomaly side by side per signal — and
+              a table makes the reader widen a column to get one of those. */}
+          <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
+            {[...s.signals]
+              .sort((a, b) => b.observedAt.localeCompare(a.observedAt))
+              .map((signal, i) => (
+                <motion.article
+                  key={`${signal.source}-${signal.observedAt}-${i}`}
+                  initial={{ opacity: 0, y: 8 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ duration: 0.28, delay: Math.min(i * 0.03, 0.2) }}
+                  className="card flex min-w-0 flex-col gap-2 p-4"
+                >
+                  <div className="flex min-w-0 items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-[13px] font-semibold text-[var(--exec-ink)]">
+                      {signal.source}
+                    </span>
+                    <span className="exec-num shrink-0 text-[12px] text-[var(--exec-ink-dim)]">
+                      {shortDate(signal.observedAt)}
+                    </span>
+                  </div>
+                  <p className="line-clamp-3 text-[14px] leading-snug text-[var(--exec-ink)]">
+                    {signal.headline}
+                  </p>
+                  <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[var(--exec-hairline)] pt-3">
+                    <span className="exec-label">
+                      {SOURCE_CLASS_LABEL[signal.sourceClass]}
+                    </span>
+                    <span className="exec-label">
+                      {CHANNEL_LABEL[signal.channel]}
+                    </span>
+                    <span
+                      className="exec-num ml-auto text-[12px] text-[var(--exec-ink-dim)]"
+                      title="Reliability × corroborations, and the anomaly z-score against this source's own history"
+                    >
+                      rel {pct(signal.reliability)} · ×{signal.corroborations} ·{" "}
+                      {signal.anomalyZ.toFixed(1)}σ
+                    </span>
+                  </div>
+                </motion.article>
+              ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Risk decomposition: the arithmetic behind the score, term by term. */}
+      <div className="lg:col-span-12">
+        <div className="card flex min-w-0 flex-col">
+          <SectionTitle meta="share of the 0–100 composite">
+            Risk decomposition
+          </SectionTitle>
+          <ul className="grid grid-cols-1 divide-y divide-[var(--exec-hairline)] lg:grid-cols-3 lg:divide-x lg:divide-y-0">
+            {assessment.risk[30].drivers.map((driver) => (
+              <li key={driver.id} className="flex flex-col gap-2 p-4">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="min-w-0 truncate text-[14px] font-medium text-[var(--exec-ink)]">
+                    {driver.label}
+                  </span>
+                  <span className="exec-num shrink-0 text-[14px] font-semibold text-[var(--exec-ink)]">
+                    {signed(driver.contribution)}
+                  </span>
+                </div>
+                <span className="h-2 w-full overflow-hidden rounded-full bg-[var(--exec-surface)]">
+                  <span
+                    className="block h-full rounded-full"
+                    style={{
+                      width: `${Math.min(100, Math.abs((driver.contribution / 30) * 100))}%`,
+                      background:
+                        driver.channel === "energy"
+                          ? "var(--exec-crimson)"
+                          : "var(--exec-ink-dim)",
+                    }}
+                  />
+                </span>
+                <p className="text-[13px] leading-snug text-[var(--exec-ink-dim)]">
+                  {driver.note}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Brief and annotations: the two account-gated surfaces on this page. */}
+      <div className="lg:col-span-7">
+        <div className="card flex h-full min-w-0 flex-col">
+          <SectionTitle
+            meta={brief ? `Generated ${timestamp(brief.createdAt)}` : "Not generated"}
+          >
+            Analyst brief
+          </SectionTitle>
+          <div className="flex min-w-0 flex-1 flex-col gap-4 p-4">
+            {brief ? (
+              <>
+                <p className="text-[15px] leading-relaxed text-[var(--exec-ink)]">
+                  {brief.thesis}
+                </p>
+                {brief.channels.length > 0 ? (
+                  <div>
+                    <p className="exec-label">Transmission reading</p>
+                    <ul className="mt-2 flex flex-col gap-2">
+                      {brief.channels.map((c, i) => (
+                        <li key={i} className="flex gap-3 text-[14px] leading-relaxed text-[var(--exec-ink-dim)]">
+                          <span className="exec-num shrink-0 text-[12px] text-[var(--exec-cyan)]">
+                            {String(i + 1).padStart(2, "0")}
+                          </span>
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {brief.caveats.length > 0 ? (
+                  <div>
+                    <p className="exec-label">Caveats &amp; falsifiers</p>
+                    <ul className="mt-2 flex flex-col gap-2">
+                      {brief.caveats.map((c, i) => (
+                        <li key={i} className="flex gap-3 text-[14px] leading-relaxed text-[var(--exec-ink-dim)]">
+                          <span aria-hidden>—</span>
+                          <span>{c}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <ErrorState
+                title="No brief saved for this event"
+                reason="Generate a written reading of the evidence set above. A brief may only re-weigh observations already in the ledger — it cannot introduce new facts — and it must return its caveat list alongside the thesis."
+              />
+            )}
+
+            <div className="mt-auto flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={onGenerateBrief}
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--exec-ink)] px-4 py-2.5 text-[13px] font-semibold text-[var(--exec-base)] transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                <Sparkles className="size-3.5" />
+                {pending ? "Generating…" : brief ? "Regenerate brief" : "Generate brief"}
+              </button>
+              {brief ? (
+                <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
+                  {brief.model}
+                </span>
               ) : null}
             </div>
-          </Panel>
+            {briefError ? (
+              <p className="text-[13px] text-[var(--exec-crimson)]">{briefError}</p>
+            ) : null}
+          </div>
         </div>
+      </div>
 
-        <div className="lg:col-span-5">
-          <Panel caption="Research annotations" aside={`${annotations.length} notes`} className="h-full">
-            <div className="px-4 py-4">
-              <textarea
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                rows={3}
-                maxLength={2000}
-                placeholder={
-                  isAuthenticated
-                    ? "Record a reading, a caveat, or a falsification test…"
-                    : "Sign in to write private research notes…"
-                }
-                disabled={!isAuthenticated}
-                className="w-full resize-none border border-rule bg-background px-3 py-2 text-[13px] leading-relaxed outline-none placeholder:text-muted-foreground focus:border-foreground disabled:opacity-60"
-              />
-              <div className="mt-2 flex items-center justify-between">
-                <span className="num text-[10px] text-muted-foreground">
-                  {draft.length}/2000
-                </span>
-                <button
-                  type="button"
-                  onClick={onSaveAnnotation}
-                  disabled={!draft.trim()}
-                  className="label border border-foreground px-3 py-2 transition-colors hover:bg-foreground hover:text-background disabled:opacity-40"
-                >
-                  Save note
-                </button>
-              </div>
-
-              {annotations.length > 0 ? (
-                <ul className="mt-5 divide-y divide-rule border-t border-rule">
-                  {annotations
-                    .slice()
-                    .sort((a, b) => b.createdAt - a.createdAt)
-                    .map((note) => (
-                      <li key={note.id} className="group flex gap-3 py-3">
-                        <p className="flex-1 text-[12px] leading-relaxed">
-                          {note.body}
-                        </p>
-                        <button
-                          type="button"
-                          aria-label="Delete annotation"
-                          onClick={() => deleteAnnotation({ annotationId: note.id })}
-                          className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-signal"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      </li>
-                    ))}
-                </ul>
-              ) : (
-                <p className="mt-5 border-t border-rule pt-4 text-[12px] text-muted-foreground">
-                  No annotations yet. Notes are private to your account.
-                </p>
-              )}
+      <div className="lg:col-span-5">
+        <div className="card flex h-full min-w-0 flex-col">
+          <SectionTitle meta={`${annotations.length} notes`}>
+            Research annotations
+          </SectionTitle>
+          <div className="flex min-w-0 flex-1 flex-col p-4">
+            <textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={3}
+              maxLength={2000}
+              aria-label="Write a research note"
+              placeholder={
+                isAuthenticated
+                  ? "Record a reading, a caveat, or a falsification test…"
+                  : "Sign in to write private research notes…"
+              }
+              disabled={!isAuthenticated}
+              className="w-full resize-none rounded-lg border border-[var(--exec-hairline)] bg-[var(--exec-base)] px-3 py-2.5 text-[14px] leading-relaxed outline-none placeholder:text-[var(--exec-ink-dim)] focus:border-[var(--exec-cyan)] disabled:opacity-60"
+            />
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
+                {draft.length}/2000
+              </span>
+              <button
+                type="button"
+                onClick={onSaveAnnotation}
+                disabled={!draft.trim()}
+                className="rounded-full border border-[var(--exec-hairline-strong)] px-4 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)] disabled:opacity-40"
+              >
+                Save note
+              </button>
             </div>
-          </Panel>
+
+            {annotations.length > 0 ? (
+              <ul className="mt-4 flex flex-col divide-y divide-[var(--exec-hairline)] border-t border-[var(--exec-hairline)]">
+                {annotations
+                  .slice()
+                  .sort((a, b) => b.createdAt - a.createdAt)
+                  .map((note) => (
+                    <li key={note.id} className="group flex gap-3 py-3">
+                      <p className="flex-1 text-[14px] leading-relaxed text-[var(--exec-ink)]">
+                        {note.body}
+                      </p>
+                      <button
+                        type="button"
+                        aria-label="Delete annotation"
+                        onClick={() => deleteAnnotation({ annotationId: note.id })}
+                        className="shrink-0 text-[var(--exec-ink-dim)] opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:text-[var(--exec-crimson)]"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            ) : (
+              <p className="mt-4 border-t border-[var(--exec-hairline)] pt-4 text-[13px] text-[var(--exec-ink-dim)]">
+                No annotations yet. Notes are private to your account.
+              </p>
+            )}
+          </div>
         </div>
+      </div>
+
+      <div className="lg:col-span-12">
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-[var(--exec-ink-dim)]">
+          <ExternalLink className="size-3.5 shrink-0" aria-hidden />
+          Every figure on this page is model output over a scenario corpus. Check
+          the evidence cards above for the signals it was computed from.
+        </p>
       </div>
     </PageFrame>
   );
 }
+
+/* ------------------------------------------------------------------ parts -- */
+
+/**
+ * The exposed places, ranked.
+ *
+ * Derived from the same pathways the channels are, so the map and the ranked
+ * list beneath it are two views of one number rather than two numbers.
+ */
+function topExposures(assessment: EventAssessment, limit: number) {
+  const byNode = new Map<string, number>();
+  for (const pathway of assessment.scenario.pathways) {
+    for (const exposure of pathway.exposures) {
+      const term = exposure.impact * pathway.magnitude * pathway.confidence;
+      byNode.set(exposure.nodeId, (byNode.get(exposure.nodeId) ?? 0) + term);
+    }
+  }
+  const max = Math.max(...byNode.values(), 0.0001);
+  return [...byNode.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([nodeId, load]) => ({ nodeId, load: load / max }));
+}
+
+
 
 function Readout({
   caption,
@@ -589,12 +683,12 @@ function Readout({
   note: string;
 }) {
   return (
-    <div className="border-b border-rule py-5 last:border-b-0 lg:border-b-0 lg:px-6 lg:first:pl-0">
-      <dt className="label text-muted-foreground">{caption}</dt>
-      <dd className="num display mt-2 text-2xl leading-none">{value}</dd>
-      <dd className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
-        {note}
-      </dd>
+    <div className="flex flex-col gap-1">
+      <span className="exec-label">{caption}</span>
+      <span className="exec-num text-[1.5rem] leading-none font-bold text-[var(--exec-ink)]">
+        {value}
+      </span>
+      <span className="text-[12px] leading-snug text-[var(--exec-ink-dim)]">{note}</span>
     </div>
   );
 }

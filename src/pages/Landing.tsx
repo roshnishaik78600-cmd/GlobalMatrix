@@ -1,30 +1,18 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useQuery } from "convex/react";
-import {
-  ArrowRight,
-  Factory,
-  Globe2,
-  Landmark,
-  Network,
-  Package,
-  TrendingUp,
-} from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, Factory, Globe2, Landmark, Network, Package, TrendingUp } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import type { TopologyResult } from "@/convex/macroTopology";
 import { CORPUS_LABEL } from "@/lib/intel/scenarios";
-import { riskColorForScore } from "@/lib/intel/visual";
+import { CHANNEL_LABEL } from "@/lib/intel/types";
 import { WorldMap, isPlottable } from "@/components/viz/WorldMap";
 import { Skeleton } from "@/components/viz/core";
 import { CountryDrawer } from "@/components/viz/exec/CountryDrawer";
 import { useFocus } from "@/lib/focus";
-import {
-  ExecPage,
-  FreshnessTag,
-  SectionTitle,
-} from "@/components/viz/exec/system";
+import { ExecPage, FreshnessTag } from "@/components/viz/exec/system";
 import { loadColour } from "@/components/viz/exec/Topology";
-import { Region } from "@/components/viz/exec/design";
 import {
   BarPreview,
   ExploreGrid,
@@ -34,18 +22,22 @@ import {
   UnavailablePreview,
   type ExplorePanel,
 } from "@/components/landing/sections";
-import { EventTimeline, TrustStrip, type TimelineEvent } from "@/components/landing/feed";
+import {
+  HappeningNow,
+  TopIndustries,
+  TrendingCountries,
+  type TimelineEvent,
+} from "@/components/landing/discovery";
 
 /**
  * The public homepage.
  *
- * Show, then explain, then explore. The world map is the first thing a visitor
- * meets after the headline and the largest object on the page, because the
- * single question this product answers is "what is happening, and where" — and
- * that is a question a map answers better than a paragraph. Everything below it
- * is either a reading of the same data (the pulse), a pointer to the next click
- * (the timeline, the explore grid) or an honest statement of what is not
- * connected.
+ * Show, then explain, then explore. The order is the argument: a headline, the
+ * six numbers that summarise the world right now, the events behind them, the
+ * map they land on, the mechanism that carries them, and finally the two
+ * directories — countries and industries — that let a reader pick one and go
+ * deep. Every section answers in under five seconds; the long form lives on the
+ * pages each card links to.
  *
  * No login stands between a visitor and any of it. The console behind /app is
  * equally public; an account is only ever needed to save something.
@@ -56,7 +48,6 @@ export default function Landing() {
   const topology = useQuery(api.macroTopology.macroTopology) as
     | TopologyResult
     | undefined;
-  const health = useQuery(api.observations.sourceHealth);
 
   // Client-side navigation, so inspecting a country on the map does not throw
   // away the SPA and the shared selection along with it.
@@ -93,7 +84,7 @@ export default function Landing() {
     if (!feed) return [];
     return [...feed.rows]
       .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
-      .slice(0, 8)
+      .slice(0, 10)
       .map((row) => ({
         id: row.id,
         place: row.topNodes[0]?.label ?? "no dominant location",
@@ -102,6 +93,8 @@ export default function Landing() {
         source: row.latestSignal?.source ?? CORPUS_LABEL,
         sourceClass: row.latestSignal?.sourceClass ?? "intel",
         score: row.score30,
+        category: CHANNEL_LABEL[row.dominantChannel],
+        status: row.band,
       }));
   }, [feed]);
 
@@ -127,7 +120,7 @@ export default function Landing() {
         to: "/app/countries",
         label: "Countries",
         icon: Globe2,
-        blurb: "Track countries and their global connections.",
+        blurb: "Exposure, dependencies and the events that land hardest on each economy.",
         preview: <BarPreview rows={hot} />,
       },
       {
@@ -142,7 +135,7 @@ export default function Landing() {
         to: "/app/trade",
         label: "Trade",
         icon: Package,
-        blurb: "See global trade relationships and flows.",
+        blurb: "Reported merchandise values, UN Comtrade.",
         preview: trade ? (
           <SplitPreview
             left={{
@@ -152,7 +145,9 @@ export default function Landing() {
             }}
             right={{
               label: "Reporters",
-              value: String((data?.mapNodes ?? []).filter((n) => n.kind === "economy").length),
+              value: String(
+                (data?.mapNodes ?? []).filter((n) => n.kind === "economy").length,
+              ),
             }}
           />
         ) : (
@@ -163,7 +158,7 @@ export default function Landing() {
         to: "/app/supply",
         label: "Supply chains",
         icon: Network,
-        blurb: "Explore critical dependencies.",
+        blurb: "Critical routes and the pressure moving through them.",
         // Routes first, sectors second: the corridor board is the primary
         // object on that page, with sector concentration as its context.
         preview:
@@ -177,7 +172,7 @@ export default function Landing() {
         to: "/app/markets",
         label: "Markets",
         icon: TrendingUp,
-        blurb: "Understand economic and market context.",
+        blurb: "Reported macro context across every tracked economy.",
         preview: financial ? (
           <SplitPreview
             left={{
@@ -197,167 +192,188 @@ export default function Landing() {
         to: "/app/policy",
         label: "Policy",
         icon: Landmark,
-        blurb: "Track important policy and regulatory changes.",
+        blurb: "Policy and regulatory change.",
         preview: <UnavailablePreview />,
-        unavailable: "No policy registry is connected. Policy events are tagged in the corpus.",
+        unavailable:
+          "No policy registry is connected. Policy events are tagged in the corpus.",
       },
     ];
   }, [data, topology]);
 
+  const mapEvents = (data?.mapEvents ?? []).filter((e) => e.nodeId !== "");
+
   return (
-    <ExecPage className="min-h-screen">
+    <ExecPage className="min-h-full">
       <LandingNav />
 
       {/* Hero. Compact on purpose: the map is the headline, and a wall of type
-          above it would push the one thing worth seeing below the fold. */}
-      <header className="border-b border-[var(--exec-hairline)] px-4 pt-8 pb-6 lg:px-8 lg:pt-12 lg:pb-8">
-        <div className="gm-width">
-          <p className="exec-label text-[var(--exec-cyan)]">Global event intelligence</p>
-          <h1 className="mt-3 text-[2rem] leading-[1.05] font-semibold tracking-[-0.03em] text-[var(--exec-ink)] sm:text-[2.9rem] lg:text-[3.6rem]">
-            See how the world connects.
-          </h1>
-          <p className="mt-3 max-w-2xl text-[13.5px] leading-relaxed text-[var(--exec-ink-dim)]">
-            Track global events, trade, markets, supply chains and their
-            connections — all in one place.
-          </p>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link
-              to="/app"
-              className="flex items-center gap-2 bg-[var(--exec-cyan)] px-4 py-2.5 text-[11.5px] font-semibold tracking-[0.1em] text-black uppercase transition-opacity hover:opacity-85"
-            >
-              Explore global intelligence
-              <ArrowRight className="size-3.5" />
-            </Link>
-            <a
-              href="#world-map"
-              className="flex items-center gap-2 border border-[var(--exec-hairline-strong)] px-4 py-2.5 text-[11.5px] font-semibold tracking-[0.1em] text-[var(--exec-ink)] uppercase transition-colors hover:border-[var(--exec-cyan)]"
-            >
-              View world map
-            </a>
-          </div>
-        </div>
-      </header>
-
-      {/* THE MAP. Full-bleed and immediately below the hero — this is the visual
-          star of the page and everything else is sized around it. */}
-      <section
-        id="world-map"
-        className="border-b border-[var(--exec-hairline)] scroll-mt-14"
-      >
-        <div className="gm-width">
-          <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-3">
-            <h2 className="exec-label text-[var(--exec-ink)]">
-              Global risk surface
-            </h2>
-            <span className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
-              {data
-                ? `${mappable.length} places · ${data.mapEvents.length} events · ${data.flows.length} couplings`
-                : "resolving"}
-              {" · "}
-              <FreshnessTag freshness="historical" className="exec-label" />
-            </span>
-          </div>
-
+          above it would push the one thing worth seeing below the fold. The
+          world sits behind the type at low opacity on wide screens and below it
+          on narrow ones, rather than beside it — beside it would halve the width
+          of both. */}
+      <header className="relative overflow-hidden border-b border-[var(--exec-hairline)]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[420px] opacity-30 lg:h-full"
+        >
           {data ? (
             <WorldMap
               nodes={data.mapNodes}
-              flows={data.flows}
-              events={data.mapEvents.filter((e) => e.nodeId !== "")}
-              height={480}
-              selected={sharedNodeId}
-              onSelect={selectNode}
-              onInspect={(id) => {
-                navigate(`/app/country/${id}`);
-              }}
+              flows={data.flows.slice(0, 40)}
+              events={mapEvents}
+              className="h-[300px] sm:h-[380px] lg:h-full"
+              layers={false}
             />
-          ) : (
-            <Skeleton className="mx-4 mb-4 h-[480px] w-[calc(100%-2rem)]" />
-          )}
+          ) : null}
+          {/* Fade the map into the page rather than ending it at a hard edge. */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[var(--exec-base)]/40 via-[var(--exec-base)]/80 to-[var(--exec-base)]" />
+        </div>
 
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-[var(--exec-hairline)] px-4 py-2">
-            {[
-              // Economies and corridors draw with the same circle marker, so the
-              // legend names them together rather than implying a distinction
-              // the map does not make.
-              { label: "Economy / corridor", shape: "circle" },
-              { label: "Chokepoint", shape: "diamond" },
-            ].map((g) => (
-              <span key={g.label} className="flex items-center gap-1.5">
-                <span
-                  className="inline-block size-2.5 border border-current"
-                  style={{
-                    borderRadius: g.shape === "circle" ? "9999px" : 0,
-                    transform: g.shape === "diamond" ? "rotate(45deg) scale(0.8)" : undefined,
+        <div className="gm-width relative px-4 pt-16 pb-14 lg:px-8 lg:pt-24 lg:pb-20">
+          <motion.p
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="exec-label text-[var(--exec-cyan)]"
+          >
+            Global event intelligence
+          </motion.p>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.05 }}
+            className="t-hero mt-4 text-[var(--exec-ink)]"
+          >
+            GLOBALMATRIX
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="mt-5 max-w-2xl text-[1.25rem] leading-snug font-medium tracking-[-0.015em] text-[var(--exec-ink)] sm:text-[1.5rem]"
+          >
+            See what is changing in the world.
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+            className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--exec-ink-dim)]"
+          >
+            Understand global events, their connections and the industries they
+            affect.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+            className="mt-8 flex flex-wrap gap-3"
+          >
+            <Link
+              to="/app"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--exec-cyan)] px-5 py-3 text-[14px] font-semibold text-[#070A0F] transition-opacity hover:opacity-90"
+            >
+              Explore Global Intelligence
+              <ArrowRight className="size-4" />
+            </Link>
+            <a
+              href="#world-map"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--exec-hairline-strong)] px-5 py-3 text-[14px] font-semibold text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+            >
+              Open World Map
+            </a>
+          </motion.div>
+        </div>
+      </header>
+
+      <main className="min-w-0">
+        <div className="gm-width flex flex-col gap-6 px-4 py-10 lg:gap-8 lg:px-8 lg:py-12">
+          {/* GLOBAL PULSE — the six numbers that summarise the world. */}
+          <GlobalPulse data={topology} />
+
+          {/* HAPPENING NOW — the events behind those numbers. */}
+          {feed ? <HappeningNow events={timeline} /> : <PulseSkeleton />}
+
+          {/* THE MAP. A major visual section, not a supporting one: it is the
+              largest single object on the page and everything else is sized
+              around it. */}
+          <section id="world-map" className="card scroll-mt-24 overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+              <h2 className="t-card text-[var(--exec-ink)]">World map</h2>
+              <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
+                {data
+                  ? `${mappable.length} places · ${mapEvents.length} events · ${data.flows.length} couplings`
+                  : "resolving"}
+                {" · "}
+                <FreshnessTag freshness="historical" />
+              </span>
+            </div>
+
+            {data ? (
+              <>
+                <WorldMap
+                  nodes={data.mapNodes}
+                  flows={data.flows}
+                  events={mapEvents}
+                  className="map-frame"
+                  selected={sharedNodeId}
+                  onSelect={selectNode}
+                  onInspect={(id) => {
+                    navigate(`/app/country/${id}`);
                   }}
                 />
-                <span className="exec-label">{g.label}</span>
-              </span>
-            ))}
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block size-2 rounded-full bg-[var(--exec-crimson)]" />
-              <span className="exec-label">Event</span>
-            </span>
-            <span className="exec-label ml-auto text-[var(--exec-ink-dim)]">
-              Hover for a place · click for its intelligence · {CORPUS_LABEL}
-            </span>
-          </div>
-        </div>
-      </section>
-
-        {/* The pulse: the same six signals the executive board runs, compressed
-            into one readable strip. */}
-        <Region width={12}>
-          <GlobalPulse data={topology} />
-        </Region>
-
-        {/* WHAT'S HAPPENING NOW. Four fields per event, then the click. */}
-        <Region width={5}>
-          <EventTimeline events={timeline} />
-        </Region>
-
-        {/* EXPLAIN. One object, one sentence. */}
-        <Region width={7}>
-          <PropagationFlow />
-        </Region>
-
-        {/* EXPLORE. Six panels, each previewed from the board it opens. */}
-        <Region width={12}>
-          <SectionTitle
-            meta="six ways in"
-            className="px-3"
-          >
-            Explore global intelligence
-          </SectionTitle>
-          <div className="mt-3">
-            <ExploreGrid panels={panels} />
-          </div>
-        </Region>
-
-        {/* AI ANALYST. A preview of the answer's *shape* — evidence, drivers,
-            sources — not a chat window. */}
-        <Region width={7}>
-          <AnalystPreview
-            question="Why did trade risk change?"
-            evidence={timeline[0]}
-            drivers={(topology?.categories ?? []).filter((c) =>
-              ["trade-bottlenecks", "energy", "supply-chain"].includes(c.id),
+                <MapLegend />
+              </>
+            ) : (
+              <Skeleton className="map-frame w-full" />
             )}
+          </section>
+
+          {/* FOLLOW THE SHOCK — the mechanism, drawn rather than asserted. */}
+          <PropagationFlow />
+
+          {/* TRENDING COUNTRIES — pick one and go deep. */}
+          <TrendingCountries
+            rows={(data?.hottestCountries ?? []).map((r) => ({
+              nodeId: r.nodeId,
+              label: r.label,
+              short: r.short,
+              load: r.load,
+              topChannel: CHANNEL_LABEL[r.topChannel],
+              eventCount: r.eventCount,
+            }))}
           />
-        </Region>
 
-        {/* TRUST + DATA. */}
-        <Region width={5}>
-          <TrustStrip health={health ?? []} />
-        </Region>
+          {/* TOP INDUSTRIES — the same question asked of sectors. */}
+          <TopIndustries
+            rows={(data?.hottestIndustries ?? []).map((r) => ({
+              id: r.id,
+              label: r.label,
+              load: r.load,
+              topChannel: CHANNEL_LABEL[r.topChannel],
+              eventCount: r.eventCount,
+            }))}
+          />
 
-      <AccessBand />
+          {/* EXPLORE — the six panels, each previewed from the board it opens. */}
+          <section>
+            <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+              <h2 className="t-section text-[var(--exec-ink)]">Explore</h2>
+              <span className="exec-label">six ways in</span>
+            </div>
+            <ExploreGrid panels={panels} />
+          </section>
 
-      <footer className="border-t border-[var(--exec-hairline)] px-4 py-5">
-        <div className="flex gm-width flex-wrap items-center justify-between gap-2">
+          <AccessBand />
+        </div>
+      </main>
+
+      <footer className="border-t border-[var(--exec-hairline)]">
+        <div className="gm-width flex flex-wrap items-center justify-between gap-3 px-4 py-6 lg:px-8">
           <span className="exec-label text-[var(--exec-ink-dim)]">
             GlobalMatrix · geopolitical, macro and supply-chain intelligence
           </span>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <Link
               to="/methodology"
               className="exec-label text-[var(--exec-ink-dim)] transition-colors hover:text-[var(--exec-ink)]"
@@ -396,35 +412,35 @@ const TREND_LABEL: Record<TopologyResult["categories"][number]["trend"], string>
   flat: "steady",
 };
 
+/** The public header. Deliberately lighter than the console's own bar. */
 function LandingNav() {
   return (
     <nav className="sticky top-0 z-30 border-b border-[var(--exec-hairline)] bg-[var(--exec-base)]/90 backdrop-blur">
-      <div className="gm-width flex h-12  items-center gap-4 px-4 lg:px-8">
-        <Link to="/" className="flex shrink-0 items-center gap-2">
-          <span className="size-2 bg-[var(--exec-cyan)]" aria-hidden />
-          <span className="text-[12px] font-semibold tracking-[0.18em] text-[var(--exec-ink)] uppercase">
-            GlobalMatrix
+      <div className="gm-width flex h-16 items-center gap-4 px-4 lg:px-8">
+        <Link to="/" className="flex shrink-0 items-center gap-2.5">
+          <span className="size-2 shrink-0 rounded-sm bg-[var(--exec-cyan)]" aria-hidden />
+          <span className="truncate text-[14px] font-semibold tracking-[0.2em] text-[var(--exec-ink)] uppercase">
+            Globalmatrix
           </span>
         </Link>
         <div className="ml-auto flex items-center gap-1">
           {[
-            { to: "/app", label: "Intelligence" },
-            { to: "/app/events", label: "Events" },
+            { to: "/app", label: "Explore" },
             { to: "/app/world", label: "World" },
-            { to: "/app/data", label: "Sources" },
-            { to: "/methodology", label: "Methodology" },
+            { to: "/app/events", label: "Events" },
+            { to: "/app/markets", label: "Markets" },
           ].map((item) => (
             <Link
               key={item.to}
               to={item.to}
-              className="exec-label hidden px-2 py-1.5 text-[var(--exec-ink-dim)] transition-colors hover:text-[var(--exec-ink)] sm:block"
+              className="hidden rounded-lg px-3 py-2 text-[14px] text-[var(--exec-ink-dim)] transition-colors hover:text-[var(--exec-ink)] md:block"
             >
               {item.label}
             </Link>
           ))}
           <Link
             to="/auth"
-            className="exec-label ml-1 border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+            className="ml-1 rounded-full border border-[var(--exec-hairline-strong)] px-4 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
           >
             Sign in
           </Link>
@@ -434,108 +450,77 @@ function LandingNav() {
   );
 }
 
-/**
- * A compact preview of what the analyst returns: a claim, the evidence under
- * it, the drivers, and the sources. Deliberately not a chat input — the point
- * is that the answer is auditable, and a message box would frame it as a
- * conversation rather than as a result.
- */
-function AnalystPreview({
-  question,
-  evidence,
-  drivers,
-}: {
-  question: string;
-  evidence: TimelineEvent | undefined;
-  drivers: TopologyResult["categories"];
-}) {
+/** The map's encoding, stated once, under the map that uses it. */
+function MapLegend() {
   return (
-    <div className="glass flex h-full flex-col">
-      <SectionTitle meta="preview · answers are saved to your account">
-        AI analyst
-      </SectionTitle>
-      <div className="flex flex-col gap-2.5 px-3 py-3">
-        <p className="flex items-center gap-2 text-[13px] font-medium text-[var(--exec-ink)]">
-          <span className="text-[var(--exec-cyan)]" aria-hidden>
-            &ldquo;
-          </span>
-          {question}
-        </p>
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--exec-hairline)] px-4 py-3">
+      {[
+        { label: "Economy / corridor", shape: "circle" },
+        { label: "Chokepoint", shape: "diamond" },
+      ].map((g) => (
+        <span key={g.label} className="flex items-center gap-2">
+          <span
+            className="inline-block size-3 border border-current"
+            style={{
+              borderRadius: g.shape === "circle" ? "9999px" : 0,
+              transform: g.shape === "diamond" ? "rotate(45deg) scale(0.8)" : undefined,
+            }}
+            aria-hidden
+          />
+          <span className="exec-label">{g.label}</span>
+        </span>
+      ))}
+      <span className="flex items-center gap-2">
+        <span
+          className="inline-block size-2 rounded-full bg-[var(--exec-crimson)]"
+          aria-hidden
+        />
+        <span className="exec-label">Event</span>
+      </span>
+      <span className="exec-label ml-auto text-[var(--exec-ink-dim)]">
+        Hover for a place · click for its intelligence · {CORPUS_LABEL}
+      </span>
+    </div>
+  );
+}
 
-        {evidence ? (
-          <div className="border-l-2 border-[var(--exec-hairline-strong)] pl-2.5">
-            <p className="exec-label">Evidence</p>
-            <p className="mt-1 text-[11.5px] leading-snug text-[var(--exec-ink)]">
-              <span style={{ color: riskColorForScore(evidence.score) }}>
-                {evidence.score.toFixed(0)}
-              </span>{" "}
-              — {evidence.title}
-            </p>
-            <p className="exec-num mt-0.5 text-[9.5px] text-[var(--exec-ink-dim)]">
-              {evidence.source}
-            </p>
-          </div>
-        ) : (
-          <p className="exec-label">Evidence — no verified event resolved yet</p>
-        )}
-
-        <div className="grid grid-cols-3 gap-2">
-          {drivers.map((d) => (
-            <div key={d.id} className="min-w-0">
-              <p className="exec-label min-w-0 truncate">{d.label}</p>
-              <p
-                className="exec-num mt-0.5 truncate text-[15px] font-bold"
-                style={{ color: loadColour(d.intensity) }}
-              >
-                {(d.intensity * 100).toFixed(0)}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <p className="exec-label">Sources</p>
-        <p className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">
-          {evidence?.source ?? CORPUS_LABEL} · every claim links to the
-          ledger it came from
-        </p>
-      </div>
-      <div className="mt-auto border-t border-[var(--exec-hairline)] px-3 py-2">
-        <Link
-          to="/app/analyst"
-          className="exec-label inline-flex items-center gap-1.5 border border-[color-mix(in_srgb,var(--exec-cyan)_55%,transparent)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:bg-[var(--exec-surface-strong)]"
-        >
-          Ask GlobalMatrix <ArrowRight className="size-3" />
-        </Link>
+/** Skeleton for the discovery rail while the feed resolves. */
+function PulseSkeleton() {
+  return (
+    <div className="card p-4">
+      <Skeleton className="h-5 w-40" />
+      <div className="mt-4 flex gap-4 overflow-hidden">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-40 w-[19rem] shrink-0 rounded-lg" />
+        ))}
       </div>
     </div>
   );
 }
 
+/** The access band. What is public, and what an account is actually for. */
 function AccessBand() {
   return (
-    <section className="border-t border-[var(--exec-hairline)] px-4 py-10 lg:px-8">
-      <div className="gm-width">
-        <h2 className="text-[1.5rem] font-semibold tracking-[-0.02em] text-[var(--exec-ink)] sm:text-[1.9rem]">
-          Explore GlobalMatrix freely.
-        </h2>
-        <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
-          The map, events, countries, companies, trade, markets and all public
-          intelligence are open to anyone. No account, no email verification, no
-          card. An account is only for the things you want to keep.
-        </p>
-        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {[
-            {
-              title: "No sign-in needed",
-              items: [
-                "World map",
-                "Events",
-                "Countries",
-                "Trade",
-                "Markets",
-                "Public intelligence",
-              ],
-            },
+    <section className="card p-6 lg:p-8">
+      <h2 className="t-section text-[var(--exec-ink)]">Explore GlobalMatrix freely.</h2>
+      <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-[var(--exec-ink-dim)]">
+        The map, events, countries, trade, markets and all public intelligence are
+        open to anyone. No account, no email verification, no card. An account is
+        only for the things you want to keep.
+      </p>
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {[
+          {
+            title: "No sign-in needed",
+            items: [
+              "World map",
+              "Events",
+              "Countries",
+              "Trade",
+              "Markets",
+              "Public intelligence",
+            ],
+          },
           {
             title: "Sign in only to save",
             items: [
@@ -544,22 +529,21 @@ function AccessBand() {
               "Saved analysis",
             ],
           },
-          ].map((col) => (
-            <div key={col.title} className="glass px-3.5 py-3">
-              <p className="exec-label text-[var(--exec-ink)]">{col.title}</p>
-              <ul className="mt-2.5 flex flex-wrap gap-1.5">
-                {col.items.map((item) => (
-                  <li
-                    key={item}
-                    className="exec-label border border-[var(--exec-hairline)] px-2 py-1 text-[var(--exec-ink-dim)]"
-                  >
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
+        ].map((col) => (
+          <div key={col.title}>
+            <p className="exec-label text-[var(--exec-ink)]">{col.title}</p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {col.items.map((item) => (
+                <li
+                  key={item}
+                  className="chip text-[var(--exec-ink-dim)]"
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </div>
     </section>
   );

@@ -75,8 +75,8 @@ export default function World() {
       }
     >
 
-      <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
-        <section className="xl:col-span-9">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <section className="lg:col-span-9">
           <Panel
             title="World map"
             meta={`${plottedCount} of ${plottableTotal} places`}
@@ -85,7 +85,7 @@ export default function World() {
               nodes={nodes}
               flows={showFlows ? overview.flows : []}
               events={(overview.mapEvents ?? []).filter((e) => e.nodeId !== "")}
-              height={540}
+              className="map-frame"
               selected={selected}
               onSelect={setSelected}
               onInspect={(id) => navigate(`/app/country/${id}`)}
@@ -96,7 +96,7 @@ export default function World() {
           </Panel>
         </section>
 
-        <section className="space-y-3 xl:col-span-3">
+        <section className="space-y-3 lg:col-span-3">
           {selected ? (
             <MapSelection nodeId={selected} onClose={() => setSelected(null)} />
           ) : null}
@@ -140,9 +140,9 @@ export default function World() {
                     <button
                       type="button"
                       onClick={() => setSelected(c.nodeId)}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/4"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-[var(--exec-surface)]"
                     >
-                      <span className="num w-7 shrink-0 text-[10px] text-muted-foreground">
+                      <span className="num w-7 shrink-0 text-[12px] text-muted-foreground">
                         {c.short}
                       </span>
                       <span className="min-w-0 flex-1 truncate text-[12px]">
@@ -155,7 +155,7 @@ export default function World() {
                           height={3}
                         />
                       </span>
-                      <span className="num w-7 shrink-0 text-right text-[10px]">
+                      <span className="num w-7 shrink-0 text-right text-[12px]">
                         {(c.load * 100).toFixed(0)}
                       </span>
                     </button>
@@ -177,7 +177,7 @@ export default function World() {
                         <button
                           type="button"
                           onClick={() => setSelected(n.nodeId)}
-                          className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-white/4"
+                          className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-[var(--exec-surface)]"
                         >
                           <span className="min-w-0 flex-1 truncate text-[12px]">
                             {n.label}
@@ -189,7 +189,7 @@ export default function World() {
                               height={3}
                             />
                           </span>
-                          <span className="num w-7 shrink-0 text-right text-[10px]">
+                          <span className="num w-7 shrink-0 text-right text-[12px]">
                             {(n.load * 100).toFixed(0)}
                           </span>
                         </button>
@@ -201,7 +201,7 @@ export default function World() {
           </Panel>
 
           <Panel title="On these arcs">
-            <p className="px-3 py-3 text-[11px] leading-relaxed text-muted-foreground">
+            <p className="px-3 py-3 text-[12px] leading-relaxed text-muted-foreground">
               An arc means a chokepoint and an economy are pulled by the same
               events, weighted by the weaker of the two contribution terms. It
               is a coupling in the model, not a shipping lane and not a trade

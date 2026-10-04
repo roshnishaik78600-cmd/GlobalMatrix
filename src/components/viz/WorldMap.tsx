@@ -123,7 +123,7 @@ export function WorldMap({
   flows = [],
   events = [],
   loading,
-  height = 380,
+  height,
   onSelect,
   onInspect,
   selected,
@@ -135,6 +135,12 @@ export function WorldMap({
   flows?: MapFlow[];
   events?: MapEvent[];
   loading?: boolean;
+  /**
+   * A fixed pixel height, for a map that is a supporting picture inside a panel
+   * that has already sized itself. Omit it for a map that owns its section —
+   * those take `className="map-frame"` and get 400/440/600px at
+   * phone/tablet/desktop, which is the specified band at every width.
+   */
   height?: number;
   onSelect?: (nodeId: string) => void;
   /** Double-click: open the full profile for this place. */
@@ -185,14 +191,7 @@ export function WorldMap({
 
   if (loading) {
     return (
-      <div className="space-y-2 p-3">
-        <Skeleton className="h-[320px] w-full" />
-        <div className="flex gap-2">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-3 flex-1" />
-          ))}
-        </div>
-      </div>
+      <Skeleton className={cn("w-full", className)} />
     );
   }
 
@@ -242,12 +241,28 @@ export function WorldMap({
   const hovered = plotted.find((p) => p.nodeId === hover);
 
   return (
-    <div className={cn("relative min-w-0", className)}>
+    // Exactly one of three things owns the height, and the order is fixed so two
+    // of them can never both apply: an explicit `height` number wins and is set
+    // inline; otherwise a caller-supplied class owns it; otherwise the map falls
+    // back to the responsive default. Picking by precedence rather than by CSS
+    // order is what stops `lg:h-full` and `lg:h-[600px]` from racing.
+    <div
+      className={cn(
+        "relative min-w-0",
+        height === undefined && !className && "map-frame",
+        className,
+      )}
+    >
       <svg
         ref={svg}
         viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`}
-        className="block w-full touch-none select-none"
-        style={{ height }}
+        className={cn(
+          "block w-full touch-none select-none",
+          // With no inline height the svg fills whatever box the wrapper was
+          // given, rather than collapsing to its own intrinsic ratio.
+          height === undefined && "h-full",
+        )}
+        style={height ? { height } : undefined}
         preserveAspectRatio="xMidYMid meet"
         role="img"
         aria-label={`World map. ${plotted.length} tracked nodes plotted on real country geometry.`}
@@ -329,7 +344,7 @@ export function WorldMap({
                   x={p.x}
                   y={p.y + 12 / zoom}
                   textAnchor="middle"
-                  fill="var(--muted-foreground)"
+                  fill="var(--muted-text)"
                   style={{
                     fontSize: Math.min(13, 10 * zoom),
                     letterSpacing: "0.04em",
@@ -497,9 +512,9 @@ export function WorldMap({
               onClick={c.fn}
               title={c.label}
               aria-label={c.label}
-              className="flex size-7 items-center justify-center border border-rule bg-card/90 text-muted-foreground backdrop-blur transition-colors hover:text-foreground"
+              className="flex size-9 items-center justify-center border border-[var(--exec-hairline)] bg-[var(--card)]/95 text-[var(--exec-ink-dim)] backdrop-blur transition-colors hover:text-[var(--exec-ink)]"
             >
-              <Icon className="size-3.5" />
+              <Icon className="size-4" />
             </button>
           );
         })}
@@ -508,9 +523,9 @@ export function WorldMap({
       {/* Hover read-out. The load shown follows the active layer, and says
           plainly when a place has no reading for it. */}
       {hovered ? (
-        <div className="pointer-events-none absolute bottom-3 left-3 max-w-[min(20rem,70%)] min-w-0 border border-rule bg-popover/95 px-3 py-2 backdrop-blur">
-          <p className="text-[12.5px] font-semibold">{hovered.node.label}</p>
-          <p className="num mt-0.5 text-[10px] text-muted-foreground">
+        <div className="pointer-events-none absolute bottom-3 left-3 max-w-[min(20rem,70%)] min-w-0 rounded-lg border border-[var(--exec-hairline-strong)] bg-[var(--surface-2)]/95 px-3.5 py-2.5 backdrop-blur">
+          <p className="text-[14px] font-semibold">{hovered.node.label}</p>
+          <p className="num mt-0.5 text-[12px] text-[var(--exec-ink-dim)]">
             {hovered.node.region} · {hovered.node.kind} ·{" "}
             {loadFor(hovered) === null
               ? `no ${CHANNEL_LABEL[channel!]} reading`
@@ -528,7 +543,7 @@ export function WorldMap({
 /** Legend for the map encoding. */
 export function MapLegend() {
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-2">
+    <div className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3">
       {[
         { label: "Economy", glyph: "circle" },
         { label: "Bloc", glyph: "square" },
@@ -542,15 +557,16 @@ export function MapLegend() {
               transform: g.glyph === "diamond" ? "rotate(45deg) scale(0.8)" : undefined,
             }}
           />
-          <span className="label text-muted-foreground">{g.label}</span>
+          <span className="exec-label-muted">{g.label}</span>
         </span>
       ))}
-      <span className="label flex items-center gap-1.5 text-muted-foreground">
+      <span className="exec-label-muted flex items-center gap-1.5">
         <span className="inline-block size-2 rounded-full bg-signal" />
         Event
       </span>
-      <span className="label text-muted-foreground">
-        Land shading = live load · click to inspect · double-click to open the profile · drag to pan
+      <span className="exec-label-muted">
+        Land shading = live load · click to inspect · double-click to open the
+        profile · drag to pan
       </span>
     </div>
   );

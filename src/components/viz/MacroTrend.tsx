@@ -95,7 +95,7 @@ export function MacroTrend({
 
       <div className="space-y-1.5 border-t border-rule px-3 py-2">
         <StatusBadge status="scenario" />
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
+        <p className="text-[12px] leading-relaxed text-muted-foreground">
           Dashed markers are years in which this scenario corpus dates an event.
           A marker beside a growth reading shows the two happened in the same
           period. That is a correlation in time, not a demonstrated cause — the
@@ -138,7 +138,7 @@ function SeriesChart({
     <div>
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-[12px]">{label}</span>
-        <span className="num text-[11px] text-muted-foreground">
+        <span className="num text-[12px] text-muted-foreground">
           {values[values.length - 1].toFixed(1)}% in {years[years.length - 1]}
         </span>
       </div>
@@ -191,7 +191,7 @@ function SeriesChart({
             <title>{`${years[i]}: ${v.toFixed(2)}% reported`}</title>
           </circle>
         ))}
-        <text x={2} y={y(max) + 4} className="num" fill="var(--muted-foreground)" style={{ fontSize: 8 }}>
+        <text x={2} y={y(max) + 4} className="num" fill="var(--muted-foreground)" style={{ fontSize: 12 }}>
           {max.toFixed(1)}
         </text>
         <text
@@ -199,7 +199,7 @@ function SeriesChart({
           y={y(min) + 3}
           className="num"
           fill="var(--muted-foreground)"
-          style={{ fontSize: 8 }}
+          style={{ fontSize: 12 }}
         >
           {min.toFixed(1)}
         </text>
@@ -208,7 +208,7 @@ function SeriesChart({
           y={H - 3}
           className="num"
           fill="var(--muted-foreground)"
-          style={{ fontSize: 8 }}
+          style={{ fontSize: 12 }}
         >
           {years[0]}
         </text>
@@ -218,7 +218,7 @@ function SeriesChart({
           textAnchor="end"
           className="num"
           fill="var(--muted-foreground)"
-          style={{ fontSize: 8 }}
+          style={{ fontSize: 12 }}
         >
           {years[years.length - 1]}
         </text>

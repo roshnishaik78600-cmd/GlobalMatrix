@@ -92,8 +92,8 @@ export default function GraphExplorerPage() {
       }
     >
 
-      <div className="grid grid-cols-1 gap-3 p-3 xl:grid-cols-12">
-        <section className="xl:col-span-9">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <section className="lg:col-span-9">
           <Panel
             title="Propagation graph"
             meta={`${view.nodes.length} of ${nodeCount} nodes · ${view.edges.length} edges`}
@@ -155,13 +155,13 @@ export default function GraphExplorerPage() {
           </Panel>
         </section>
 
-        <section className="space-y-3 xl:col-span-3">
+        <section className="space-y-3 lg:col-span-3">
           <Panel title="Selection" meta="click a node">
             {selected ? (
               <div className="space-y-3 p-3">
                 <div>
                   <p className="text-[14px] font-semibold">{selectedLabel(selected)}</p>
-                  <p className="num mt-0.5 text-[10px] text-muted-foreground">
+                  <p className="num mt-0.5 text-[12px] text-muted-foreground">
                     {selected}
                   </p>
                 </div>
@@ -183,7 +183,7 @@ export default function GraphExplorerPage() {
           </Panel>
 
           <Panel title="Edge legend">
-            <ul className="divide-y divide-rule text-[11px]">
+            <ul className="divide-y divide-rule text-[12px]">
               {[
                 ["propagates via", "Event → Channel, weighted by pathway magnitude"],
                 ["exposes", "Channel → Node, weighted by impact × magnitude"],
@@ -197,7 +197,7 @@ export default function GraphExplorerPage() {
           </Panel>
 
           <Panel title="Not available">
-            <p className="px-3 py-3 text-[11px] leading-relaxed text-muted-foreground">
+            <p className="px-3 py-3 text-[12px] leading-relaxed text-muted-foreground">
               Company, commodity and policy nodes are absent because this build
               has no company graph, commodity registry or policy dataset. Adding
               them would mean inventing relationships, so they are not drawn.

@@ -170,7 +170,7 @@ export default function Supply() {
                           setIndustryId(r.id);
                           setView("sectors");
                         }}
-                        className="min-w-0 flex-1 truncate text-left text-[11.5px] text-[var(--exec-ink)] transition-colors hover:underline"
+                        className="min-w-0 flex-1 truncate text-left text-[13px] text-[var(--exec-ink)] transition-colors hover:underline"
                       >
                         {r.label}
                       </button>
@@ -181,13 +181,13 @@ export default function Supply() {
                         />
                       </span>
                       <span
-                        className="exec-num w-9 shrink-0 text-right text-[10.5px]"
+                        className="exec-num w-9 shrink-0 text-right text-[12px]"
                         style={{ color: loadColour(r.load) }}
                       >
                         {pct(r.load)}
                       </span>
                       <span
-                        className="exec-num w-12 shrink-0 text-right text-[9.5px] text-[var(--exec-ink-dim)]"
+                        className="exec-num w-12 shrink-0 text-right text-[12px] text-[var(--exec-ink-dim)]"
                         title="Substitution lead time — the sector's real constraint"
                       >
                         {r.substitutionMonths}mo
@@ -216,7 +216,7 @@ export default function Supply() {
                   <select
                     value={activeIndustry ?? ""}
                     onChange={(e) => setIndustryId(e.target.value)}
-                    className="h-6 border border-[var(--exec-hairline)] bg-[var(--exec-surface)] px-1.5 text-[11px] text-[var(--exec-ink)] outline-none"
+                    className="h-6 border border-[var(--exec-hairline)] bg-[var(--exec-surface)] px-1.5 text-[12px] text-[var(--exec-ink)] outline-none"
                     aria-label="Select sector"
                   >
                     {directory?.industries.map((r) => (
@@ -297,7 +297,7 @@ export default function Supply() {
                   <p className="exec-label text-[var(--exec-ink)]">
                     NO VERIFIED GEOGRAPHIC DATA AVAILABLE
                   </p>
-                  <p className="mt-1.5 max-w-lg text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
+                  <p className="mt-1.5 max-w-lg text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
                     Every stage in this sector&apos;s chain is an abstraction such as
                     &ldquo;input&rdquo; or &ldquo;route&rdquo;, which has no place on
                     the map. GlobalMatrix does not place those at approximate
@@ -307,11 +307,11 @@ export default function Supply() {
                 </div>
               ) : (
                 <>
-                  <WorldMap nodes={geoNodes} flows={geoFlows} height={300} />
+                  <WorldMap nodes={geoNodes} flows={geoFlows} height={340} />
                   <div className="border-t border-[var(--exec-hairline)]">
                     <MapLegend />
                   </div>
-                  <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[11px] leading-relaxed text-[var(--exec-ink-dim)]">
+                  <p className="border-t border-[var(--exec-hairline)] px-3 py-2 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
                     Arcs follow the sector&apos;s declared structure: each input and
                     route node feeds each declared producer, and each producer feeds
                     each declared consumer. Their weights are structural shares, not

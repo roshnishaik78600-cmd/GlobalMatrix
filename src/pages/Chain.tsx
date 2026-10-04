@@ -76,7 +76,7 @@ export default function ChainPage() {
         ]}
       />
 
-      <div className="grid grid-cols-1 gap-3 p-3">
+      <div className="grid grid-cols-1 gap-4">
         <ChainExplorer />
 
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-12">
@@ -94,7 +94,7 @@ export default function ChainPage() {
                 nodes={overview.mapNodes}
                 flows={overview.flows}
                 events={(overview.mapEvents ?? []).filter((e) => e.nodeId !== "")}
-                height={480}
+                className="map-frame"
                 selected={selected}
                 onSelect={setSelected}
                 onInspect={(id) => navigate(`/app/country/${id}`)}
@@ -113,7 +113,7 @@ export default function ChainPage() {
                 <div className="panel-head">
                   <span className="label">Pick a place</span>
                 </div>
-                <p className="p-3 text-[11.5px] leading-relaxed text-muted-foreground">
+                <p className="p-3 text-[13px] leading-relaxed text-muted-foreground">
                   Select any country, bloc or chokepoint on the map to see its
                   live load, its reported growth and its reported trade — each
                   with the source it came from.

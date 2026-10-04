@@ -1,4 +1,10 @@
-import type { ReactNode } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { Link } from "react-router";
 import { AlertTriangle, Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -75,45 +81,76 @@ export function PageFrame({
     // 100vh minimum here would give every page a permanent phantom scrollbar's
     // worth of empty space below its footer.
     <ExecPage className="flex min-h-full flex-col">
-      <header className="border-b border-[var(--exec-hairline)] px-4 pt-5 pb-4 lg:px-6">
-        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-          <div className="min-w-0 max-w-2xl">
-            <p className="exec-label text-[var(--exec-cyan)]">{eyebrow}</p>
-            <h1 className="mt-1.5 text-[1.45rem] leading-[1.15] font-semibold tracking-[-0.025em] text-[var(--exec-ink)]">
-              {title}
-            </h1>
-            <p className="mt-1.5 text-[12.5px] leading-relaxed text-[var(--exec-ink-dim)]">
-              {lede}
-            </p>
+      <header className="border-b border-[var(--exec-hairline)]">
+        <div className="gm-width px-4 pt-8 pb-6 lg:px-8">
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+            <div className="min-w-0 max-w-3xl">
+              <p className="exec-label text-[var(--exec-cyan)]">{eyebrow}</p>
+              <h1 className="t-page mt-2 text-[var(--exec-ink)]">{title}</h1>
+              <p className="t-body mt-2 max-w-2xl text-[var(--exec-ink-dim)]">{lede}</p>
+            </div>
+            {actions ? (
+              <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+            ) : null}
           </div>
-          {actions ? (
-            <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
-          ) : null}
         </div>
       </header>
 
       {controls ? (
-        <div className="min-w-0 border-b border-[var(--exec-hairline)] px-4 lg:px-6">
-          {controls}
+        <div className="min-w-0 border-b border-[var(--exec-hairline)]">
+          <div className="gm-width px-4 lg:px-8">{controls}</div>
         </div>
       ) : null}
 
-      <main className="min-w-0 flex-1 px-4 py-4 lg:px-6">
-        {/* The one grid, inlined: 12 columns on desktop, one on mobile, a
-            single gutter. Not exported, because every page reaches it through
-            PageFrame and a second entry point would be a second thing to drift.
-            Tracks stretch by default so regions sharing a row end on the same
-            baseline, and `Region` pins `min-w-0` on both its own box and the
-            panel inside it so a wide child cannot widen the track. */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">{children}</div>
+      <main className="min-w-0 flex-1">
+        <div className="gm-width px-4 py-6 lg:px-8 lg:py-8">
+          <BodyGrid>{children}</BodyGrid>
+        </div>
       </main>
 
       {footer ? (
-        <footer className="border-t border-[var(--exec-hairline)] px-4 py-3 lg:px-6">
-          {footer}
+        <footer className="border-t border-[var(--exec-hairline)]">
+          <div className="gm-width px-4 py-4 lg:px-8">{footer}</div>
         </footer>
       ) : null}
     </ExecPage>
+  );
+}
+
+/**
+ * The one 12-column body grid.
+ *
+ * Not inlined in `PageFrame` any more, because it has to do one thing the markup
+ * cannot: decide what happens to a child that never declared a span.
+ *
+ * Several pages still wrap a whole section in a bare `<div>` — a stats strip, a
+ * filter row, a nested two-column grid. Inside a 12-column grid a bare div is
+ * one column wide, so at every width above `lg` those sections were rendered at
+ * one twelfth of the viewport and silently overflowed their own contents. Rather
+ * than hunt down each of them and hope none is added later, a host element that
+ * carries no column span is given the full row here.
+ *
+ * Only *host* elements are touched. A custom component (`Region`, `PageLoading`,
+ * anything else) is passed through untouched, because it may set its own span on
+ * an element this function cannot see, and two competing `lg:col-span-*`
+ * utilities would resolve by stylesheet order rather than by intent.
+ */
+function BodyGrid({ children }: { children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
+      {Children.map(children, (child) => {
+        if (!isValidElement(child) || typeof child.type !== "string") {
+          return child;
+        }
+        const props = child.props as { className?: unknown };
+        const cls = typeof props.className === "string" ? props.className : "";
+        // Already spanned, or deliberately full-bleed inside a sub-grid.
+        if (/(^|\s)(lg:)?col-span-/.test(cls)) return child;
+        return cloneElement(child as ReactElement<{ className?: string }>, {
+          className: cn("lg:col-span-12", cls),
+        });
+      })}
+    </div>
   );
 }
 
@@ -151,17 +188,20 @@ export function Region({
       )}
     >
       {dominant ? (
+        // The dominant object is the one thing on the page that gets the accent
+        // border. It is a ring, not a glow: on a surface this dark a diffuse
+        // shadow reads as blur, and blur reads as an accident.
         <section
-          className="glass flex h-full min-w-0 flex-col"
+          className="card flex h-full min-w-0 flex-col"
           style={{
-            boxShadow:
-              "0 0 0 1px color-mix(in srgb, var(--exec-cyan) 12%, transparent), 0 18px 60px -40px rgba(0,0,0,0.9)",
+            borderColor:
+              "color-mix(in srgb, var(--exec-cyan) 45%, var(--exec-hairline))",
           }}
         >
           {children}
         </section>
       ) : (
-        <section className="glass flex h-full min-w-0 flex-col">{children}</section>
+        <section className="card flex h-full min-w-0 flex-col">{children}</section>
       )}
     </div>
   );
@@ -187,9 +227,11 @@ export function PanelHead({
 }) {
   return (
     <>
-      <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[var(--exec-hairline)] px-3 py-2">
+      <div className="flex min-w-0 items-center justify-between gap-3 border-b border-[var(--exec-hairline)] px-4 py-3">
         <div className="flex min-w-0 items-baseline gap-2">
-          <h2 className="exec-label shrink-0 text-[var(--exec-ink)]">{title}</h2>
+          <h2 className="shrink-0 text-[15px] leading-tight font-semibold text-[var(--exec-ink)]">
+            {title}
+          </h2>
           {meta ? <span className="exec-label min-w-0 truncate">{meta}</span> : null}
         </div>
         {actions ? (
@@ -244,9 +286,9 @@ export function Metric({
       {...(interactive ? { type: "button" as const, onClick } : {})}
       title={hint}
       className={cn(
-        "glass flex min-w-0 flex-col gap-1 px-3 py-2 text-left",
-        interactive && "glass-hover cursor-pointer",
-        active && "border-[var(--exec-cyan)]/60",
+        "card flex min-w-0 flex-col gap-1.5 p-4 text-left",
+        interactive && "card-hover cursor-pointer",
+        active && "border-[var(--exec-cyan)]",
       )}
     >
       <span className="flex min-w-0 items-baseline justify-between gap-2">
@@ -255,7 +297,7 @@ export function Metric({
       </span>
       <span className="flex min-w-0 items-baseline gap-1.5">
         <span
-          className="exec-num min-w-0 truncate text-[1.55rem] leading-none font-bold tracking-[-0.02em]"
+          className="exec-num min-w-0 truncate text-[2rem] leading-none font-bold tracking-[-0.025em]"
           style={{ color: tone ?? "var(--exec-ink)" }}
         >
           {value}
@@ -264,7 +306,7 @@ export function Metric({
         {trend !== undefined ? <Trend value={trend} /> : null}
       </span>
       {period ? (
-        <span className="exec-num text-[9.5px] text-[var(--exec-ink-dim)]">{period}</span>
+        <span className="exec-num text-[13px] text-[var(--exec-ink-dim)]">{period}</span>
       ) : null}
     </Tag>
   );
@@ -307,7 +349,7 @@ export function Trend({ value }: { value: number }) {
       : "var(--exec-ink-dim)";
   return (
     <span
-      className="exec-num ml-auto shrink-0 text-[10px] font-semibold"
+      className="exec-num ml-auto shrink-0 text-[12px] font-semibold"
       style={{ color: colour }}
       title={up ? "Rising" : down ? "Falling" : "Unchanged"}
     >
@@ -354,7 +396,7 @@ export function DataType({ type }: { type: Basis }) {
  */
 export function FilterBar({ children, scope }: { children: ReactNode; scope?: ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-2 py-2">
+    <div className="flex min-w-0 flex-wrap items-center gap-2 py-3">
       <div className="flex min-w-0 flex-wrap items-center gap-2">{children}</div>
       {scope ? (
         <div className="exec-label ml-auto flex min-w-0 items-center gap-2 truncate">
@@ -391,10 +433,10 @@ export function Segmented<T extends string>({
           aria-pressed={o.id === value}
           title={o.hint}
           className={cn(
-            "exec-label border px-2.5 py-1 transition-colors",
+            "exec-label rounded-full border px-3 py-1.5 whitespace-nowrap transition-colors",
             o.id === value
               ? "border-[color-mix(in_srgb,var(--exec-cyan)_60%,transparent)] bg-[color-mix(in_srgb,var(--exec-cyan)_12%,transparent)] text-[var(--exec-ink)]"
-              : "border-[var(--exec-hairline)] text-[var(--exec-ink-dim)] hover:text-[var(--exec-ink)]",
+              : "border-[var(--exec-hairline)] text-[var(--exec-ink-dim)] hover:border-[var(--exec-hairline-strong)] hover:text-[var(--exec-ink)]",
           )}
         >
           {o.label}
@@ -415,7 +457,7 @@ export function Action({
   onClick?: () => void;
 }) {
   const cls =
-    "exec-label inline-flex items-center gap-1.5 border border-[var(--exec-hairline-strong)] px-2.5 py-1.5 text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]";
+    "inline-flex items-center gap-1.5 rounded-full border border-[var(--exec-hairline-strong)] px-3.5 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)] hover:bg-[var(--exec-surface)]";
   if (to) {
     return (
       <Link to={to} className={cls}>
@@ -513,7 +555,7 @@ export function DataTable({
                 scope="col"
                 style={c.width ? { width: c.width } : undefined}
                 className={cn(
-                  "exec-label px-3 py-2 whitespace-nowrap",
+                  "exec-label px-4 py-3 whitespace-nowrap",
                   c.numeric ? "text-right" : "text-left",
                 )}
               >
@@ -536,7 +578,7 @@ export function DataTable({
                 <td
                   key={c.key}
                   className={cn(
-                    "px-3 py-2 text-[12px] whitespace-nowrap",
+                    "px-4 py-3 text-[13px] whitespace-nowrap",
                     c.numeric
                       ? "exec-num text-right text-[var(--exec-ink)]"
                       : "text-[var(--exec-ink)]",
@@ -576,21 +618,17 @@ export function PageLoading({
   dominant?: string;
 }) {
   return (
-    <div className="min-w-0 px-4 py-5 lg:px-6">
+    <div className="gm-width px-4 py-8 lg:px-8">
       <p className="exec-label text-[var(--exec-cyan)]">{eyebrow}</p>
-      <h1 className="mt-1.5 text-[1.45rem] leading-[1.15] font-semibold tracking-[-0.025em] text-[var(--exec-ink)]">
-        {title}
-      </h1>
-      <p className="mt-1.5 max-w-2xl text-[12.5px] leading-relaxed text-[var(--exec-ink-dim)]">
-        {lede}
-      </p>
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-12">
+      <h1 className="t-page mt-2 text-[var(--exec-ink)]">{title}</h1>
+      <p className="t-body mt-2 max-w-2xl text-[var(--exec-ink-dim)]">{lede}</p>
+      <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
         <div className={dominant}>
-          <div className="glass h-[420px] w-full animate-pulse" />
+          <div className="card h-[420px] w-full animate-pulse" />
         </div>
-        <div className="lg:col-span-4">
-          <div className="glass h-[200px] w-full animate-pulse" />
-          <div className="glass mt-4 h-[204px] w-full animate-pulse" />
+        <div className="flex flex-col gap-4 lg:col-span-4">
+          <div className="card h-[200px] w-full animate-pulse" />
+          <div className="card h-[204px] w-full animate-pulse" />
         </div>
       </div>
     </div>
@@ -614,13 +652,13 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-[132px] flex-col justify-center gap-1.5 p-4">
+    <div className="flex min-h-[180px] flex-col justify-center gap-2 p-6">
       <div className="flex items-center gap-2">
-        <Inbox className="size-3.5 shrink-0 text-[var(--exec-ink-dim)]" aria-hidden />
+        <Inbox className="size-4 shrink-0 text-[var(--exec-ink-dim)]" aria-hidden />
         <span className="exec-label text-[var(--exec-ink)]">NO VERIFIED DATA</span>
       </div>
-      <p className="text-[12.5px] font-medium text-[var(--exec-ink)]">{title}</p>
-      <p className="max-w-md text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
+      <p className="t-card text-[var(--exec-ink)]">{title}</p>
+      <p className="max-w-md text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
         {reason}
       </p>
       {action}
@@ -639,17 +677,17 @@ export function ErrorState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-[132px] flex-col justify-center gap-1.5 p-4">
+    <div className="flex min-h-[180px] flex-col justify-center gap-2 p-6">
       <div className="flex items-center gap-2">
         <AlertTriangle
-          className="size-3.5 shrink-0 text-[var(--exec-crimson)]"
+          className="size-4 shrink-0 text-[var(--exec-crimson)]"
           aria-hidden
         />
-        <span className="exec-label text-[var(--exec-crimson)]">ERROR</span>
+        <span className="exec-label text-[var(--exec-crimson)]">UNAVAILABLE</span>
       </div>
-      <p className="text-[12.5px] font-medium text-[var(--exec-ink)]">{title}</p>
+      <p className="t-card text-[var(--exec-ink)]">{title}</p>
       {reason ? (
-        <p className="max-w-md text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
+        <p className="max-w-md text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
           {reason}
         </p>
       ) : null}

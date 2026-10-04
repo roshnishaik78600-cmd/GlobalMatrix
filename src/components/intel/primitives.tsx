@@ -43,10 +43,10 @@ export function Figure({
   className?: string;
 }) {
   return (
-    <span className={cn("h-metric", className)}>
+    <span className={cn("exec-num text-[1.75rem] leading-none font-semibold tracking-[-0.02em]", className)}>
       {value}
       {suffix ? (
-        <span className="ml-1 text-[11px] font-normal text-muted-foreground">
+        <span className="ml-1 text-[12px] font-normal text-muted-foreground">
           {suffix}
         </span>
       ) : null}
@@ -73,7 +73,7 @@ export function Meter({
           ? "var(--stable)"
           : "var(--foreground)";
   return (
-    <div className={cn("h-1 w-full bg-white/10", className)}>
+    <div className={cn("h-1 w-full bg-[var(--exec-surface)]", className)}>
       <div
         className="h-full transition-[width] duration-500"
         style={{
@@ -125,11 +125,11 @@ export function IntervalBar({
   const marker = Math.max(0, Math.min(100, score));
 
   return (
-    <div className={cn("relative h-5 w-full bg-white/6", className)}>
+    <div className={cn("relative h-5 w-full bg-[var(--exec-surface)]", className)}>
       {showTicks ? (
         <div className="pointer-events-none absolute inset-0 flex justify-between">
           {[0, 25, 50, 75, 100].map((t) => (
-            <span key={t} className="h-full w-px bg-white/10" />
+            <span key={t} className="h-full w-px bg-[var(--exec-surface)]" />
           ))}
         </div>
       ) : null}
@@ -205,7 +205,7 @@ export function ChannelBars({
         const value = pressure[channel];
         return (
           <div key={channel} className="space-y-1">
-            <div className="flex h-5 w-full flex-col justify-end bg-white/8">
+            <div className="flex h-5 w-full flex-col justify-end bg-[var(--exec-surface)]">
               <div
                 className="w-full transition-[height] duration-500"
                 style={{
@@ -214,7 +214,7 @@ export function ChannelBars({
                 }}
               />
             </div>
-            <span className="label text-[8px] text-muted-foreground">
+            <span className="label text-[12px] text-muted-foreground">
               {CHANNEL_LABEL[channel].slice(0, 3).toUpperCase()}
             </span>
           </div>
@@ -242,7 +242,7 @@ export function HeatCell({ value }: { value: number }) {
     >
       <span
         className={cn(
-          "num absolute inset-0 flex items-center justify-center text-[10px]",
+          "num absolute inset-0 flex items-center justify-center text-[12px]",
           intensity > 0.55 ? "text-background" : "text-muted-foreground",
         )}
       >

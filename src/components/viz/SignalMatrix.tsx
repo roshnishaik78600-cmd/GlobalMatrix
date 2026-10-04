@@ -131,7 +131,7 @@ export function SignalMatrix({ className }: { className?: string }) {
               {COLUMNS.map((c) => (
                 <th key={c.id} className="px-1.5 py-2 align-bottom">
                   <span className="label block text-foreground/85">{c.label}</span>
-                  <span className="label mt-1 block text-[8.5px] leading-tight font-normal tracking-normal normal-case text-muted-foreground">
+                  <span className="label mt-1 block text-[12px] leading-tight font-normal tracking-normal normal-case text-muted-foreground">
                     {c.basis}
                   </span>
                   <span className="mt-1 flex justify-center">
@@ -162,7 +162,7 @@ export function SignalMatrix({ className }: { className?: string }) {
                         aria-pressed={active}
                         className="flex min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:text-signal"
                       >
-                        <span className="num w-7 shrink-0 text-[10px] text-muted-foreground">
+                        <span className="num w-7 shrink-0 text-[12px] text-muted-foreground">
                           {row.short}
                         </span>
                         <span className="min-w-0 truncate text-[12px]">{row.label}</span>
@@ -189,7 +189,7 @@ export function SignalMatrix({ className }: { className?: string }) {
                   <td className="px-1.5 py-1.5">
                     {observed ? (
                       <span
-                        className="num block text-center text-[11.5px] font-semibold"
+                        className="num block text-center text-[13px] font-semibold"
                         style={{
                           color:
                             observed.latest.value >= 0
@@ -247,7 +247,7 @@ export function SignalMatrix({ className }: { className?: string }) {
             className="p-0"
           />
         )}
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
+        <p className="text-[12px] leading-relaxed text-muted-foreground">
           {COLUMNS.filter((c) => !c.observed).map((c) => c.label).join(", ")} are
           this model&apos;s own load on each channel for that economy.{" "}
           {CHANNEL_LABEL.finance} carries the Market column. Economic growth is

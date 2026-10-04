@@ -96,9 +96,9 @@ export function TemporalSlider({
           </p>
         </div>
         <div className="text-right">
-          <p className="num text-[11px] text-foreground/85">{shortTime(current.at)}</p>
+          <p className="num text-[12px] text-foreground/85">{shortTime(current.at)}</p>
           {current.note ? (
-            <p className="mt-0.5 text-[10.5px] text-muted-foreground">{current.note}</p>
+            <p className="mt-0.5 text-[12px] text-muted-foreground">{current.note}</p>
           ) : null}
         </div>
       </div>
@@ -161,15 +161,15 @@ export function TemporalSlider({
           className="h-1 w-full cursor-pointer appearance-none bg-rule accent-[var(--signal)]"
         />
         <div className="mt-1.5 flex items-baseline justify-between">
-          <span className="num text-[9.5px] text-muted-foreground">
+          <span className="num text-[12px] text-muted-foreground">
             {shortTime(points[0].at)}
           </span>
           <span className="label text-muted-foreground">{series.axisLabel}</span>
-          <span className="num text-[9.5px] text-muted-foreground">
+          <span className="num text-[12px] text-muted-foreground">
             {shortTime(points[points.length - 1].at)}
           </span>
         </div>
-        <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+        <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
           {series.caption}
         </p>
       </div>

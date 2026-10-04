@@ -91,21 +91,21 @@ export function FocusDrawer() {
                 ] as const
               ).map(([label, value]) => (
                 <li key={label} className="flex items-center gap-3 px-4 py-2">
-                  <span className="w-24 shrink-0 text-[11.5px]">{label}</span>
+                  <span className="w-24 shrink-0 text-[13px]">{label}</span>
                   <Bar
                     value={value}
                     tone={riskColorForScore(value * 100)}
                     height={4}
                     className="flex-1"
                   />
-                  <span className="num w-9 shrink-0 text-right text-[10px] text-muted-foreground">
+                  <span className="num w-9 shrink-0 text-right text-[12px] text-muted-foreground">
                     {(value * 100).toFixed(0)}%
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="px-4 py-3 text-[11.5px] text-muted-foreground">
+            <p className="px-4 py-3 text-[13px] text-muted-foreground">
               No channel profile resolved for this node.
             </p>
           )}
@@ -116,7 +116,7 @@ export function FocusDrawer() {
           note={`${events.length} events in the corpus land hardest here`}
         >
           {events.length === 0 ? (
-            <p className="px-4 py-3 text-[11.5px] text-muted-foreground">
+            <p className="px-4 py-3 text-[13px] text-muted-foreground">
               No event currently ranks this node among the places it lands on
               hardest.
             </p>
@@ -126,17 +126,17 @@ export function FocusDrawer() {
                 <li key={e.id}>
                   <Link
                     to={`/app/event/${e.id}`}
-                    className="block px-4 py-2.5 transition-colors hover:bg-white/4"
+                    className="block px-4 py-2.5 transition-colors hover:bg-[var(--exec-surface)]"
                   >
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="line-clamp-2 text-[12px] leading-snug">
                         {e.title}
                       </span>
-                      <span className="num shrink-0 text-[11px]">
+                      <span className="num shrink-0 text-[12px]">
                         {e.score30.toFixed(0)}
                       </span>
                     </div>
-                    <p className="num mt-1 text-[9.5px] text-muted-foreground">
+                    <p className="num mt-1 text-[12px] text-muted-foreground">
                       {e.reference} · {STAGE_LABEL[e.stage]} ·{" "}
                       {CHANNEL_LABEL[e.dominantChannel as Channel]}
                     </p>
@@ -149,7 +149,7 @@ export function FocusDrawer() {
 
         <Section title="Who is affected alongside it?" note="ranked by live load">
           {peers.length === 0 ? (
-            <p className="px-4 py-3 text-[11.5px] text-muted-foreground">
+            <p className="px-4 py-3 text-[13px] text-muted-foreground">
               Nothing else to compare against in this selection.
             </p>
           ) : (
@@ -158,9 +158,9 @@ export function FocusDrawer() {
                 <li key={c.nodeId}>
                   <Link
                     to={`/app/country/${c.nodeId}`}
-                    className="flex items-center gap-2 px-4 py-2 transition-colors hover:bg-white/4"
+                    className="flex items-center gap-2 px-4 py-2 transition-colors hover:bg-[var(--exec-surface)]"
                   >
-                    <span className="num w-7 shrink-0 text-[10px] text-muted-foreground">
+                    <span className="num w-7 shrink-0 text-[12px] text-muted-foreground">
                       {c.short}
                     </span>
                     <span className="min-w-0 flex-1 truncate text-[12px]">
@@ -173,7 +173,7 @@ export function FocusDrawer() {
                         height={3}
                       />
                     </span>
-                    <span className="num w-8 shrink-0 text-right text-[10px]">
+                    <span className="num w-8 shrink-0 text-right text-[12px]">
                       {(c.load * 100).toFixed(0)}%
                     </span>
                   </Link>
@@ -194,15 +194,15 @@ export function FocusDrawer() {
                       <li key={c.nodeId}>
                         <Link
                           to={`/app/country/${c.nodeId}`}
-                          className="flex items-center gap-2 px-4 py-2 transition-colors hover:bg-white/4"
+                          className="flex items-center gap-2 px-4 py-2 transition-colors hover:bg-[var(--exec-surface)]"
                         >
-                          <span className="num w-7 shrink-0 text-[10px] text-muted-foreground">
+                          <span className="num w-7 shrink-0 text-[12px] text-muted-foreground">
                             {c.short}
                           </span>
                           <span className="min-w-0 flex-1 truncate text-[12px]">
                             {c.label}
                           </span>
-                          <span className="num w-8 shrink-0 text-right text-[10px]">
+                          <span className="num w-8 shrink-0 text-right text-[12px]">
                             {(c.load * 100).toFixed(0)}%
                           </span>
                         </Link>
@@ -264,7 +264,7 @@ export function FocusDrawer() {
               .sort((a, b) => b[1] - a[1])
               .map(([channel, value]) => (
                 <li key={channel} className="flex items-center gap-3 px-4 py-2">
-                  <span className="w-24 shrink-0 text-[11.5px]">
+                  <span className="w-24 shrink-0 text-[13px]">
                     {CHANNEL_LABEL[channel]}
                   </span>
                   <Bar
@@ -273,7 +273,7 @@ export function FocusDrawer() {
                     height={4}
                     className="flex-1"
                   />
-                  <span className="num w-9 shrink-0 text-right text-[10px] text-muted-foreground">
+                  <span className="num w-9 shrink-0 text-right text-[12px] text-muted-foreground">
                     {(value * 100).toFixed(0)}%
                   </span>
                 </li>
@@ -292,7 +292,7 @@ export function FocusDrawer() {
                   >
                     {n.label}
                   </Link>
-                  <span className="num shrink-0 text-[10px] text-muted-foreground">
+                  <span className="num shrink-0 text-[12px] text-muted-foreground">
                     {n.weight.toFixed(2)}
                   </span>
                 </div>
@@ -311,7 +311,7 @@ export function FocusDrawer() {
           title="Show evidence"
           note={`${event.signalCount} observations in the ledger`}
         >
-          <p className="px-4 py-3 text-[11.5px] leading-relaxed text-muted-foreground">
+          <p className="px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
             The full evidence ledger — every observation, its source class, its
             reliability weight and its corroboration count — is on the event
             page, where each row can be read against the score it supports.
@@ -350,7 +350,7 @@ export function FocusDrawer() {
             <ul className="divide-y divide-rule">
               {row.byChannel.map((c) => (
                 <li key={c.channel} className="flex items-center gap-3 px-4 py-2">
-                  <span className="w-24 shrink-0 text-[11.5px]">
+                  <span className="w-24 shrink-0 text-[13px]">
                     {CHANNEL_LABEL[c.channel as Channel]}
                   </span>
                   <Bar
@@ -359,20 +359,20 @@ export function FocusDrawer() {
                     height={4}
                     className="flex-1"
                   />
-                  <span className="num w-9 shrink-0 text-right text-[10px] text-muted-foreground">
+                  <span className="num w-9 shrink-0 text-right text-[12px] text-muted-foreground">
                     {(c.load * 100).toFixed(0)}%
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="px-4 py-3 text-[11.5px] text-muted-foreground">
+            <p className="px-4 py-3 text-[13px] text-muted-foreground">
               No exposure profile resolved.
             </p>
           )}
         </Section>
         <Section title="Show evidence" note="reported">
-          <p className="px-4 py-3 text-[11.5px] leading-relaxed text-muted-foreground">
+          <p className="px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
             Sector-level figures in this build are model output. Reported figures
             are published per economy, on that economy&apos;s page.
           </p>
@@ -395,7 +395,7 @@ export function FocusDrawer() {
       >
         <Section title="Who is affected?" note="ranked by 30-day composite">
           {events.length === 0 ? (
-            <p className="px-4 py-3 text-[11.5px] text-muted-foreground">
+            <p className="px-4 py-3 text-[13px] text-muted-foreground">
               No event in the corpus presses on this channel above the threshold.
             </p>
           ) : (
@@ -404,13 +404,13 @@ export function FocusDrawer() {
                 <li key={e.id}>
                   <Link
                     to={`/app/event/${e.id}`}
-                    className="block px-4 py-2.5 transition-colors hover:bg-white/4"
+                    className="block px-4 py-2.5 transition-colors hover:bg-[var(--exec-surface)]"
                   >
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="line-clamp-2 text-[12px] leading-snug">
                         {e.title}
                       </span>
-                      <span className="num shrink-0 text-[11px]">
+                      <span className="num shrink-0 text-[12px]">
                         {(e.channelPressure[focus.id as Channel] * 100).toFixed(0)}%
                       </span>
                     </div>

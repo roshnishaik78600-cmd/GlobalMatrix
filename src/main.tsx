@@ -39,11 +39,22 @@ const NotFound = lazy(() => import("./pages/NotFound.tsx"));
  *  redirect to sign-in themselves via useAuthAction. */
 const console_ = (element: React.ReactNode) => <Shell>{element}</Shell>;
 
-// Simple loading fallback for route transitions
+/**
+ * Route-transition fallback.
+ *
+ * Deliberately wordless: it is shown for the fraction of a second between a
+ * click and a chunk arriving, and a "Loading…" line that flashes in and out is
+ * worse than a quiet hold. The three bars stand in for the page shape so the
+ * transition does not look like a different site.
+ */
 function RouteLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
+    <div className="flex min-h-dvh items-center justify-center bg-[var(--exec-base)]">
+      <div className="flex flex-col gap-3" role="status" aria-label="Loading">
+        <div className="shimmer h-4 w-32 rounded" />
+        <div className="shimmer h-10 w-72 rounded-lg" />
+        <div className="shimmer h-4 w-56 rounded" />
+      </div>
     </div>
   );
 }
@@ -69,54 +80,53 @@ class ToolbarErrorBoundary extends React.Component<
 /** Hard guard so runtime errors never leave the preview as a blank page. */
 class RootErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean; message: string; stack: string }
+  { hasError: boolean }
 > {
-  state = { hasError: false, message: "", stack: "" };
-  static getDerivedStateFromError(error: Error) {
-    return {
-      hasError: true,
-      message: error.message || "Unknown runtime error",
-      stack: error.stack || "",
-    };
+  state = { hasError: false };
+  static getDerivedStateFromError() {
+    // Only the fact that it crashed is state. The message and stack go to the
+    // console from componentDidCatch; nothing here is ever rendered.
+    return { hasError: true };
   }
   componentDidCatch(err: Error) {
     console.error("[Preview] Root crash:", err);
   }
   render() {
     if (this.state.hasError) {
-      // The raw message and stack are kept, but behind a disclosure. Showing a
-      // stack trace as the page's primary content told a reader nothing they
-      // could act on and leaked internals; a reader who needs the diagnostic
-      // can still open it.
+      // No stack trace, no exception text, not even behind a disclosure. A
+      // reader who lands here has a page that failed to draw; showing them a
+      // JavaScript stack tells them nothing they can act on and puts internals
+      // on screen. The diagnostic detail is written to the console, where it
+      // belongs, and the page says only what a reader can do next.
       return (
-        <div className="min-h-screen bg-[var(--exec-base)] px-4 py-10 text-[var(--exec-ink)]">
-          <div className="mx-auto max-w-lg border border-[var(--exec-hairline)]">
-            <div className="flex flex-col gap-1.5 p-4">
+        <div className="flex min-h-dvh items-center justify-center bg-[var(--exec-base)] px-4 py-10 text-[var(--exec-ink)]">
+          <div className="card w-full max-w-lg p-6">
+            <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <span className="size-1.5 shrink-0 rounded-full bg-[var(--exec-crimson)]" aria-hidden />
-                <span className="exec-label text-[var(--exec-crimson)]">ERROR</span>
+                <span
+                  className="size-2 shrink-0 rounded-full bg-[var(--exec-crimson)]"
+                  aria-hidden
+                />
+                <span className="exec-label text-[var(--exec-crimson)]">
+                  UNAVAILABLE
+                </span>
               </div>
-              <p className="text-[12.5px] font-medium text-[var(--exec-ink)]">
-                GlobalMatrix could not finish rendering this view
+              <p className="t-card text-[var(--exec-ink)]">
+                This view could not be displayed
               </p>
-              <p className="max-w-md text-[11.5px] leading-relaxed text-[var(--exec-ink-dim)]">
-                The page stopped before it could draw. Your data is
-                unaffected — reloading usually recovers it. If it keeps
-                happening, the diagnostics below identify where.
+              <p className="text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
+                The page stopped before it could finish drawing. Nothing you have
+                saved is affected. Reload to try again — if it keeps happening,
+                the details have been recorded in the browser console.
               </p>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-2 self-start rounded-full bg-[var(--exec-ink)] px-4 py-2.5 text-[13px] font-semibold text-[var(--exec-base)] transition-opacity hover:opacity-90"
+              >
+                Reload this page
+              </button>
             </div>
-            {this.state.stack ? (
-              <details className="border-t border-[var(--exec-hairline)] px-4 py-2">
-                <summary className="exec-label cursor-pointer select-none text-[var(--exec-ink-dim)]">
-                  Diagnostics
-                </summary>
-                <pre className="mt-2 max-h-48 overflow-auto break-words text-[10px] leading-4 whitespace-pre-wrap text-[var(--exec-ink-dim)]">
-                  {this.state.message}
-                  {"\n"}
-                  {this.state.stack}
-                </pre>
-              </details>
-            ) : null}
           </div>
         </div>
       );

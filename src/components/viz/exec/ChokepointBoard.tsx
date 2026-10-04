@@ -221,11 +221,11 @@ function DependencyFlow({ row }: { row: Row }) {
                 return (
                   <li key={m.id} className="px-3 py-1.5">
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="truncate text-[11.5px] text-[var(--exec-ink)]">
+                      <span className="truncate text-[13px] text-[var(--exec-ink)]">
                         {m.label}
                       </span>
                       <span
-                        className="exec-num shrink-0 text-[10px]"
+                        className="exec-num shrink-0 text-[12px]"
                         style={{ color: critical ? "var(--exec-crimson)" : "var(--exec-ink-dim)" }}
                       >
                         {stage.id === "chokepoint" ? "—" : pct(m.weight)}
@@ -289,7 +289,7 @@ function ExposureFlow({
               <button
                 type="button"
                 onClick={() => onSelect(e.nodeId)}
-                className="truncate text-left text-[11.5px] text-[var(--exec-ink)] transition-colors hover:underline"
+                className="truncate text-left text-[13px] text-[var(--exec-ink)] transition-colors hover:underline"
               >
                 {e.label}
               </button>
@@ -303,11 +303,11 @@ function ExposureFlow({
                 />
               </span>
             </span>
-            <span className="exec-num w-10 shrink-0 text-right text-[10.5px] text-[var(--exec-ink)]">
+            <span className="exec-num w-10 shrink-0 text-right text-[12px] text-[var(--exec-ink)]">
               {e.coupling.toFixed(2)}
             </span>
             <span
-              className="exec-num w-9 shrink-0 text-right text-[10.5px]"
+              className="exec-num w-9 shrink-0 text-right text-[12px]"
               style={{ color: loadColour(e.load) }}
             >
               {pct(e.load)}
@@ -360,7 +360,7 @@ export function ChokepointRoster({
               selected === r.nodeId && "bg-[var(--exec-surface-strong)]",
             )}
           >
-            <span className="exec-num w-9 shrink-0 text-[10.5px] font-bold text-[var(--exec-cyan)]">
+            <span className="exec-num w-9 shrink-0 text-[12px] font-bold text-[var(--exec-cyan)]">
               {r.short}
             </span>
             <span className="min-w-0 flex-1">
@@ -378,7 +378,7 @@ export function ChokepointRoster({
               />
             </span>
             <span
-              className="exec-num w-9 shrink-0 text-right text-[11px] font-semibold"
+              className="exec-num w-9 shrink-0 text-right text-[12px] font-semibold"
               style={{ color: loadColour(r.load) }}
             >
               {pct(r.load)}

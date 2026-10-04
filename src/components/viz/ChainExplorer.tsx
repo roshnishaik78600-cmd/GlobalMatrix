@@ -215,7 +215,7 @@ export function ChainExplorer({ className }: { className?: string }) {
             {stages.map((stage, i) => (
               <li key={stage.id} className="flex flex-col bg-card">
                 <div className="flex items-center gap-2 border-b border-rule px-3 py-2">
-                  <span className="num text-[10px] text-muted-foreground">
+                  <span className="num text-[12px] text-muted-foreground">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <span className="label text-foreground/85">{stage.title}</span>
@@ -226,7 +226,7 @@ export function ChainExplorer({ className }: { className?: string }) {
                     />
                   ) : null}
                 </div>
-                <p className="px-3 pt-2 text-[11px] text-muted-foreground">
+                <p className="px-3 pt-2 text-[12px] text-muted-foreground">
                   {stage.question}
                 </p>
                 {stage.rows.length === 0 ? (
@@ -239,7 +239,7 @@ export function ChainExplorer({ className }: { className?: string }) {
                     <p className="text-[12px] font-medium">
                       {stage.empty?.title ?? stage.title}: not measured
                     </p>
-                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                    <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">
                       GlobalMatrix has no {stage.empty?.domain ?? `${stage.title.toLowerCase()} data`}{" "}
                       connected, so this link of the chain stays open rather than
                       being filled with an estimate.
@@ -255,13 +255,13 @@ export function ChainExplorer({ className }: { className?: string }) {
                               {row.label}
                             </span>
                             {row.weight !== undefined ? (
-                              <span className="num shrink-0 text-[10px] text-muted-foreground">
+                              <span className="num shrink-0 text-[12px] text-muted-foreground">
                                 {(row.weight * 100).toFixed(0)}
                               </span>
                             ) : null}
                           </span>
                           {row.weight !== undefined ? (
-                            <span className="mt-1.5 block h-[3px] w-full bg-white/8">
+                            <span className="mt-1.5 block h-[3px] w-full bg-[var(--exec-surface)]">
                               <span
                                 className="block h-full"
                                 style={{
@@ -272,7 +272,7 @@ export function ChainExplorer({ className }: { className?: string }) {
                             </span>
                           ) : null}
                           {row.meta ? (
-                            <span className="mt-1 block text-[10px] leading-snug text-muted-foreground">
+                            <span className="mt-1 block text-[12px] leading-snug text-muted-foreground">
                               {row.meta}
                             </span>
                           ) : null}
@@ -283,7 +283,7 @@ export function ChainExplorer({ className }: { className?: string }) {
                           {row.href ? (
                             <Link
                               to={row.href}
-                              className="block px-3 py-2 transition-colors hover:bg-white/4"
+                              className="block px-3 py-2 transition-colors hover:bg-[var(--exec-surface)]"
                             >
                               {body}
                             </Link>
