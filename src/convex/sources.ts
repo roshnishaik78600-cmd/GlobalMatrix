@@ -8,14 +8,19 @@
  * sentence a non-technical reader can understand — never an exception, never a
  * raw upstream body, and above all never a substituted value.
  *
- * All sources in this file are keyless public endpoints. FRED, EIA and Google
+ * All sources wired up here are keyless public endpoints. FRED, EIA and Google
  * Trends need a credential or have no supported public API, so they are not
- * wired up; the UI reports them as "No verified data available" rather than
+ * connected; the UI reports them as "No verified data available" rather than
  * guessing.
  */
 
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
+import {
+  pullEcbFx,
+  pullEcbYield,
+  type ConnectorOutcome,
+} from "../lib/ecb";
 import {
   type Datum,
   type DataStatus,
@@ -77,17 +82,15 @@ export type MacroReading = Datum & {
   seriesId: string;
 };
 
-export type ConnectorOutcome = {
-  sourceId: string;
-  key: string;
-  asOf: string;
-  retrievedAt: number;
-  status: DataStatus;
-  note?: string;
-  ok: boolean;
-  problem?: string;
-  payload: string;
-};
+/**
+ * Re-exported, not redeclared.
+ *
+ * The connector contract lives with the connectors so that a pure transport
+ * module and this Node-runtime module describe a run with one type. Two
+ * look-alike shapes would let a new connector's outcome be handed to the cache
+ * and rejected for a structural reason that has nothing to do with the data.
+ */
+export type { ConnectorOutcome };
 
 const PROBLEMS = {
   timeout: "The source did not respond in time.",
@@ -582,6 +585,24 @@ export const refreshAttention = action({
     // than another sparkline, so it is what we fight for when throttled.
     for (const topic of ATTENTION_TOPICS) out.push(await pullGdeltHeadlines(topic));
     for (const topic of ATTENTION_TOPICS) out.push(await pullGdeltAttention(topic));
+    await ctx.runMutation(internal.observations.storeObservations, { items: out });
+    return tally(out);
+  },
+});
+
+/**
+ * ECB refresh.
+ *
+ * Its own action because it is the only genuinely daily feed in the build: a
+ * rate board should be re-fetchable without also re-pulling eight annual World
+ * Bank series and a throttled news index. Three requests in total, not twelve —
+ * the Bank publishes all nine currency pairs in a single response, so they are
+ * fetched as one series rather than nine calls that would only invite a rate
+ * limit.
+ */
+export const refreshEcb = action({
+  handler: async (ctx): Promise<{ refreshed: number; failed: number }> => {
+    const out = [await pullEcbFx(), ...(await pullEcbYield())];
     await ctx.runMutation(internal.observations.storeObservations, { items: out });
     return tally(out);
   },

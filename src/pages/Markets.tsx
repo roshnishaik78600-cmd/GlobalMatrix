@@ -7,20 +7,29 @@ import { NoVerifiedData, QuestionStrip } from "@/components/viz/Unavailable";
 import { MacroTable } from "@/components/viz/VerifiedPanels";
 import { MacroTrend } from "@/components/viz/MacroTrend";
 import { TemporalSlider } from "@/components/viz/TemporalSlider";
-import { useAttentionData } from "@/hooks/use-verified-data";
+import { useAttentionData, useRateData, useYieldData } from "@/hooks/use-verified-data";
+import { freshnessOf } from "@/lib/freshness";
+import { FreshnessTag } from "@/components/viz/exec/system";
+import { ECB_FX } from "@/lib/ecb";
 import { CHANNEL_LABEL } from "@/lib/intel/types";
 
 /**
  * Markets, honestly.
  *
- * There is no price feed connected to this build, and this page will not
- * pretend otherwise. What it can show is real: reported economic growth, the
- * model's finance-channel pressure, and how much news coverage the watched
- * topics are receiving. The gap is stated in the place a reader would look for
- * a chart, not buried below the fold.
+ * There is still no market price feed connected to this build, and this page
+ * will not pretend otherwise. What it can show is real: official euro reference
+ * rates fixed daily by the European Central Bank, the euro area government bond
+ * curve, reported economic growth, the model's finance-channel pressure, and how
+ * much news coverage the watched topics are receiving.
+ *
+ * The distinction matters and is stated on the board itself: an ECB reference
+ * rate is a central bank's daily fixing, not an executable quote, and an annual
+ * macro aggregate is not a market price. Neither is called "the market" here.
  */
 export default function Markets() {
   const attention = useAttentionData();
+  const rates = useRateData();
+  const yields = useYieldData();
   const risk = useQuery(api.intel.riskBoard);
 
   const financeEvents = (risk?.rows ?? [])
@@ -29,13 +38,33 @@ export default function Markets() {
 
   const attentionSeries = aggregateHourly(attention.data ?? []);
 
+  // Newest fix per currency. The cache holds one row per key, so this is a
+  // de-dup rather than a sort — but the `Date` parse keeps it correct if a
+  // future refresh ever stores several observations per key.
+  const fxBySeries = new Map(
+    (rates.data ?? []).map((p) => [p.series, p] as const),
+  );
+  // `flatMap` rather than map-then-filter: it discards the undefined entries at
+  // the type level, so the render below never has to re-prove that a point is
+  // present before reading it.
+  const fxRows = ECB_FX.flatMap((c) => {
+    const point = fxBySeries.get(c.code);
+    return point ? [{ code: c.code, label: c.label, point }] : [];
+  });
+  const yieldPoints = [...(yields.data ?? [])].sort((a, b) =>
+    a.tenor.localeCompare(b.tenor),
+  );
+
+  const rateFreshness = rates.retrievedAt
+    ? freshnessOf(rates.retrievedAt, "ecb")
+    : "unavailable";
+
   return (
-      <PageFrame
+    <PageFrame
       eyebrow="Markets"
       title="Markets"
-      lede="Macro context and measured news attention, with the missing price feed stated in the place a reader looks for a chart."
+      lede="Official euro reference rates, the euro area yield curve, and measured news attention — with the market price feed stated as absent rather than approximated."
     >
-
       <QuestionStrip
         className="border-b border-rule"
         answers={[
@@ -45,6 +74,12 @@ export default function Markets() {
               ? `${financeEvents[0].title} carries the strongest finance-channel pressure in the corpus.`
               : "No event currently carries material finance-channel pressure.",
             href: financeEvents[0] ? `/app/event/${financeEvents[0].id}` : undefined,
+          },
+          {
+            q: "What are rates?",
+            a: rates.asOf
+              ? `ECB euro reference rates fixed ${rates.asOf}. Official central-bank fixings, not market quotes.`
+              : "No reference-rate fix stored yet.",
           },
           {
             q: "What's changing?",
@@ -61,28 +96,117 @@ export default function Markets() {
           },
           {
             q: "Why it matters?",
-            a: "Without a price feed, nothing here can be called a market move. Coverage volume and reported growth are what can actually be evidenced.",
+            a: "Reference rates are official and daily, but they are not prices you could trade. Coverage volume and reported growth are what can actually be evidenced.",
             href: "/app/data",
           },
         ]}
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        {/* ------------------------------------------------------ RATE BOARD -- */}
+        <section className="lg:col-span-7">
+          <div className="card flex h-full min-w-0 flex-col">
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--exec-hairline)] px-4 py-3">
+              <h2 className="min-w-0 text-[15px] font-semibold text-[var(--exec-ink)]">
+                Euro reference rates
+              </h2>
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="exec-label text-[var(--exec-ink-dim)]">
+                  {rates.asOf ? `fixed ${rates.asOf}` : "resolving"}
+                </span>
+                <FreshnessTag freshness={rateFreshness} />
+              </span>
+            </div>
+
+            {rates.data === undefined ? (
+              <Skeleton className="m-4 h-64 w-full" />
+            ) : fxRows.length === 0 ? (
+              <NoVerifiedData
+                title="Reference rates"
+                domain="central-bank rate"
+                action={
+                  <p className="text-[13px] leading-relaxed text-muted-foreground">
+                    {rates.problem ??
+                      "The European Central Bank connector has not returned a reading. The board stays empty rather than showing a remembered rate."}
+                  </p>
+                }
+              />
+            ) : (
+              <>
+                <dl className="grid grid-cols-2 divide-y divide-[var(--exec-hairline)] sm:grid-cols-3 sm:divide-y-0 lg:grid-cols-3">
+                  {fxRows.map((row, i) => (
+                    <div
+                      key={row.code}
+                      className={`flex min-w-0 flex-col gap-1 p-4 ${
+                        i > 0 ? "sm:border-l sm:border-[var(--exec-hairline)]" : ""
+                      }`}
+                    >
+                      <dt className="exec-label min-w-0 truncate text-[var(--exec-ink-dim)]">
+                        {row.label}
+                      </dt>
+                      <dd className="flex items-baseline gap-1.5">
+                        <span className="exec-num text-[1.5rem] leading-none font-bold tracking-[-0.02em] text-[var(--exec-ink)]">
+                          {row.point.value.toLocaleString("en-GB", {
+                            maximumFractionDigits: 4,
+                          })}
+                        </span>
+                        <span className="exec-label">{row.code}/EUR</span>
+                      </dd>
+                      <dd className="exec-label text-[var(--exec-ink-dim)]">
+                        {row.point.date}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                <div className="mt-auto border-t border-[var(--exec-hairline)] px-4 py-3">
+                  <p className="text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
+                    <span className="text-[var(--exec-ink)]">OBSERVED</span> — fixed by
+                    the European Central Bank at 14:15 CET on TARGET business days.
+                    Units are {`currency`} per one euro. These are official reference
+                    rates, not executable quotes, and no rouble rate is tracked: the
+                    Bank suspended that fixing in March 2022.
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* ---------------------------------------------------------- CURVE -- */}
         <section className="lg:col-span-5">
-          <Panel
-            title="Price feed"
-            meta="not connected"
-            className="h-full"
-          >
+          <div className="card flex h-full min-w-0 flex-col">
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-[var(--exec-hairline)] px-4 py-3">
+              <h2 className="min-w-0 text-[15px] font-semibold text-[var(--exec-ink)]">
+                Euro area yield curve
+              </h2>
+              <span className="exec-label text-[var(--exec-ink-dim)]">
+                {yields.asOf ? `as of ${yields.asOf}` : "resolving"}
+              </span>
+            </div>
+
+            {yields.data === undefined ? (
+              <Skeleton className="m-4 h-48 w-full" />
+            ) : yieldPoints.length === 0 ? (
+              <NoVerifiedData title="Yield curve" domain="bond-curve" />
+            ) : (
+              <YieldCurve points={yieldPoints} />
+            )}
+          </div>
+        </section>
+
+        {/* -------------------------------------------------- PRICE-FEED GAP -- */}
+        <section className="lg:col-span-5">
+          <Panel title="Market price feed" meta="not connected" className="h-full">
             <NoVerifiedData
-              title="Market prices"
-              domain="live quotes, indices or rates"
+              title="Live quotes, indices or commodity prices"
+              domain="market price"
               action={
                 <p className="text-[13px] leading-relaxed text-muted-foreground">
-                  Connecting a price source needs a licensed feed. Until one is
-                  connected, no panel on this site will print a price, a return
-                  or a spread — an unattributed number is worse than an absent
-                  one.
+                  Connecting a price source needs a licensed feed. The two boards
+                  above are central-bank fixings, which is a different thing: real,
+                  official and daily, but not a price anyone could trade. Until a
+                  licensed feed is connected, no panel here prints a return or a
+                  spread.
                 </p>
               }
             />
@@ -154,6 +278,94 @@ export default function Markets() {
         </section>
       </div>
     </PageFrame>
+  );
+}
+
+/* ------------------------------------------------------------------ parts -- */
+
+/**
+ * The three fixed points, drawn as a curve.
+ *
+ * Three points do not make a curve, and the component does not pretend to: it
+ * draws the three observed yields as a connected line, states the observation
+ * date, and prints the numeric spread so the slope can be read exactly rather
+ * than estimated off a picture.
+ */
+function YieldCurve({
+  points,
+}: {
+  points: { tenor: string; label: string; value: number; date: string }[];
+}) {
+  const years = points.map((p) => Number(p.tenor.replace("SR_", "").replace("Y", "")));
+  const values = points.map((p) => p.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  // A flat curve is a real state, not a divide-by-zero. Give it a band so the
+  // three points sit mid-height instead of collapsing onto the frame edge.
+  const span = max - min || 0.5;
+  const W = 100;
+  const H = 60;
+
+  const pts = points.map((p, i) => {
+    const x = (years[i] / Math.max(...years)) * (W - 16) + 8;
+    const y = H - 6 - ((p.value - min) / span) * (H - 14);
+    return { x, y };
+  });
+
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-3 p-4">
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
+        className="h-24 w-full"
+        role="img"
+        aria-label={`Euro area yields: ${points
+          .map((p) => `${p.label} ${p.value.toFixed(2)}%`)
+          .join(", ")}`}
+      >
+        <polyline
+          points={pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")}
+          fill="none"
+          stroke="var(--exec-cyan)"
+          strokeWidth={1.5}
+          vectorEffect="non-scaling-stroke"
+        />
+        {pts.map((p, i) => (
+          <circle
+            key={points[i].tenor}
+            cx={p.x}
+            cy={p.y}
+            r={2}
+            fill="var(--exec-cyan)"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
+
+      <ul className="grid grid-cols-3 gap-3">
+        {points.map((p) => (
+          <li key={p.tenor} className="flex min-w-0 flex-col gap-1">
+            <span className="exec-label min-w-0 truncate text-[var(--exec-ink-dim)]">
+              {p.label.replace("Euro area ", "")}
+            </span>
+            <span className="exec-num text-[1.35rem] leading-none font-bold text-[var(--exec-ink)]">
+              {p.value.toFixed(2)}
+              <span className="exec-label ml-0.5">%</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-auto border-t border-[var(--exec-hairline)] pt-3 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
+        <span className="text-[var(--exec-ink)]">OBSERVED</span> — three observed
+        points on the euro area spot curve, not an interpolated yield curve.{" "}
+        {years[years.length - 1] - years[0]}y−{years[0]}y spread{" "}
+        <span className="exec-num text-[var(--exec-ink)]">
+          {(values[values.length - 1] - values[0]).toFixed(2)}pp
+        </span>
+        .
+      </p>
+    </div>
   );
 }
 

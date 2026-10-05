@@ -17,12 +17,12 @@ import {
  * Discovery surfaces.
  *
  * Three objects that answer the same question from different angles: what is
- * happening, where is it happening hardest, and what does it touch. Every card
- * is a link, every card carries its own provenance, and every card is short
- * enough to scan without reading it.
+ * changing, where is it changing hardest, and what does it touch. Every card is
+ * a link, every card carries its own provenance, and every card is short enough
+ * to scan without reading it.
  */
 
-/* ------------------------------------------------------------- Happening now -- */
+/* --------------------------------------------------------- What is changing -- */
 
 export interface TimelineEvent {
   id: string;
@@ -31,16 +31,22 @@ export interface TimelineEvent {
   /** ISO date of detection. */
   at: string;
   title: string;
+  /** One-line description of the event itself. */
+  summary: string;
+  /** Regions the event touches, as the corpus records them. */
+  regions: string[];
   /** Publisher of the most recent signal supporting this event. */
   source: string;
   sourceClass: keyof typeof SOURCE_CLASS_LABEL;
+  /** ISO date of the most recent signal, which is not the detection date. */
+  updatedAt: string;
   score: number;
   /** Transmission channel, used as the card's category line. */
   category: string;
   status: string;
 }
 
-/** `2026-10-02` → `02 Oct`. Derived from the corpus date, never from the clock. */
+/** `2026-10-02` to `02 Oct`. Derived from the corpus date, never from the clock. */
 export function eventStamp(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "Date unavailable";
@@ -52,20 +58,27 @@ export function eventStamp(iso: string): string {
 }
 
 /**
- * "Happening now" — a horizontal rail of event cards.
+ * What is changing, as a horizontal rail of event cards.
  *
- * Six fields per card and nothing else: category, country, headline, impact,
- * time, status. The homepage's job is to get a reader to the detailed analysis,
- * and every extra word on the card is a word between them and that click. The
- * rail scrolls horizontally on desktop and snaps one card at a time, because a
- * discovery row that you have to scroll a page to reach is just a list.
+ * Seven fields per card and nothing else: channel, place, headline, one line of
+ * description, where it reaches, impact and status, with the supporting
+ * publisher named at the foot. The homepage's job is to get a reader to the
+ * detailed analysis, and every extra word on the card is a word between them and
+ * that click. The rail scrolls horizontally and snaps one card at a time,
+ * because a discovery row you have to scroll a page to reach is just a list.
+ *
+ * The word verified is deliberately absent from these cards. Every event here
+ * comes from a versioned scenario corpus rather than from a live feed, and a
+ * verified badge over a synthetic publisher would be exactly the claim this
+ * product refuses to make. The card names the publisher *within the corpus*
+ * instead, and the section header carries the SCENARIO basis tag.
  */
-export function HappeningNow({ events }: { events: TimelineEvent[] }) {
+export function WhatsChanging({ events }: { events: TimelineEvent[] }) {
   if (events.length === 0) {
     return (
       <ExecCard>
         <SectionTitle meta={CORPUS_LABEL} right={<BasisTag basis="scenario" />}>
-          Happening now
+          What&apos;s changing
         </SectionTitle>
         <NoDataAvailable
           title="No events to show"
@@ -81,11 +94,11 @@ export function HappeningNow({ events }: { events: TimelineEvent[] }) {
         meta={`${events.length} events · newest first`}
         right={<BasisTag basis="scenario" />}
       >
-        Happening now
+        What&apos;s changing
       </SectionTitle>
 
-      {/* Horizontal rail. `snap-x` so a card always lands flush on mobile,
-          where a partial card is the only honest affordance that more exist. */}
+      {/* Horizontal rail. `snap-x` so a card always lands flush on mobile, where
+          a partial card is the only honest affordance that more exist. */}
       <ul className="flex snap-x snap-mandatory gap-4 overflow-x-auto p-4">
         {events.map((event, i) => (
           <motion.li
@@ -94,16 +107,16 @@ export function HappeningNow({ events }: { events: TimelineEvent[] }) {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-40px" }}
             transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.24) }}
-            className="w-[19rem] shrink-0 snap-start"
+            className="w-[21rem] shrink-0 snap-start"
           >
             <Link
               to={`/app/event/${event.id}`}
               className="card card-hover group flex h-full min-w-0 flex-col gap-3 p-4"
             >
-              {/* Category, country and time, on one line, all metadata. */}
+              {/* Channel, place and date, on one line, all metadata. */}
               <div className="flex min-w-0 items-center gap-2">
                 <span
-                  className="exec-label min-w-0 truncate"
+                  className="exec-label min-w-0 truncate uppercase"
                   style={{ color: riskColorForScore(event.score) }}
                 >
                   {event.category}
@@ -120,27 +133,50 @@ export function HappeningNow({ events }: { events: TimelineEvent[] }) {
                 {event.title}
               </p>
 
+              {/* One line of what it is, then where it reaches. The regions line
+                  is truncated rather than wrapped so every card in the rail
+                  keeps the same height. */}
+              <p className="line-clamp-2 text-[13px] leading-snug text-[var(--exec-ink-dim)]">
+                {event.summary}
+              </p>
+              <p className="exec-label min-w-0 truncate text-[var(--exec-ink-dim)]">
+                {event.regions.length > 0
+                  ? event.regions.join(" · ")
+                  : "no region recorded"}
+              </p>
+
               {/* Impact and status on the baseline, so the eye gets a number and
-                  a band in the same glance. */}
-              <div className="mt-auto flex items-center justify-between gap-3 border-t border-[var(--exec-hairline)] pt-3">
-                <span className="flex min-w-0 items-baseline gap-1.5">
-                  <span
-                    className="exec-num text-[1.5rem] leading-none font-bold tracking-[-0.02em]"
-                    style={{ color: riskColorForScore(event.score) }}
-                  >
-                    {event.score.toFixed(0)}
+                  a band in the same glance, then the publisher underneath. */}
+              <div className="mt-auto border-t border-[var(--exec-hairline)] pt-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex min-w-0 items-baseline gap-1.5">
+                    <span
+                      className="exec-num text-[1.5rem] leading-none font-bold tracking-[-0.02em]"
+                      style={{ color: riskColorForScore(event.score) }}
+                    >
+                      {event.score.toFixed(0)}
+                    </span>
+                    <span className="exec-label">impact</span>
                   </span>
-                  <span className="exec-label">impact</span>
-                </span>
-                <span className="flex shrink-0 items-center gap-2">
-                  <span className="exec-label text-[var(--exec-ink-dim)]">
-                    {event.status}
+                  <span className="flex shrink-0 items-center gap-2">
+                    <span className="exec-label uppercase text-[var(--exec-ink-dim)]">
+                      {event.status}
+                    </span>
+                    <ArrowUpRight
+                      className="size-4 text-[var(--exec-ink-dim)] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                      aria-hidden
+                    />
                   </span>
-                  <ArrowUpRight
-                    className="size-4 text-[var(--exec-ink-dim)] transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                    aria-hidden
-                  />
-                </span>
+                </div>
+                <p className="mt-2 flex min-w-0 items-center gap-2 text-[12px] text-[var(--exec-ink-dim)]">
+                  <span className="shrink-0 uppercase">Source</span>
+                  <span className="min-w-0 flex-1 truncate" title={event.source}>
+                    {event.source}
+                  </span>
+                  <span className="exec-num shrink-0">
+                    {eventStamp(event.updatedAt)}
+                  </span>
+                </p>
               </div>
             </Link>
           </motion.li>
@@ -165,10 +201,10 @@ export interface TrendingCountry {
 /**
  * Trending countries.
  *
- * Flag, name, exposure, trend and the single driver behind it. The flag is
- * returned only for a sovereign economy — a bloc or a chokepoint gets the node's
- * own glyph treatment instead, because putting a national flag beside the Strait
- * of Hormuz would misdescribe what the node is.
+ * Flag, name, exposure and the single driver behind it. The flag is returned
+ * only for a sovereign economy — a bloc or a chokepoint gets the node's own
+ * glyph treatment instead, because putting a national flag beside the Strait of
+ * Hormuz would misdescribe what the node is.
  */
 export function TrendingCountries({ rows }: { rows: TrendingCountry[] }) {
   return (
@@ -235,8 +271,9 @@ export function TrendingCountries({ rows }: { rows: TrendingCountry[] }) {
                     <span className="text-[var(--exec-ink)]">
                       {row.topChannel} pressure
                     </span>
-                    , across {row.eventCount}{" "}
-                    {row.eventCount === 1 ? "event" : "events"}.
+                    {row.eventCount > 0
+                      ? `, across ${row.eventCount} ${row.eventCount === 1 ? "event" : "events"}.`
+                      : ". No event currently exposes this economy."}
                   </p>
                 </Link>
               </motion.div>
@@ -284,7 +321,10 @@ export function TopIndustries({ rows }: { rows: IndustryTile[] }) {
   const shown = rows.slice(0, 6);
   return (
     <ExecCard>
-      <SectionTitle meta="structural share × live contribution" right={<BasisTag basis="model" />}>
+      <SectionTitle
+        meta="structural share × live contribution"
+        right={<BasisTag basis="model" />}
+      >
         Top industries
       </SectionTitle>
 

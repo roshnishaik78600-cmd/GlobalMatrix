@@ -216,6 +216,8 @@ export const sourceHealth = query({
       asOf: string;
       /** When that successful run happened, 0 if the source has never succeeded. */
       lastSuccessAt: number;
+      /** How many stored readings this source is currently contributing. */
+      readingCount: number;
       problem?: string;
     }>
   > => {
@@ -223,11 +225,24 @@ export const sourceHealth = query({
 
     const latestAttempt = new Map<string, Observation>();
     const lastSuccess = new Map<string, { retrievedAt: number; asOf: string }>();
+    // Newest successful run per key, which is exactly the set of readings the
+    // UI can actually render: older successful runs for the same key have been
+    // superseded and must not be counted as live signal.
+    const liveReadings = new Map<string, Map<string, number>>();
     for (const r of rows) {
       const row = toObservation(r);
       const prev = latestAttempt.get(row.sourceId);
       if (!prev || row.retrievedAt > prev.retrievedAt) latestAttempt.set(row.sourceId, row);
-      if (row.ok && row.asOf) {
+      if (!row.ok) continue;
+
+      const perKey = liveReadings.get(row.sourceId) ?? new Map<string, number>();
+      const prevAt = perKey.get(row.key);
+      if (prevAt === undefined || row.retrievedAt > prevAt) {
+        perKey.set(row.key, row.retrievedAt);
+      }
+      liveReadings.set(row.sourceId, perKey);
+
+      if (row.asOf) {
         const best = lastSuccess.get(row.sourceId);
         if (!best || row.retrievedAt > best.retrievedAt) {
           lastSuccess.set(row.sourceId, {
@@ -259,6 +274,7 @@ export const sourceHealth = query({
         retrievedAt: attempt.retrievedAt,
         asOf: success?.asOf ?? "",
         lastSuccessAt: success?.retrievedAt ?? 0,
+        readingCount: liveReadings.get(sourceId)?.size ?? 0,
         problem: attempt.problem,
       };
     });

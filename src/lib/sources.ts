@@ -75,6 +75,18 @@ export const SOURCES = {
     dataType: "7-day coverage volume (share %) and article headlines",
     keyless: true,
   },
+  ecb: {
+    id: "ecb",
+    label: "ECB reference rates",
+    publisher: "European Central Bank",
+    url: "https://data.ecb.europa.eu",
+    covers:
+      "Daily euro foreign-exchange reference rates and the euro area government bond yield curve, fixed by the ECB at 14:15 CET on every TARGET business day.",
+    limits:
+      "Euro-denominated and reference-only: these are not executable quotes, and the curve covers the euro area rather than US or Asian rates. The Bank suspended its Russian rouble reference rate in March 2022, so no rouble reading is tracked here.",
+    dataType: "Daily FX reference rates (9 pairs) and euro area spot yields",
+    keyless: true,
+  },
 } as const satisfies Record<string, SourceDef>;
 
 export type SourceId = keyof typeof SOURCES;
@@ -147,6 +159,11 @@ export const STALE_AFTER_MS: Record<string, number> = {
   worldbank: 1000 * 60 * 60 * 24 * 7,
   comtrade: 1000 * 60 * 60 * 24 * 14,
   gdelt: 1000 * 60 * 60 * 6,
+  // Wide on purpose. The ECB publishes on TARGET business days only, so a
+  // Friday afternoon fetch is still current on the following Monday. Four days
+  // covers a long weekend plus a settlement slip without ever calling a stale
+  // rate LIVE.
+  ecb: 1000 * 60 * 60 * 24 * 4,
 };
 
 /**

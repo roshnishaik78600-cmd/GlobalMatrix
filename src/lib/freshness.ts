@@ -97,3 +97,22 @@ export function freshnessFromStatus(status: DataStatus): Freshness {
       return "unavailable";
   }
 }
+
+/**
+ * "2 min ago", in whole units.
+ *
+ * Rounded down to the unit the reader cares about. Returns the empty string
+ * rather than "just now" when there is no timestamp at all, so a caller that
+ * forgets to guard renders nothing instead of inventing a recency.
+ */
+export function relativeAge(ms: number | undefined): string {
+  if (!ms) return "";
+  const seconds = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}

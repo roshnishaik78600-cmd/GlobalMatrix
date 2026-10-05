@@ -12,18 +12,19 @@ import { Skeleton } from "@/components/viz/core";
 import { CountryDrawer } from "@/components/viz/exec/CountryDrawer";
 import { useFocus } from "@/lib/focus";
 import { ExecPage, FreshnessTag } from "@/components/viz/exec/system";
+import { freshnessOf, relativeAge } from "@/lib/freshness";
 import { loadColour } from "@/components/viz/exec/Topology";
 import {
   BarPreview,
   ExploreGrid,
+  FollowTheShock,
   GlobalPulse,
-  PropagationFlow,
   SplitPreview,
   UnavailablePreview,
   type ExplorePanel,
 } from "@/components/landing/sections";
 import {
-  HappeningNow,
+  WhatsChanging,
   TopIndustries,
   TrendingCountries,
   type TimelineEvent,
@@ -90,8 +91,14 @@ export default function Landing() {
         place: row.topNodes[0]?.label ?? "no dominant location",
         at: row.detectedAt,
         title: row.title,
+        summary: row.summary,
+        regions: row.regions,
         source: row.latestSignal?.source ?? CORPUS_LABEL,
         sourceClass: row.latestSignal?.sourceClass ?? "intel",
+        // The newest signal, not the detection date: a corpus can detect an
+        // event on one day and see it corroborated weeks later, and a card that
+        // showed only the first would go stale while the evidence grows.
+        updatedAt: row.latestSignal?.observedAt ?? row.detectedAt,
         score: row.score30,
         category: CHANNEL_LABEL[row.dominantChannel],
         status: row.band,
@@ -252,7 +259,7 @@ export default function Landing() {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="mt-5 max-w-2xl text-[1.25rem] leading-snug font-medium tracking-[-0.015em] text-[var(--exec-ink)] sm:text-[1.5rem]"
           >
-            See what is changing in the world.
+            See how the world connects.
           </motion.p>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -260,14 +267,14 @@ export default function Landing() {
             transition={{ duration: 0.4, delay: 0.15 }}
             className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--exec-ink-dim)]"
           >
-            Understand global events, their connections and the industries they
-            affect.
+            Track global events and see how they propagate through trade, energy,
+            supply chains and markets.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="mt-8 flex flex-wrap gap-3"
+            className="mt-7 flex flex-wrap gap-3"
           >
             <Link
               to="/app"
@@ -283,6 +290,12 @@ export default function Landing() {
               Open World Map
             </a>
           </motion.div>
+
+          {/* The four numbers, and the freshness of the layer behind them.
+              Kept flat and compact: this is a status readout, not a card
+              grid, so it sits under the call to action rather than competing
+              with the map for the first viewport. */}
+          <HeroStats regions={mappable.length} links={data?.flows.length ?? 0} />
         </div>
       </header>
 
@@ -292,7 +305,7 @@ export default function Landing() {
           <GlobalPulse data={topology} />
 
           {/* HAPPENING NOW — the events behind those numbers. */}
-          {feed ? <HappeningNow events={timeline} /> : <PulseSkeleton />}
+          {feed ? <WhatsChanging events={timeline} /> : <PulseSkeleton />}
 
           {/* THE MAP. A major visual section, not a supporting one: it is the
               largest single object on the page and everything else is sized
@@ -330,7 +343,7 @@ export default function Landing() {
           </section>
 
           {/* FOLLOW THE SHOCK — the mechanism, drawn rather than asserted. */}
-          <PropagationFlow />
+          <FollowTheShock events={feed?.rows ?? []} />
 
           {/* TRENDING COUNTRIES — pick one and go deep. */}
           <TrendingCountries
@@ -447,6 +460,71 @@ function LandingNav() {
         </div>
       </div>
     </nav>
+  );
+}
+
+/**
+ * The four hero numbers.
+ *
+ * Every figure here is counted from something real, and the basis is stated on
+ * the strip itself rather than left to the reader to work out:
+ *
+ * - LIVE SIGNALS counts only readings from sources that are inside their own
+ *   refresh window right now. A rate-limited feed contributes zero, because a
+ *   number we cannot currently refresh is not a live signal.
+ * - ACTIVE REGIONS counts places the map can actually draw. Institutions carry
+ *   no coordinate and are excluded, so the number matches the picture above it.
+ * - NETWORK LINKS counts shared-exposure couplings between those places. They
+ *   are couplings, not shipping lanes or trade flows, which the caption says.
+ * - LAST UPDATE is the most recent successful fetch across every connector.
+ */
+function HeroStats({ regions, links }: { regions: number; links: number }) {
+  const health = useQuery(api.observations.sourceHealth);
+
+  const liveReadings = (health ?? []).reduce((sum, h) => {
+    if (!h.readingCount) return sum;
+    return freshnessOf(h.lastSuccessAt, h.sourceId) === "live"
+      ? sum + h.readingCount
+      : sum;
+  }, 0);
+
+  const lastUpdate = (health ?? []).reduce(
+    (max, h) => Math.max(max, h.lastSuccessAt),
+    0,
+  );
+
+  const cells = [
+    { label: "Live signals", value: String(liveReadings) },
+    { label: "Active regions", value: String(regions) },
+    { label: "Network links", value: String(links) },
+    {
+      label: "Last update",
+      value: relativeAge(lastUpdate) || "never",
+      // A source that has never answered cannot leave this cell reading "never"
+      // with no explanation, so it says why.
+      note: lastUpdate ? undefined : "no connector has returned a reading yet",
+    },
+  ];
+
+  return (
+    <dl className="mt-9 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[var(--exec-hairline)] bg-[var(--exec-hairline)] sm:grid-cols-4">
+      {cells.map((cell) => (
+        <div
+          key={cell.label}
+          className="flex min-w-0 flex-col gap-1 bg-[var(--card)] px-4 py-3"
+        >
+          <dt className="exec-label min-w-0 truncate text-[var(--exec-ink-dim)]">
+            {cell.label}
+          </dt>
+          <dd
+            className="exec-num truncate text-[1.35rem] leading-none font-semibold tracking-[-0.02em] text-[var(--exec-ink)]"
+            title={cell.note}
+          >
+            {cell.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 

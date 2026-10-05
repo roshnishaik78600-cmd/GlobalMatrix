@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useConvex, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { FxPoint, YieldPoint } from "@/lib/ecb";
 import { STALE_AFTER_MS, formatAsOf, type Provenance } from "@/lib/sources";
 
 /**
@@ -274,6 +275,57 @@ export function useHeadlinesData(): Verified<Headline[]> {
   return {
     data: rows === undefined ? null : items,
     status: items.length > 0 ? "observed" : rows === undefined ? "" : "unavailable",
+    asOf: latestAsOf(rows ?? []),
+    retrievedAt: newest(rows ?? []),
+    problem: latestProblem(rows ?? []),
+    refreshing: false,
+  };
+}
+
+/**
+ * ECB euro reference rates.
+ *
+ * The only genuinely daily feed in the build, and therefore the only one that can
+ * honestly be called live. It refreshes on its own action for that reason:
+ * re-pulling the whole annual macro panel to refresh a currency rate would be
+ * the wrong shape of request, and the ECB publishes far more often than the
+ * annual sources do.
+ */
+export function useRateData(): Verified<FxPoint[]> {
+  const convex = useConvex();
+  const rows = useQuery(api.observations.observations, { sourceId: "ecb" });
+
+  const run = useCallback(() => convex.action(api.sources.refreshEcb, {}), [convex]);
+  const { refreshing } = useBackgroundRefresh(
+    "ecb",
+    !!rows && expired(rows, STALE_AFTER_MS.ecb ?? Infinity),
+    run,
+  );
+
+  const points = rows ? parse<FxPoint>(rows, "fx") : [];
+  return {
+    data: rows === undefined ? null : points,
+    status: points.length > 0 ? "observed" : rows === undefined ? "" : "unavailable",
+    asOf: latestAsOf(rows ?? []),
+    retrievedAt: newest(rows ?? []),
+    problem: latestProblem(rows ?? []),
+    refreshing,
+  };
+}
+
+/**
+ * ECB euro area spot yields.
+ *
+ * No background refresh of its own: it shares the `ecb` refresh above, so a
+ * second hook firing its own would simply ask the Bank for the same three series
+ * twice.
+ */
+export function useYieldData(): Verified<YieldPoint[]> {
+  const rows = useQuery(api.observations.observations, { sourceId: "ecb" });
+  const points = rows ? parse<YieldPoint>(rows, "yield") : [];
+  return {
+    data: rows === undefined ? null : points,
+    status: points.length > 0 ? "observed" : rows === undefined ? "" : "unavailable",
     asOf: latestAsOf(rows ?? []),
     retrievedAt: newest(rows ?? []),
     problem: latestProblem(rows ?? []),

@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { motion } from "framer-motion";
+import { useQuery } from "convex/react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   Boxes,
@@ -11,10 +12,20 @@ import {
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
+import { api } from "@/convex/_generated/api";
 import type {
   TopologyCategory,
   TopologyResult,
 } from "@/convex/macroTopology";
+import {
+  buildStages,
+  CHAIN_SUMMARY,
+  type ChainRow,
+  type ChainStage,
+  type ChainStageId,
+} from "@/lib/intel/chain";
+import { Skeleton } from "@/components/viz/core";
+import { cn } from "@/lib/utils";
 import { loadColour } from "@/components/viz/exec/Topology";
 import {
   BasisTag,
@@ -207,82 +218,307 @@ function Sparkline({ values }: { values: number[] }) {
 /* ------------------------------------------------------ Propagation flow -- */
 
 /**
- * The seven-stage transmission chain, as one horizontal object.
+ * Follow the Shock — the signature section of the product.
  *
- * This replaces the paragraph of methodology that used to sit here. The claim it
- * makes is a structural one — an event travels through these systems in this
- * order — so it is drawn rather than asserted. Each stage is measured by this
- * build; two downstream stages that are *not* measured are listed beside it, in
- * the footnote, so a full seven-node diagram is not quietly pretending to cover
- * things this product does not model.
+ * Nine clickable stage nodes, one detail panel, and a per-event chain behind
+ * both. The stage list itself lives in `lib/intel/chain` so this surface and the
+ * console's chain page cannot drift apart on what stage six means; only the
+ * skin differs.
+ *
+ * The design constraint that shapes everything here: a reader must be able to
+ * see, in one glance, that two of the nine links are *not measured by this
+ * build*. Those nodes stay in place and are dimmed, because a chain that quietly
+ * drops a link reads as a finished analysis.
  */
-const STAGES: { label: string; detail: string }[] = [
-  { label: "Event", detail: "Detected and scored" },
-  { label: "Country", detail: "Where it lands hardest" },
-  { label: "Trade", detail: "Reported flows" },
-  { label: "Energy", detail: "Channel pathways" },
-  { label: "Supply chain", detail: "Chokepoint routes" },
-  { label: "Industry", detail: "Structural share" },
-  { label: "Market", detail: "Modelled pressure" },
-];
+export function FollowTheShock({
+  events,
+}: {
+  events: { id: string; reference: string; title: string }[];
+}) {
+  const [eventId, setEventId] = useState<string | null>(null);
+  const [stageId, setStageId] = useState<ChainStageId>("infrastructure");
+  const [rowId, setRowId] = useState<string | null>(null);
 
-export function PropagationFlow() {
+  const active = eventId ?? events[0]?.id ?? null;
+  const chain = useQuery(
+    api.intel.eventChain,
+    active ? { eventId: active } : "skip",
+  );
+  const stages = useMemo<ChainStage[]>(
+    () => (chain ? buildStages(chain) : []),
+    [chain],
+  );
+
+  if (events.length === 0) {
+    return (
+      <ExecCard>
+        <SectionTitle meta="one event, nine stages">Follow the shock</SectionTitle>
+        <NoDataAvailable
+          title="No events to trace"
+          reason="Follow the Shock draws a real event's propagation chain. With no event in the corpus there is no chain to draw, and this section does not substitute an illustration for one."
+        />
+      </ExecCard>
+    );
+  }
+
+  const stage = stages.find((x) => x.id === stageId) ?? stages[0];
+  const row = stage?.rows.find((r) => r.id === rowId) ?? stage?.rows[0] ?? null;
+  const measured = stages.filter((x) => x.rows.length > 0).length;
+
   return (
     <ExecCard>
-      <SectionTitle meta="one event, seven stages">
+      <SectionTitle
+        meta={`one event, nine stages · ${measured} carry measured rows`}
+        right={<BasisTag basis="model" />}
+      >
         Follow the shock
       </SectionTitle>
 
-      {/* Horizontal on anything wide enough to read; vertical below that, with
-          the connector rotated to match. A hairline drawn in the wrong direction
-          reads as a mistake rather than as a responsive layout. */}
-      <ol className="grid grid-cols-1 gap-y-2 p-4 sm:grid-cols-2 sm:gap-x-4 lg:grid-cols-4 xl:grid-cols-7">
-        {STAGES.map((stage, i) => (
-          <motion.li
-            key={stage.label}
-            initial={{ opacity: 0, y: 6 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.3, delay: i * 0.05 }}
-            className="relative flex min-w-0 flex-col gap-1.5 pr-2 sm:pb-2"
-          >
-            {/* Connector: a travelling dash, so the chain reads as directed
-                flow rather than as a row of equal boxes. */}
-            {i < STAGES.length - 1 ? (
-              <span
-                aria-hidden
-                className="absolute top-4 left-5 hidden h-px w-[calc(100%-1.25rem)] xl:block"
-              >
-                <span className="flow-arc block h-px w-full bg-[var(--exec-violet)] opacity-70" />
-              </span>
-            ) : null}
-            <span className="border-violet relative z-10 flex size-8 items-center justify-center rounded-lg border bg-[var(--card)]">
-              <span className="accent-violet text-[12px] font-semibold">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-            </span>
-            <span className="text-[14px] font-semibold text-[var(--exec-ink)]">
-              {stage.label}
-            </span>
-            <span className="text-[12px] leading-snug text-[var(--exec-ink-dim)]">
-              {stage.detail}
-            </span>
-          </motion.li>
-        ))}
-      </ol>
-
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--exec-hairline)] px-4 py-3">
-        <span className="text-[13px] text-[var(--exec-ink-dim)]">
-          Follow how a global event moves through interconnected systems.
-        </span>
-        <Link
-          to="/app/chain"
-          className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-[var(--exec-hairline-strong)] px-3.5 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+      {/* Event picker. A reader should be able to trace their own event, not the
+          one the page happened to choose. */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-[var(--exec-hairline)] px-4 py-3">
+        <label className="exec-label shrink-0" htmlFor="shock-event">
+          Event
+        </label>
+        <select
+          id="shock-event"
+          value={active ?? ""}
+          onChange={(e) => {
+            setEventId(e.target.value);
+            // The selected row belongs to the event, so it is cleared rather
+            // than left pointing at something the new event does not contain.
+            setRowId(null);
+          }}
+          className="h-9 min-w-0 flex-1 rounded-lg border border-[var(--exec-hairline)] bg-[var(--exec-surface)] px-3 text-[13px] text-[var(--exec-ink)] outline-none transition-colors focus:border-[var(--exec-cyan)]"
         >
-          Explore connections <ArrowRight className="size-3.5" />
-        </Link>
+          {events.map((e) => (
+            <option key={e.id} value={e.id}>
+              {e.reference} — {e.title.slice(0, 64)}
+            </option>
+          ))}
+        </select>
       </div>
+
+      {!chain || stages.length === 0 ? (
+        <div className="p-4">
+          <Skeleton className="h-56 w-full" />
+        </div>
+      ) : (
+        <>
+          {/* The nine nodes. Wrapping rather than scrolling, so every link is
+              visible without interaction on every viewport — a chain you have to
+              scroll to finish is not legible as a chain. */}
+          <nav aria-label="Propagation stages" className="border-b border-[var(--exec-hairline)] px-4 py-4">
+            <ol className="flex flex-wrap gap-2">
+              {stages.map((s, i) => {
+                const isActive = s.id === stage?.id;
+                const dim = s.rows.length === 0;
+                return (
+                  <li key={s.id} className="min-w-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStageId(s.id);
+                        setRowId(null);
+                      }}
+                      aria-pressed={isActive}
+                      className={cn(
+                        "flex min-w-0 flex-col gap-1.5 rounded-xl border px-3 py-2 text-left transition-colors",
+                        isActive
+                          ? "border-[var(--exec-cyan)] bg-[color-mix(in_srgb,var(--exec-cyan)_10%,transparent)]"
+                          : dim
+                            ? "border-[var(--exec-hairline)] opacity-55 hover:opacity-90"
+                            : "border-[var(--exec-hairline)] hover:border-[var(--exec-hairline-strong)]",
+                      )}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="exec-num text-[12px] text-[var(--exec-ink-dim)]">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span className="text-[13px] font-semibold text-[var(--exec-ink)]">
+                          {s.title}
+                        </span>
+                      </span>
+                      <span className="block h-1 w-full min-w-[7rem] rounded-full bg-[var(--exec-surface)]">
+                        <span
+                          className="block h-full rounded-full transition-[width] duration-300"
+                          style={{
+                            width: `${Math.max(2, (s.rows[0]?.weight ?? 0) * 100)}%`,
+                            background: loadColour(s.rows[0]?.weight ?? 0),
+                          }}
+                        />
+                      </span>
+                      <span className="exec-label min-w-0 truncate text-[var(--exec-ink-dim)]">
+                        {dim ? "not measured" : CHAIN_SUMMARY[s.id]}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+
+          {/* Rows for the stage, and the panel they feed. */}
+          <div className="grid grid-cols-1 gap-px bg-[var(--exec-hairline)] lg:grid-cols-12">
+            <div className="min-w-0 bg-[var(--card)] lg:col-span-7">
+              <p className="exec-label border-b border-[var(--exec-hairline)] px-4 py-2.5 text-[var(--exec-ink)]">
+                {stage?.question}
+              </p>
+              {stage && stage.rows.length > 0 ? (
+                <ul className="flex flex-col">
+                  {stage.rows.map((r) => (
+                    <li key={r.id} className="border-b border-[var(--exec-hairline)] last:border-b-0">
+                      <ChainRowButton
+                        row={r}
+                        selected={row?.id === r.id}
+                        onSelect={() => {
+                          setStageId(stage.id);
+                          setRowId(r.id);
+                        }}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="px-4 py-8">
+                  <p className="exec-label text-[var(--exec-crimson)]">
+                    {stage?.unmeasured?.title ?? "Nothing measured here"}
+                  </p>
+                  <p className="mt-2 max-w-md text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
+                    {stage?.unmeasured?.reason ??
+                      "This stage has no measured rows for the selected event."}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* One panel, cross-faded on every selection change, so a click has
+                a visible consequence rather than silently swapping text. */}
+            <div className="min-w-0 bg-[var(--card)] lg:col-span-5">
+              <p className="exec-label border-b border-[var(--exec-hairline)] px-4 py-2.5">
+                Step{" "}
+                {stage ? String(stages.indexOf(stage) + 1).padStart(2, "0") : "—"} ·{" "}
+                {stage?.title}
+              </p>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={`${stage?.id}:${row?.id ?? "none"}`}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex min-w-0 flex-col gap-3 px-4 py-4"
+                >
+                  <p className="text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
+                    {stage?.about}
+                  </p>
+                  {row ? (
+                    <div className="flex min-w-0 flex-col gap-2">
+                      <p className="text-[15px] font-semibold text-[var(--exec-ink)]">
+                        {row.label}
+                      </p>
+                      {row.weight !== undefined ? (
+                        <span className="flex items-baseline gap-2">
+                          <span
+                            className="exec-num text-[1.75rem] leading-none font-bold tracking-[-0.025em]"
+                            style={{ color: loadColour(row.weight) }}
+                          >
+                            {(row.weight * 100).toFixed(0)}
+                          </span>
+                          <span className="exec-label">weighted exposure</span>
+                        </span>
+                      ) : null}
+                      {row.meta ? (
+                        <p className="text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
+                          {row.meta}
+                        </p>
+                      ) : null}
+                      {row.detail ? (
+                        <p className="text-[13px] leading-relaxed text-[var(--exec-ink)]">
+                          {row.detail}
+                        </p>
+                      ) : null}
+                      {row.href ? (
+                        <Link
+                          to={row.href}
+                          className="exec-label self-start text-[var(--exec-cyan)] transition-opacity hover:opacity-80"
+                        >
+                          Open the full analysis →
+                        </Link>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--exec-hairline)] px-4 py-3">
+            <span className="text-[13px] text-[var(--exec-ink-dim)]">
+              {measured} of {stages.length} links carry measured rows for this event. The
+              rest are stated as unmeasured, not zero.
+            </span>
+            <Link
+              to="/app/chain"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-[var(--exec-hairline-strong)] px-3.5 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+            >
+              Trace any event <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+        </>
+      )}
     </ExecCard>
+  );
+}
+
+/** One row inside a stage. A button, so the panel always has a subject. */
+function ChainRowButton({
+  row,
+  selected,
+  onSelect,
+}: {
+  row: ChainRow;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      className={cn(
+        "flex w-full min-w-0 flex-col gap-1.5 px-4 py-2.5 text-left transition-colors",
+        selected ? "bg-[var(--exec-surface)]" : "hover:bg-[var(--exec-surface)]",
+      )}
+    >
+      <span className="flex items-baseline justify-between gap-3">
+        <span className="min-w-0 truncate text-[13px] font-medium text-[var(--exec-ink)]">
+          {row.label}
+        </span>
+        {row.weight !== undefined ? (
+          <span
+            className="exec-num shrink-0 text-[13px] font-semibold"
+            style={{ color: loadColour(row.weight) }}
+          >
+            {(row.weight * 100).toFixed(0)}
+          </span>
+        ) : null}
+      </span>
+      <span className="block h-1 w-full rounded-full bg-[var(--exec-surface)]">
+        <span
+          className="block h-full rounded-full transition-[width] duration-300"
+          style={{
+            width: `${Math.min(100, (row.weight ?? 0) * 100)}%`,
+            background: loadColour(row.weight ?? 0),
+          }}
+        />
+      </span>
+      {row.meta ? (
+        <span className="exec-label min-w-0 truncate text-[var(--exec-ink-dim)]">
+          {row.meta}
+        </span>
+      ) : null}
+    </button>
   );
 }
 

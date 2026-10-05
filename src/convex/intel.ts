@@ -338,18 +338,29 @@ export const signalMatrix = query({
 /**
  * The transmission chain for one event, stage by stage.
  *
- * event → country → trade → energy → supply chain → industry are all read
- * straight off the propagation graph for this event. Company and market are
- * included as explicit stages that report their absence, because a chain that
- * silently skips two of its eight links would read as if those effects do not
- * exist — they are simply not measured by this build.
+ * Nine stages, and every one of them is either measured or explicitly reported
+ * as unmeasured:
+ *
+ *   event → country → trade → energy → infrastructure
+ *         → supply chain → industry → company → market
+ *
+ * Seven are read straight off the propagation graph for this event. Company is
+ * returned as an explicit absence with its reason, because a chain that quietly
+ * omitted it would read as though no company-level effect exists — it is simply
+ * not measured by this build.
+ *
+ * INFRASTRUCTURE and SUPPLY CHAIN are two different claims and are kept apart.
+ * Infrastructure is *where* the shock travels: the chokepoints, straits and
+ * corridors it actually passes through. Supply chain is *how far it carries* —
+ * the economies reached by coupling to that infrastructure, weighted by how
+ * hard this particular event presses on it. Merging them would report one idea
+ * twice and call it two.
  */
 export const eventChain = query({
   args: { eventId: v.string() },
   handler: async (ctx, args) => {
-    const assessment = allAssessments(SCENARIOS).find(
-      (a) => a.scenario.id === args.eventId,
-    );
+    const all = allAssessments(SCENARIOS);
+    const assessment = all.find((a) => a.scenario.id === args.eventId);
     if (!assessment) return null;
 
     const byChannel = (channel: Channel) =>
@@ -399,7 +410,8 @@ export const eventChain = query({
       )
       .sort((a, b) => b.load - a.load);
 
-    // Infrastructure this event actually travels through.
+    // Infrastructure this event actually travels through, carrying its mechanism
+    // and lag so the stage can explain itself rather than just rank a list.
     const seenInfrastructure = new Set<string>();
     const infrastructure = everyNode
       .filter((c) => {
@@ -409,11 +421,62 @@ export const eventChain = query({
         seenInfrastructure.add(c.nodeId);
         return true;
       })
-      .sort((a, b) => b.impact * b.confidence - a.impact * a.confidence);
+      .sort((a, b) => b.impact * b.confidence - a.impact * a.confidence)
+      .slice(0, 8)
+      .map((c) => ({
+        ...c,
+        kind: getNode(c.nodeId).kind,
+        region: getNode(c.nodeId).region,
+        criticality: getNode(c.nodeId).criticality,
+      }));
+
+    // Supply chain: how far this event carries *through* that infrastructure.
+    //
+    // For each economy, the shared-event coupling to each loaded infrastructure
+    // node, scaled by how hard this event presses on that node. The coupling term
+    // is corpus-derived, the scaling term is event-specific, and neither is a
+    // shipping route — the wording on the panel says so.
+    const infrastructureProfiles = new Map<string, ReturnType<typeof nodeExposure>>();
+    for (const node of infrastructure) {
+      infrastructureProfiles.set(node.nodeId, nodeExposure(all, node.nodeId));
+    }
+    const pressByNode = new Map<string, number>();
+    for (const pathway of assessment.scenario.pathways) {
+      for (const exposure of pathway.exposures) {
+        const node = getNode(exposure.nodeId);
+        if (node.kind !== "chokepoint" && node.kind !== "corridor") continue;
+        pressByNode.set(
+          exposure.nodeId,
+          (pressByNode.get(exposure.nodeId) ?? 0) +
+            exposure.impact * pathway.magnitude * pathway.confidence,
+        );
+      }
+    }
+
+    const supply = countries
+      .map((country) => {
+        const profile = nodeExposure(all, country.nodeId);
+        let via: string | null = null;
+        let load = 0;
+        for (const [nodeId, press] of pressByNode) {
+          const infra = infrastructureProfiles.get(nodeId);
+          if (!infra || press <= 0) continue;
+          const coupling = sharedEventCoupling(infra, profile);
+          const carried = coupling * press;
+          if (carried > load) {
+            load = carried;
+            via = getNode(nodeId).label;
+          }
+        }
+        return { ...country, load, via };
+      })
+      .filter((row) => row.load > 0)
+      .sort((a, b) => b.load - a.load)
+      .slice(0, 8);
 
     // Industries the event reaches, by structural share through that node.
     const industryReach = INDUSTRIES.map((industry) => {
-      const exposure = industryExposure(allAssessments(SCENARIOS), industry);
+      const exposure = industryExposure(all, industry);
       const share = exposure.contributions
         .filter((c) => c.eventId === assessment.scenario.id)
         .reduce((s, c) => s + c.weight, 0);
@@ -434,6 +497,7 @@ export const eventChain = query({
         id: assessment.scenario.id,
         reference: assessment.scenario.reference,
         title: assessment.scenario.title,
+        summary: assessment.scenario.summary,
         detectedAt: assessment.scenario.detectedAt,
         stage: assessment.scenario.stage,
         score: assessment.risk[30].score,
@@ -442,12 +506,20 @@ export const eventChain = query({
         band: assessment.band,
         uncertainty: assessment.uncertainty,
         confidence: assessment.confidence,
+        regions: assessment.scenario.regions,
+        actors: assessment.scenario.actors,
       },
       countries: countries.slice(0, 10),
       trade: byChannel("trade").slice(0, 8),
       energy: byChannel("energy").slice(0, 8),
-      supply: infrastructure.slice(0, 8),
+      infrastructure,
+      supply,
       industries: industryReach.slice(0, 8),
+      market: byChannel("finance").slice(0, 8),
+      // No `company` payload at all: an absent key is the honest answer, and the
+      // reason travels with it so the UI can say why rather than show a blank.
+      companyReason:
+        "No company filings, ownership records or issuer-level exposure data are connected, so GlobalMatrix does not name a company as affected. The link between an industry and a firm is asserted by that firm's own disclosure, and this build reads none.",
     };
   },
 });
