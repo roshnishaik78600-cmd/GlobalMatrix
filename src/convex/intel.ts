@@ -83,12 +83,24 @@ export const detectionFeed = query({
       for (const row of rows) watched.add(row.eventId);
     }
 
+    // Events are keyed in the watchlist two ways across the product's history:
+    // the bare scenario id and the namespaced `EVENT:` form the event page
+    // writes (matching `NODE:`/`SECTOR:` elsewhere). Both are accepted so a
+    // tracked event stays tracked regardless of which surface stored it.
+    const watchedEvent = (id: string) =>
+      watched.has(id) || watched.has(`EVENT:${id}`);
+    // An event key is either bare (no namespace separator) or `EVENT:`-tagged;
+    // `NODE:`/`SECTOR:` entries belong to the country and industry lists.
+    const eventKeyCount = [...watched].filter(
+      (k) => k.startsWith("EVENT:") || !k.includes(":"),
+    ).length;
+
     const all = allAssessments(SCENARIOS);
 
     const rows = all
       .filter((a) => !args.channel || a.channelPressure[args.channel as Channel] > 0.3)
       .filter((a) => !args.stage || a.scenario.stage === (args.stage as Stage))
-      .filter((a) => !args.watchlistOnly || watched.has(a.scenario.id))
+      .filter((a) => !args.watchlistOnly || watchedEvent(a.scenario.id))
       .map((a) => {
         // The nodes this event lands on hardest, so the feed answers
         // "where does this land?" without opening the event.
@@ -142,7 +154,7 @@ export const detectionFeed = query({
             (best, s) => (!best || s.observedAt > best.observedAt ? s : best),
             null,
           ),
-          watched: watched.has(a.scenario.id),
+          watched: watchedEvent(a.scenario.id),
         };
       });
 
@@ -150,7 +162,7 @@ export const detectionFeed = query({
       rows,
       total: all.length,
       corpusSize: all.length,
-      watchlistSize: watched.size,
+      watchlistSize: eventKeyCount,
     };
   },
 });
@@ -182,7 +194,17 @@ export const eventDetail = query({
           q.eq("userId", userId).eq("eventId", args.eventId),
         )
         .first();
-      watched = !!w;
+      // The event page writes the namespaced `EVENT:` key; older rows may be
+      // bare. Accept either so the Track state is truthful on both.
+      const wNamespaced = w
+        ? null
+        : await ctx.db
+            .query("watchlist")
+            .withIndex("by_user_event", (q) =>
+              q.eq("userId", userId).eq("eventId", `EVENT:${args.eventId}`),
+            )
+            .first();
+      watched = !!(w || wNamespaced);
 
       annotations = (
         await ctx.db

@@ -32,6 +32,7 @@ const DataSources = lazy(() => import("./pages/DataSources.tsx"));
 const Trade = lazy(() => import("./pages/Trade.tsx"));
 const Chain = lazy(() => import("./pages/Chain.tsx"));
 const Markets = lazy(() => import("./pages/Markets.tsx"));
+const Watchlist = lazy(() => import("./pages/Watchlist.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 
 /** Every console surface is publicly readable. Only the write actions
@@ -198,6 +199,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/app/chain" element={console_(<Chain />)} />
               <Route path="/app/trade" element={console_(<Trade />)} />
               <Route path="/app/markets" element={console_(<Markets />)} />
+              <Route path="/app/watchlist" element={console_(<Watchlist />)} />
               <Route path="/app/policy" element={console_(<NotAvailable />)} />
               <Route path="/app/analogues" element={console_(<NotAvailable />)} />
               <Route path="/methodology" element={<Methodology />} />

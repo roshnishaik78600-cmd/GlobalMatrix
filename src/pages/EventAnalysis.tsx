@@ -27,6 +27,7 @@ import { pct, shortDate, signed, timestamp } from "@/lib/format";
 import { getNode } from "@/lib/intel/nodes";
 import { riskColorForScore } from "@/lib/intel/visual";
 import {
+  BAND_LABEL,
   CHANNEL_LABEL,
   CHANNELS,
   SOURCE_CLASS_LABEL,
@@ -35,14 +36,13 @@ import {
 } from "@/lib/intel/types";
 
 /**
- * One event, read in five moves.
+ * One event, read in the order a reader asks the questions.
  *
- * IMPACT → WHERE IT SPREADS → HOW IT MOVES → TIMELINE → EVIDENCE. That order is
- * the order a reader asks the questions in, and each section answers with one
- * picture rather than a paragraph: the score is a number you can see, the spread
- * is a map, the movement is a graph, the history is a timeline, and the evidence
- * is a set of source cards. The prose that used to sit between them is gone; what
- * remains of it — the scenario summary — is one sentence at the top.
+ * MAP → IMPACT SNAPSHOT → WHAT HAPPENS NEXT → PROPAGATION GRAPH → TIMELINE →
+ * INDUSTRY / MARKET → EVIDENCE. The footprint comes before the arithmetic, the
+ * propagation graph takes the full row because it is the signature panel, and
+ * every projection states whether it is observed, modelled or scenario before
+ * the reader sees a number.
  */
 export default function EventAnalysis() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -53,6 +53,10 @@ export default function EventAnalysis() {
   );
   const graph = useQuery(
     api.intel.eventGraph,
+    eventId ? { eventId } : "skip",
+  );
+  const chain = useQuery(
+    api.intel.eventChain,
     eventId ? { eventId } : "skip",
   );
   const toggleWatch = useToggleWatch();
@@ -107,6 +111,22 @@ export default function EventAnalysis() {
   // The place the event lands on hardest, from the same exposure walk the map
   // draws. Never invented: with no resolved exposure the chip says so.
   const primaryPlace = where[0] ? getNode(where[0].nodeId).label : null;
+
+  // Derived, never invented — every figure below is read straight off the
+  // assessment the page already has, for the "what happens next" panel.
+  const sourceCount = new Set(s.signals.map((x) => x.source)).size;
+  const latestObservation = s.signals.reduce<(typeof s.signals)[number] | null>(
+    (best, x) => (!best || x.observedAt > best.observedAt ? x : best),
+    null,
+  );
+  const risk7 = risk.find((r) => r.horizonDays === 7) ?? risk[0];
+  const risk90 = risk.find((r) => r.horizonDays === 90) ?? risk[risk.length - 1];
+  const dominantPathway = s.pathways.find(
+    (p) => p.channel === assessment.dominantChannel,
+  );
+  const lagWindow = dominantPathway
+    ? `${dominantPathway.lagDays[0]}–${dominantPathway.lagDays[1]} days`
+    : null;
 
   const onGenerateBrief = async () => {
     if (!requireAuth("Generate and save analyst briefs")) return;
@@ -186,13 +206,59 @@ export default function EventAnalysis() {
         </div>
       </div>
 
-      {/* ------------------------------------------------------------ IMPACT -- */}
+      {/* --------------------------------------------------- EVENT MAP ------
+          First after the metadata line: where this lands, before any score.
+          The reader should see the footprint before the arithmetic. */}
+      <div className="lg:col-span-12">
+        <div className="card flex min-w-0 flex-col">
+          <SectionTitle meta={`${where.length} exposed places · hover to preview`}>
+            Where it spreads
+          </SectionTitle>
+          {where.length > 0 ? (
+            <>
+              <WorldMap
+                nodes={where.map((w) => ({
+                  nodeId: w.nodeId,
+                  label: getNode(w.nodeId).label,
+                  load: w.load,
+                  eventCount: 0,
+                  criticality: getNode(w.nodeId).criticality,
+                }))}
+                events={[]}
+                className="map-frame"
+                onInspect={(id) => navigate(`/app/country/${id}`)}
+              />
+              <ul className="grid grid-cols-2 divide-x divide-y divide-[var(--exec-hairline)] border-t border-[var(--exec-hairline)] sm:grid-cols-3 lg:grid-cols-4">
+                {where.map((w) => (
+                  <li key={w.nodeId}>
+                    <Link
+                      to={`/app/country/${w.nodeId}`}
+                      className="flex items-baseline justify-between gap-2 px-4 py-3 transition-colors hover:bg-[var(--exec-surface)]"
+                    >
+                      <span className="min-w-0 truncate text-[14px] text-[var(--exec-ink)]">
+                        {getNode(w.nodeId).label}
+                      </span>
+                      <span className="exec-num shrink-0 text-[13px] font-semibold text-[var(--exec-ink)]">
+                        {(w.load * 100).toFixed(0)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <NoData reason="This event resolves no node-level exposure." />
+          )}
+        </div>
+      </div>
+
+      {/* ------------------------------------------------------ IMPACT SNAPSHOT -- */}
       <div className="lg:col-span-12">
         <SectionTitle
           meta="30-day composite · 80% interval"
           right={<DataType type="scenario" />}
         >
-          Impact
+          Impact snapshot
         </SectionTitle>
 
         <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -252,52 +318,105 @@ export default function EventAnalysis() {
         </div>
       </div>
 
-      {/* --------------------------------------------------- WHERE IT SPREADS -- */}
+      {/* --------------------------------------------- WHAT HAPPENS NEXT --
+          Five honest states in one strip: what is recorded, where it stands,
+          what the model projects, what would confirm or break it, and how
+          certain the model is. Every figure is read off this event's own
+          assessment — nothing is forecast beyond the horizons already shown. */}
       <div className="lg:col-span-12">
         <div className="card flex min-w-0 flex-col">
-          <SectionTitle meta={`${where.length} exposed places · hover to preview`}>
-            Where it spreads
+          <SectionTitle
+            meta="observed · current · next · watch · confidence"
+            right={<DataType type="scenario" />}
+          >
+            What happens next
           </SectionTitle>
-          {where.length > 0 ? (
-            <>
-              <WorldMap
-                nodes={where.map((w) => ({
-                  nodeId: w.nodeId,
-                  label: getNode(w.nodeId).label,
-                  load: w.load,
-                  eventCount: 0,
-                  criticality: getNode(w.nodeId).criticality,
-                }))}
-                events={[]}
-                className="map-frame"
-                onInspect={(id) => navigate(`/app/country/${id}`)}
-              />
-              <ul className="grid grid-cols-2 divide-x divide-y divide-[var(--exec-hairline)] border-t border-[var(--exec-hairline)] sm:grid-cols-3 lg:grid-cols-4">
-                {where.map((w) => (
-                  <li key={w.nodeId}>
-                    <Link
-                      to={`/app/country/${w.nodeId}`}
-                      className="flex items-baseline justify-between gap-2 px-4 py-3 transition-colors hover:bg-[var(--exec-surface)]"
-                    >
-                      <span className="min-w-0 truncate text-[14px] text-[var(--exec-ink)]">
-                        {getNode(w.nodeId).label}
-                      </span>
-                      <span className="exec-num shrink-0 text-[13px] font-semibold text-[var(--exec-ink)]">
-                        {(w.load * 100).toFixed(0)}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <NoData reason="This event resolves no node-level exposure." />
-          )}
+          <div className="grid grid-cols-1 divide-y divide-[var(--exec-hairline)] md:grid-cols-2 xl:grid-cols-5 xl:divide-x xl:divide-y-0">
+            <div className="flex min-w-0 flex-col gap-2 p-4">
+              <span className="exec-label text-[var(--exec-emerald)]">
+                OBSERVED
+              </span>
+              <p className="text-[14px] leading-snug text-[var(--exec-ink)]">
+                {s.signals.length} observations across {sourceCount} source
+                {sourceCount === 1 ? "" : "s"} · first{" "}
+                {shortDate(s.firstSignalAt)} · latest{" "}
+                {latestObservation
+                  ? shortDate(latestObservation.observedAt)
+                  : "not dated"}
+                .
+              </p>
+              <p className="text-[13px] leading-snug text-[var(--exec-ink-dim)]">
+                What the corpus has actually recorded. Nothing here is inferred.
+              </p>
+            </div>
+
+            <div className="flex min-w-0 flex-col gap-2 p-4">
+              <span className="exec-label text-[var(--exec-amber)]">
+                CURRENT IMPACT
+              </span>
+              <p className="text-[14px] leading-snug text-[var(--exec-ink)]">
+                Stage {STAGE_LABEL[s.stage]} · 30-day composite{" "}
+                {primary.score.toFixed(1)} ({BAND_LABEL[primary.band]}), landing
+                hardest on {primaryPlace ?? "no resolved place"}.
+              </p>
+              <p className="text-[13px] leading-snug text-[var(--exec-ink-dim)]">
+                Where the modelled exposure already sits.
+              </p>
+            </div>
+
+            <div className="flex min-w-0 flex-col gap-2 p-4">
+              <span className="exec-label text-[var(--exec-cyan)]">
+                POTENTIAL NEXT EFFECTS
+              </span>
+              <p className="text-[14px] leading-snug text-[var(--exec-ink)]">
+                Composite at {risk7.score.toFixed(1)} (7d),{" "}
+                {primary.score.toFixed(1)} (30d), {risk90.score.toFixed(1)} (90d)
+                {lagWindow
+                  ? `; ${CHANNEL_LABEL[assessment.dominantChannel].toLowerCase()} transmits with a ${lagWindow} lag`
+                  : ""}
+                .
+              </p>
+              <p className="text-[13px] leading-snug text-[var(--exec-ink-dim)]">
+                MODEL OUTPUT — possibilities under current pathways, not
+                predictions.
+              </p>
+            </div>
+
+            <div className="flex min-w-0 flex-col gap-2 p-4">
+              <span className="exec-label text-[var(--exec-cyan)]">WATCH</span>
+              <p className="text-[14px] leading-snug text-[var(--exec-ink)]">
+                {CHANNEL_LABEL[assessment.dominantChannel]} pressure on{" "}
+                {primaryPlace ?? "the top exposed place"} over the next{" "}
+                {lagWindow ?? "coming days"}.
+              </p>
+              <p className="text-[13px] leading-snug text-[var(--exec-ink-dim)]">
+                A move there confirms the modelled path; a flat reading weakens
+                it.
+              </p>
+            </div>
+
+            <div className="flex min-w-0 flex-col gap-2 p-4">
+              <span className="exec-label text-[var(--exec-ink-dim)]">
+                CONFIDENCE
+              </span>
+              <p className="text-[14px] leading-snug text-[var(--exec-ink)]">
+                {pct(s.confidence)} model confidence on{" "}
+                {pct(assessment.evidenceStrength)} evidence strength · band{" "}
+                {BAND_LABEL[primary.band]}.
+              </p>
+              <p className="text-[13px] leading-snug text-[var(--exec-ink-dim)]">
+                80% interval {primary.low.toFixed(0)}–{primary.high.toFixed(0)}
+                {' '}— width is uncertainty, not severity.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ------------------------------------------------------- HOW IT MOVES -- */}
-      <div className="lg:col-span-7">
+      {/* ------------------------------------------------------- HOW IT MOVES --
+          Full width: this is the signature panel of the page, so it gets the
+          whole row rather than sharing it. */}
+      <div className="lg:col-span-12">
         <div className="card flex min-w-0 flex-col">
           <SectionTitle meta="event → channel → place" className="border-violet">
             How it moves
@@ -308,7 +427,7 @@ export default function EventAnalysis() {
             <NoData reason="No propagation path resolved for this event." />
           ) : (
             <>
-              <GraphExplorer nodes={graph.nodes} edges={graph.edges} height={380} />
+              <GraphExplorer nodes={graph.nodes} edges={graph.edges} height={440} />
               <div className="border-t border-[var(--exec-hairline)] px-4 py-3">
                 <p className="exec-label">Channel pressure</p>
                 <ul className="mt-2 flex flex-col gap-2">
@@ -402,6 +521,98 @@ export default function EventAnalysis() {
               </motion.li>
             ))}
           </ol>
+        </div>
+      </div>
+
+      {/* ------------------------------------------- INDUSTRY EXPOSURE ----
+          What this event reaches at sector level, from the same nine-stage
+          chain the Impact page renders — one shared model, two surfaces. */}
+      <div className="lg:col-span-7">
+        <div className="card flex min-w-0 flex-col">
+          <SectionTitle
+            meta="structural share · model output"
+            right={<DataType type="model" />}
+          >
+            Industry exposure
+          </SectionTitle>
+          {chain === undefined ? (
+            <NoData reason="Resolving industry reach for this event." />
+          ) : chain === null || chain.industries.length === 0 ? (
+            <NoData reason="No tracked industry shares enough structural exposure with the nodes this event reaches to rank." />
+          ) : (
+            <ul className="divide-y divide-[var(--exec-hairline)]">
+              {chain.industries.map((row) => (
+                <li
+                  key={row.id}
+                  className="flex min-w-0 items-baseline justify-between gap-3 px-4 py-3"
+                >
+                  <Link
+                    to={`/app/industry/${row.id}`}
+                    className="min-w-0 truncate text-[14px] text-[var(--exec-ink)] hover:text-[var(--exec-cyan)]"
+                  >
+                    {row.label}
+                  </Link>
+                  <span className="flex shrink-0 items-baseline gap-3">
+                    {row.channel ? (
+                      <span className="exec-label">
+                        {CHANNEL_LABEL[row.channel]}
+                      </span>
+                    ) : null}
+                    <span className="exec-num text-[13px] font-semibold text-[var(--exec-ink)]">
+                      {pct(Math.min(1, row.share), 1)}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* ------------------------------------------------ MARKET CONNECTIONS -- */}
+      <div className="lg:col-span-7">
+        <div className="card flex min-w-0 flex-col">
+          <SectionTitle
+            meta="finance channel · model output"
+            right={<DataType type="model" />}
+          >
+            Market connections
+          </SectionTitle>
+          {chain === undefined ? (
+            <NoData reason="Resolving finance-channel pathways." />
+          ) : chain === null || chain.market.length === 0 ? (
+            <NoData reason="This event carries no finance-channel pathway, so it has no modelled market transmission. No price feed is connected either, so nothing here could be a quote." />
+          ) : (
+            <ul className="divide-y divide-[var(--exec-hairline)]">
+              {chain.market.map((row) => (
+                <li key={`${row.nodeId}-${row.channel}`} className="min-w-0 px-4 py-3">
+                  <p className="truncate text-[14px] text-[var(--exec-ink)]">
+                    {row.label}
+                  </p>
+                  <p className="mt-1 line-clamp-2 text-[13px] leading-snug text-[var(--exec-ink-dim)]">
+                    {row.mechanism}
+                  </p>
+                  <p className="exec-label mt-1">
+                    lag {row.lagDays[0]}–{row.lagDays[1]}d · confidence{" "}
+                    {pct(row.confidence)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* ---------------------------------------------------------- COMPANIES --
+          An honest absence, not a blank: no issuer-level data is connected, so
+          the panel states why no company is named rather than naming one. */}
+      <div className="lg:col-span-5">
+        <div className="card flex min-w-0 flex-col">
+          <SectionTitle meta="not measured by this build">Companies</SectionTitle>
+          <p className="p-4 text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
+            {chain?.companyReason ??
+              "Company-level exposure is not measured by this build."}
+          </p>
         </div>
       </div>
 

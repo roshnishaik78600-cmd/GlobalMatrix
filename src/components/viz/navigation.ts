@@ -1,6 +1,7 @@
 import {
   Activity,
   Bell,
+  Bookmark,
   Boxes,
   Compass,
   Database,
@@ -84,12 +85,13 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     id: "propagation",
-    label: "Propagation",
+    label: "Impact",
     items: [
-      // Labelled for what the page actually is. It was called "Energy" while
-      // rendering the event→world chain, which sent readers looking for a
-      // commodity view that has no connected price feed behind it.
-      { to: "/app/chain", label: "Event → world", icon: Route },
+      // The signature feature: the nine-stage propagation chain. Labelled for
+      // what the page actually is — it was called "Energy" while rendering the
+      // event→world chain, which sent readers looking for a commodity view that
+      // has no connected price feed behind it.
+      { to: "/app/chain", label: "Impact graph", icon: Route },
       { to: "/app/graph", label: "Knowledge graph", icon: Share2 },
     ],
   },
@@ -113,6 +115,15 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "personal",
+    label: "Personal",
+    items: [
+      // What you are tracking: events, countries and industries you have
+      // bookmarked, gathered in one place.
+      { to: "/app/watchlist", label: "Watchlist", icon: Bookmark },
+    ],
+  },
+  {
     id: "data",
     label: "Data",
     items: [
@@ -129,27 +140,39 @@ export const NAV_ITEMS: NavItem[] = NAV_GROUPS.flatMap((g) => g.items);
 export const NAV_AVAILABLE_COUNT = NAV_ITEMS.filter((i) => !i.unavailable).length;
 
 /**
- * The top bar. Five, because a sixth would start to wrap at 1280px and a wrapped
- * centre section pushes the wordmark and the account cluster out of alignment.
+ * The top bar: the seven questions the product answers, in the order a reader
+ * asks them — explore the world, see what happened, follow the impact, check
+ * who is exposed, run a scenario, open your watchlist, read the intelligence.
+ *
+ * Rendered as labels only (icons live in the Explore panel and the mobile bar)
+ * so all seven fit without wrapping: the first five show from `lg`, all seven
+ * from `xl`. A wrapped centre section would push the wordmark and the account
+ * cluster out of alignment, so the later items yield on narrow desktops rather
+ * than overlap them.
  */
 export const PRIMARY_NAV: NavItem[] = [
   { to: "/app", label: "Explore", icon: Compass, end: true },
-  { to: "/app/world", label: "World", icon: Globe2 },
   { to: "/app/events", label: "Events", icon: Activity },
-  { to: "/app/markets", label: "Markets", icon: TrendingUp },
-  { to: "/app/supply", label: "Supply chain", icon: Network },
+  { to: "/app/chain", label: "Impact", icon: Route },
+  { to: "/app/risk", label: "Exposure", icon: Radar },
+  { to: "/app/scenarios", label: "Scenarios", icon: Radar },
+  { to: "/app/watchlist", label: "Watchlist", icon: Bookmark },
+  { to: "/app/analyst", label: "Intelligence", icon: TrendingUp },
 ];
 
+/** Index in `PRIMARY_NAV` from which the bar waits for `xl` before showing. */
+export const PRIMARY_NAV_XL_FROM = 5;
+
 /**
- * The mobile bar. Same rule, and the same reason: Home and Profile are the two
- * things you want from anywhere, and only three slots remain, so the three that
- * remain are the three answers — what is happening, where, and what changed.
- * Search is here rather than Markets because on a phone the most common action
- * is jumping to a specific country, not reading an index.
+ * The mobile bar. Same rule, and the same reason: Explore and Profile are the
+ * two things you want from anywhere, and only three slots remain, so the three
+ * that remain are the three answers — what is happening, where, and the map.
+ * Search is here because on a phone the most common action is jumping to a
+ * specific country, not reading an index.
  */
 export const MOBILE_NAV: NavItem[] = [
-  { to: "/app", label: "Home", icon: Home, end: true },
-  { to: "/app/events", label: "Explore", icon: Compass },
+  { to: "/app", label: "Explore", icon: Home, end: true },
+  { to: "/app/events", label: "Events", icon: Activity },
   { to: "/app/world", label: "Map", icon: Globe2 },
   { to: "/app", label: "Search", icon: Search },
   { to: "/auth", label: "Profile", icon: User },

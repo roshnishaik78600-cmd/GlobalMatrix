@@ -8,17 +8,43 @@ const requireUser = async (ctx: { auth: unknown }) => {
   return userId;
 };
 
-/** Add or remove an event from the researcher's watchlist. */
+/** Add or remove an event from the researcher's watchlist.
+ *
+ * Event keys exist in two forms across the product — the bare scenario id and
+ * the namespaced `EVENT:` id. Toggle treats them as one entry: it deletes
+ * whichever form exists and always inserts the namespaced form, so a key can
+ * never be added twice under two spellings and fail to turn off again. */
 export const toggleWatch = mutation({
   args: { eventId: v.string() },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
-    const existing = await ctx.db
-      .query("watchlist")
-      .withIndex("by_user_event", (q) =>
-        q.eq("userId", userId).eq("eventId", args.eventId),
-      )
-      .first();
+
+    // Namespaced kinds (`NODE:`, `SECTOR:`) are exact-match only.
+    const isEventKey =
+      !args.eventId.includes(":") || args.eventId.startsWith("EVENT:");
+    const bare = args.eventId.startsWith("EVENT:")
+      ? args.eventId.slice("EVENT:".length)
+      : args.eventId;
+    const forms = isEventKey
+      ? [...new Set([args.eventId, bare, `EVENT:${bare}`])]
+      : [args.eventId];
+
+    async function findRow(form: string) {
+      return ctx.db
+        .query("watchlist")
+        .withIndex("by_user_event", (q) =>
+          q.eq("userId", userId).eq("eventId", form),
+        )
+        .first();
+    }
+    let existing: Awaited<ReturnType<typeof findRow>> = null;
+    for (const form of forms) {
+      const row = await findRow(form);
+      if (row) {
+        existing = row;
+        break;
+      }
+    }
 
     if (existing) {
       await ctx.db.delete(existing._id);
@@ -27,7 +53,7 @@ export const toggleWatch = mutation({
 
     await ctx.db.insert("watchlist", {
       userId,
-      eventId: args.eventId,
+      eventId: isEventKey ? `EVENT:${bare}` : args.eventId,
       createdAt: Date.now(),
     });
     return { watched: true };

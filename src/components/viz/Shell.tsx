@@ -9,7 +9,12 @@ import { ExplorePanel } from "@/components/viz/NavRail";
 import { FocusDrawer } from "@/components/viz/FocusPanel";
 import { useFocus } from "@/lib/focus";
 import { getNode } from "@/lib/intel/nodes";
-import { MOBILE_NAV, PRIMARY_NAV, type NavItem } from "@/components/viz/navigation";
+import {
+  MOBILE_NAV,
+  PRIMARY_NAV,
+  PRIMARY_NAV_XL_FROM,
+  type NavItem,
+} from "@/components/viz/navigation";
 import { cn } from "@/lib/utils";
 
 /**
@@ -80,14 +85,20 @@ export function Shell({ children }: { children: ReactNode }) {
             </span>
           </Link>
 
-          {/* Centre — the five primary destinations. Hidden below `lg`, where the
-              bottom bar and the Explore button take over. */}
+          {/* Centre — the primary destinations. Hidden below `lg`, where the
+              bottom bar and the Explore button take over. Labels only, and the
+              last two wait for `xl`: seven icon-plus-label links overflow a
+              1024px bar and would collide with the account cluster. */}
           <nav
             className="hidden min-w-0 flex-1 items-center justify-center gap-1 lg:flex"
             aria-label="Primary"
           >
-            {PRIMARY_NAV.map((item) => (
-              <TopLink key={item.to} item={item} />
+            {PRIMARY_NAV.map((item, i) => (
+              <TopLink
+                key={item.to}
+                item={item}
+                wideOnly={i >= PRIMARY_NAV_XL_FROM}
+              />
             ))}
           </nav>
 
@@ -204,16 +215,27 @@ export function Shell({ children }: { children: ReactNode }) {
   );
 }
 
-/** A top-bar link. Active state is a text colour plus an underline, not a fill. */
-function TopLink({ item }: { item: NavItem }) {
-  const Icon = item.icon;
+/**
+ * A top-bar link. Label only — the icon would cost ~24px per item, which is
+ * what makes seven destinations fit a 1024px bar without wrapping. Active state
+ * is a text colour plus an underline, not a fill.
+ */
+function TopLink({
+  item,
+  wideOnly,
+}: {
+  item: NavItem;
+  /** Deferred to `xl` so the five core destinations own the `lg` bar. */
+  wideOnly?: boolean;
+}) {
   return (
     <NavLink
       to={item.to}
       end={item.end}
       className={({ isActive }) =>
         cn(
-          "relative flex min-w-0 shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[14px] transition-colors",
+          "relative flex min-w-0 shrink-0 items-center rounded-lg px-3 py-2 text-[14px] whitespace-nowrap transition-colors",
+          wideOnly && "hidden xl:flex",
           isActive
             ? "text-[var(--exec-ink)]"
             : "text-[var(--exec-ink-dim)] hover:text-[var(--exec-ink)]",
@@ -222,7 +244,6 @@ function TopLink({ item }: { item: NavItem }) {
     >
       {({ isActive }) => (
         <>
-          <Icon className="size-4 shrink-0" aria-hidden />
           <span className="whitespace-nowrap">{item.label}</span>
           <span
             aria-hidden
