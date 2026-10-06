@@ -79,6 +79,17 @@ export default function CountryProfile() {
   const series = trends?.nodes.find((n) => n.nodeId === nodeId)?.values ?? [];
   const delta = trendDelta(series);
 
+  // The five snapshot dimensions, read from the same exposure walk the rest of
+  // the page uses. A channel with no reading is `null`, never zero — those are
+  // different claims and the snapshot says which one applies.
+  const channelLoad = (c: Channel): number | null =>
+    exposure.byChannel.find((x) => x.channel === c)?.load ?? null;
+  const strongestRole = industries.reduce<(typeof industries)[number] | null>(
+    (best, i) => (!best || i.share > best.share ? i : best),
+    null,
+  );
+  const declaredRoles = industries.filter((i) => i.share > 0).length;
+
   return (
     <PageFrame
       eyebrow={country ? "Country profile" : "Infrastructure profile"}
@@ -207,6 +218,94 @@ export default function CountryProfile() {
                   : `${series.filter((v) => v > 0).length} of ${series.length} days observed`}
                 {" · "}
                 {exposure.eventCount} events
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ------------------------------------------------- EXPOSURE SNAPSHOT --
+          The five dimensions §16 asks for, in one strip, directly under the
+          hero: geopolitical, trade, energy, market sensitivity and supply
+          chain. Every value comes from the exposure walk already computed for
+          this page; nothing is added or rescaled. */}
+      <div className="lg:col-span-12">
+        <div className="card flex min-w-0 flex-col">
+          <SectionTitle
+            meta="what this place is exposed to"
+            right={<DataType type="model" />}
+          >
+            Exposure snapshot
+          </SectionTitle>
+          <div className="grid grid-cols-2 divide-y divide-[var(--exec-hairline)] md:grid-cols-3 xl:grid-cols-5 xl:divide-x xl:divide-y-0">
+            {(
+              [
+                { label: "Geopolitical", channel: "diplomatic", note: "diplomatic-channel load" },
+                { label: "Trade", channel: "trade", note: "trade-channel load" },
+                { label: "Energy", channel: "energy", note: "energy-channel load" },
+                { label: "Market sensitivity", channel: "finance", note: "finance-channel load" },
+              ] as const
+            ).map((cell) => {
+              const value = channelLoad(cell.channel);
+              return (
+                <div
+                  key={cell.channel}
+                  className="flex min-w-0 flex-col gap-1.5 p-4"
+                >
+                  <span className="exec-label">{cell.label}</span>
+                  {value === null ? (
+                    <span className="text-[1.25rem] leading-none font-bold text-[var(--exec-ink-dim)]">
+                      No reading
+                    </span>
+                  ) : (
+                    <>
+                      <span
+                        className="exec-num text-[1.5rem] leading-none font-bold tracking-[-0.02em]"
+                        style={{ color: riskColorForScore(value * 100) }}
+                      >
+                        {(value * 100).toFixed(0)}
+                      </span>
+                      <span className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--exec-surface)]">
+                        <span
+                          className="block h-full rounded-full"
+                          style={{
+                            width: `${Math.max(2, value * 100)}%`,
+                            background: riskColorForScore(value * 100),
+                          }}
+                        />
+                      </span>
+                    </>
+                  )}
+                  <span className="exec-label">{cell.note}</span>
+                </div>
+              );
+            })}
+            <div className="flex min-w-0 flex-col gap-1.5 p-4">
+              <span className="exec-label">Supply chain</span>
+              {strongestRole ? (
+                <>
+                  <span className="exec-num text-[1.5rem] leading-none font-bold tracking-[-0.02em] text-[var(--exec-ink)]">
+                    {pct(strongestRole.share)}
+                  </span>
+                  <span className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--exec-surface)]">
+                    <span
+                      className="block h-full rounded-full"
+                      style={{
+                        width: `${Math.max(2, strongestRole.share * 100)}%`,
+                        background: "var(--exec-ink-dim)",
+                      }}
+                    />
+                  </span>
+                </>
+              ) : (
+                <span className="text-[1.25rem] leading-none font-bold text-[var(--exec-ink-dim)]">
+                  No declared role
+                </span>
+              )}
+              <span className="exec-label">
+                {declaredRoles} declared industry role
+                {declaredRoles === 1 ? "" : "s"}
+                {strongestRole ? ` · strongest: ${strongestRole.label}` : ""}
               </span>
             </div>
           </div>

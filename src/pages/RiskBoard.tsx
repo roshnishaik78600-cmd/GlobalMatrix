@@ -1,17 +1,62 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { DataType, PageFrame, PageLoading } from "@/components/viz/exec/design";
-import { SectionTitle } from "@/components/viz/exec/system";
+import { SectionTitle, SegmentedControl } from "@/components/viz/exec/system";
 import { NoData } from "@/components/viz/core";
 import { WorldMap, MapLegend, isPlottable } from "@/components/viz/WorldMap";
 import { BandChip, HeatLegend } from "@/components/intel/primitives";
 import { riskColorForScore } from "@/lib/intel/visual";
-import { CHANNEL_LABEL, STAGE_LABEL } from "@/lib/intel/types";
+import { CHANNEL_LABEL, STAGE_LABEL, type Channel } from "@/lib/intel/types";
 import { useFocus } from "@/lib/focus";
+
+/**
+ * The six lenses the risk map can be read through.
+ *
+ * `risk` and the four transmission channels are shading lenses over the same
+ * node set — each re-weights encodings the map already has. `supply` is a
+ * different emphasis: it shades only the economies that *receive* chokepoint
+ * coupling, because that is what this build can honestly call supply-chain
+ * exposure. There is no per-node supply statistic to shade by, so the lens
+ * reports the coupling itself and says so.
+ */
+type RiskDomain = Channel | "risk" | "supply";
+
+const LENS_OPTIONS: { id: RiskDomain; label: string; hint: string }[] = [
+  {
+    id: "risk",
+    label: "RISK",
+    hint: "Blended load across every channel, with every event and coupling arc.",
+  },
+  {
+    id: "trade",
+    label: "TRADE",
+    hint: "Shade places by the trade-channel load they carry; event rings follow trade-dominant events.",
+  },
+  {
+    id: "energy",
+    label: "ENERGY",
+    hint: "Shade places by the energy-channel load they carry; event rings follow energy-dominant events.",
+  },
+  {
+    id: "finance",
+    label: "FINANCE",
+    hint: "Shade places by the finance-channel load they carry; event rings follow finance-dominant events.",
+  },
+  {
+    id: "supply",
+    label: "SUPPLY CHAIN",
+    hint: "Shade the economies that receive chokepoint coupling — the shared-event coupling the nine-stage chain reports as supply. Arcs emphasised; event rings hidden.",
+  },
+  {
+    id: "diplomatic",
+    label: "GEOPOLITICS",
+    hint: "Shade places by diplomatic-channel load; event rings follow diplomatic events.",
+  },
+];
 
 /**
  * Global risk.
@@ -28,6 +73,28 @@ export default function RiskBoard() {
   const { toggle, focus } = useFocus();
   const navigate = useNavigate();
   const [selected, setSelected] = useState<string | null>(null);
+  const [domain, setDomain] = useState<RiskDomain>("risk");
+
+  // Supply-chain lens: per-place load summed from the chokepoint→economy
+  // coupling arcs the overview already publishes — the same shared-event
+  // coupling the nine-stage chain reports as its supply stage. Only receivers
+  // are handed to the map, so every other place stays quiet context rather
+  // than being shaded with someone else's coupling.
+  //
+  // Declared before the loading return: a hook called conditionally is an
+  // invalid hook call, and this memo must exist on every render.
+  const supplyNodes = useMemo(() => {
+    const received = new Map<string, number>();
+    for (const f of overview?.flows ?? []) {
+      received.set(f.to, (received.get(f.to) ?? 0) + f.weight);
+    }
+    return (overview?.mapNodes ?? [])
+      .filter((n) => received.has(n.nodeId))
+      .map((n) => ({
+        ...n,
+        load: Math.min(1, received.get(n.nodeId) ?? 0),
+      }));
+  }, [overview]);
 
   if (!data) {
     return (
@@ -102,14 +169,41 @@ export default function RiskBoard() {
           >
             Where risk is concentrated
           </SectionTitle>
-          {mapNodes.length > 0 ? (
+
+          {/* The six lenses. The active hint stays visible rather than living
+              in a tooltip: the lens changes what the picture *means*, so the
+              claim being made must be readable without hovering. */}
+          <div className="flex min-w-0 flex-col gap-2 border-b border-[var(--exec-hairline)] px-4 py-3 xl:flex-row xl:items-center xl:justify-between">
+            <SegmentedControl
+              options={LENS_OPTIONS}
+              value={domain}
+              onChange={setDomain}
+            />
+            <p className="min-w-0 text-[12px] leading-snug text-[var(--exec-ink-dim)] xl:max-w-[52ch] xl:text-right">
+              {LENS_OPTIONS.find((o) => o.id === domain)?.hint}
+            </p>
+          </div>
+
+          {mapNodes.length > 0 &&
+          (domain !== "supply" || supplyNodes.length > 0) ? (
             <>
               <WorldMap
-                nodes={overview?.mapNodes ?? []}
+                nodes={
+                  domain === "supply"
+                    ? supplyNodes
+                    : (overview?.mapNodes ?? [])
+                }
                 flows={overview?.flows ?? []}
-                events={(overview?.mapEvents ?? []).filter(
-                  (e) => e.nodeId !== "",
-                )}
+                events={
+                  domain === "supply"
+                    ? []
+                    : (overview?.mapEvents ?? []).filter(
+                        (e) => e.nodeId !== "",
+                      )
+                }
+                channel={
+                  domain === "risk" || domain === "supply" ? null : domain
+                }
                 className="map-frame"
                 selected={selected}
                 onSelect={setSelected}
@@ -118,7 +212,13 @@ export default function RiskBoard() {
               <MapLegend />
             </>
           ) : (
-            <NoData reason="The risk map is resolving its node set." />
+            <NoData
+              reason={
+                domain === "supply"
+                  ? "No chokepoint-to-economy coupling resolves in this corpus, so the supply-chain lens has nothing to shade."
+                  : "The risk map is resolving its node set."
+              }
+            />
           )}
         </div>
       </div>

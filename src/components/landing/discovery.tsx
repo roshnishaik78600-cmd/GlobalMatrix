@@ -78,7 +78,7 @@ export function WhatsChanging({ events }: { events: TimelineEvent[] }) {
     return (
       <ExecCard>
         <SectionTitle meta={CORPUS_LABEL} right={<BasisTag basis="scenario" />}>
-          What&apos;s changing
+          What changed
         </SectionTitle>
         <NoDataAvailable
           title="No events to show"
@@ -94,7 +94,7 @@ export function WhatsChanging({ events }: { events: TimelineEvent[] }) {
         meta={`${events.length} events · newest first`}
         right={<BasisTag basis="scenario" />}
       >
-        What&apos;s changing
+        What changed
       </SectionTitle>
 
       {/* Horizontal rail. `snap-x` so a card always lands flush on mobile, where
@@ -210,7 +210,7 @@ export function TrendingCountries({ rows }: { rows: TrendingCountry[] }) {
   return (
     <ExecCard>
       <SectionTitle meta="ranked by global exposure" right={<BasisTag basis="model" />}>
-        Trending countries
+        Most exposed countries
       </SectionTitle>
 
       {rows.length === 0 ? (
@@ -325,7 +325,7 @@ export function TopIndustries({ rows }: { rows: IndustryTile[] }) {
         meta="structural share × live contribution"
         right={<BasisTag basis="model" />}
       >
-        Top industries
+        Most exposed industries
       </SectionTitle>
 
       {shown.length === 0 ? (

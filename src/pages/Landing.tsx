@@ -6,7 +6,16 @@ import { ArrowRight, Factory, Globe2, Landmark, Network, Package, TrendingUp } f
 import { api } from "@/convex/_generated/api";
 import type { TopologyResult } from "@/convex/macroTopology";
 import { CORPUS_LABEL } from "@/lib/intel/scenarios";
-import { CHANNEL_LABEL } from "@/lib/intel/types";
+import {
+  BAND_LABEL,
+  CHANNEL_LABEL,
+  STAGE_LABEL,
+  type Channel,
+  type RiskBand,
+  type Stage,
+} from "@/lib/intel/types";
+import { pct } from "@/lib/format";
+import { SOURCES } from "@/lib/sources";
 import { WorldMap, isPlottable } from "@/components/viz/WorldMap";
 import { Skeleton } from "@/components/viz/core";
 import { CountryDrawer } from "@/components/viz/exec/CountryDrawer";
@@ -259,7 +268,7 @@ export default function Landing() {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="mt-5 max-w-2xl text-[1.25rem] leading-snug font-medium tracking-[-0.015em] text-[var(--exec-ink)] sm:text-[1.5rem]"
           >
-            See how the world connects.
+            See what changed. Trace the impact.
           </motion.p>
           <motion.p
             initial={{ opacity: 0, y: 10 }}
@@ -267,8 +276,9 @@ export default function Landing() {
             transition={{ duration: 0.4, delay: 0.15 }}
             className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--exec-ink-dim)]"
           >
-            Track global events and see how they propagate through trade, energy,
-            supply chains and markets.
+            Global geopolitical and supply-chain exposure intelligence that
+            connects events to the countries, flows, infrastructure, industries
+            and companies they affect.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -287,7 +297,7 @@ export default function Landing() {
               href="#world-map"
               className="inline-flex items-center gap-2 rounded-full border border-[var(--exec-hairline-strong)] px-5 py-3 text-[14px] font-semibold text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
             >
-              Open World Map
+              View Impact Map
             </a>
           </motion.div>
 
@@ -367,6 +377,20 @@ export default function Landing() {
               eventCount: r.eventCount,
             }))}
           />
+
+          {/* WHAT TO WATCH — the earliest-stage events, ranked by their own
+              composite. Stage and channel are corpus facts; the section claims
+              nothing about the future beyond the horizons the analysis shows. */}
+          <WhatToWatch
+            rows={(feed?.rows ?? [])
+              .filter((r) => r.stage === "emerging" || r.stage === "escalating")
+              .sort((a, b) => b.score30 - a.score30)
+              .slice(0, 4)}
+          />
+
+          {/* DATA & EVIDENCE — what every picture above is built from, with
+              each connector's own freshness, stated on the page that uses it. */}
+          <DataAndEvidence />
 
           {/* EXPLORE — the six panels, each previewed from the board it opens. */}
           <section>
@@ -525,6 +549,139 @@ function HeroStats({ regions, links }: { regions: number; links: number }) {
         </div>
       ))}
     </dl>
+  );
+}
+
+/** The shape a "what to watch" card needs, satisfied by the feed's rows. */
+interface WatchRow {
+  id: string;
+  title: string;
+  summary: string;
+  stage: Stage;
+  dominantChannel: Channel;
+  score30: number;
+  band: RiskBand;
+  confidence: number;
+}
+
+/**
+ * WHAT TO WATCH — the earliest-stage events, ranked by their own 30-day
+ * composite.
+ *
+ * Only events the corpus has actually scored as emerging or escalating appear
+ * here. Stage, channel, band and confidence are read straight off those rows;
+ * nothing about the future is claimed beyond the horizons the event analysis
+ * itself shows. With nothing at an early stage, the section says so rather
+ * than filling the space with speculation.
+ */
+function WhatToWatch({ rows }: { rows: WatchRow[] }) {
+  return (
+    <section>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="t-section text-[var(--exec-ink)]">What to watch</h2>
+        <span className="exec-label">{CORPUS_LABEL}</span>
+      </div>
+      {rows.length === 0 ? (
+        <div className="card p-5">
+          <p className="text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
+            No event in the current corpus sits at an early stage. GlobalMatrix
+            does not fill this space with speculation about what might happen.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {rows.map((row) => (
+            <Link
+              key={row.id}
+              to={`/app/event/${row.id}`}
+              className="card card-hover flex min-w-0 flex-col gap-2 p-4"
+            >
+              <span className="exec-label text-[var(--exec-cyan)]">
+                {STAGE_LABEL[row.stage]} · {CHANNEL_LABEL[row.dominantChannel]}
+              </span>
+              <span className="line-clamp-2 text-[14px] leading-snug font-semibold text-[var(--exec-ink)]">
+                {row.title}
+              </span>
+              <span className="line-clamp-3 text-[13px] leading-snug text-[var(--exec-ink-dim)]">
+                {row.summary}
+              </span>
+              <span className="exec-label mt-auto pt-1">
+                30-day {BAND_LABEL[row.band]} · confidence {pct(row.confidence)}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/**
+ * DATA & EVIDENCE — the connectors behind every number above, each with its
+ * own freshness, on the page that uses them.
+ *
+ * This is the provenance contract stated where the claims are made: source,
+ * freshness and how many verified readings it is currently contributing. A
+ * connector that has never answered says so instead of showing a date.
+ */
+function DataAndEvidence() {
+  const health = useQuery(api.observations.sourceHealth);
+
+  return (
+    <section>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="t-section text-[var(--exec-ink)]">Data &amp; evidence</h2>
+        <Link
+          to="/app/data"
+          className="exec-label text-[var(--exec-ink-dim)] transition-colors hover:text-[var(--exec-ink)]"
+        >
+          Source observatory →
+        </Link>
+      </div>
+      <div className="card">
+        {health === undefined ? (
+          <p className="px-4 py-4 text-[13px] text-[var(--exec-ink-dim)]">
+            Resolving connector state…
+          </p>
+        ) : health.length === 0 ? (
+          <p className="px-4 py-4 text-[13px] text-[var(--exec-ink-dim)]">
+            No connector has returned a reading yet. This page shows no
+            estimates while that is true.
+          </p>
+        ) : (
+          <ul className="divide-y divide-[var(--exec-hairline)]">
+            {health.map((h) => {
+              const def = SOURCES[h.sourceId as keyof typeof SOURCES];
+              const name =
+                def?.label ??
+                h.sourceId.charAt(0).toUpperCase() + h.sourceId.slice(1);
+              return (
+                <li
+                  key={h.sourceId}
+                  className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3"
+                >
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-[var(--exec-ink)]">
+                    {name}
+                  </span>
+                  <FreshnessTag
+                    freshness={freshnessOf(h.lastSuccessAt, h.sourceId)}
+                  />
+                  <span className="exec-label">
+                    {h.lastSuccessAt
+                      ? `updated ${relativeAge(h.lastSuccessAt)}`
+                      : "never connected"}
+                  </span>
+                  <span className="exec-label">
+                    {h.readingCount} verified reading
+                    {h.readingCount === 1 ? "" : "s"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }
 

@@ -11,11 +11,19 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { api } from "@/convex/_generated/api";
+import { SOURCES } from "@/lib/sources";
 import { STAGE_LABEL } from "@/lib/intel/types";
 import { pct } from "@/lib/format";
 
 type Entry = {
-  kind: "event" | "country" | "industry" | "screen";
+  kind:
+    | "event"
+    | "country"
+    | "industry"
+    | "company"
+    | "infrastructure"
+    | "source"
+    | "screen";
   id: string;
   label: string;
   hint: string;
@@ -23,12 +31,34 @@ type Entry = {
   to: string;
 };
 
+/** Result groups, in the order a reader narrows a question. */
 const GROUPS = [
   { kind: "event", label: "Events", tag: "EVT" },
-  { kind: "country", label: "Countries & infrastructure", tag: "NODE" },
+  { kind: "country", label: "Countries", tag: "CTRY" },
   { kind: "industry", label: "Industries", tag: "SECT" },
+  { kind: "company", label: "Companies", tag: "CO" },
+  { kind: "infrastructure", label: "Infrastructure", tag: "INFRA" },
+  { kind: "source", label: "Sources", tag: "SRC" },
   { kind: "screen", label: "Screens", tag: "GO" },
 ] as const;
+
+/**
+ * Companies are a group, not an omission. No issuer-level data is connected,
+ * so the group's single entry states that with its reason and links to the page
+ * that explains it — the same rule the navigation follows. The keywords live in
+ * the hint so searching "company", "firm", "supplier" or "issuer" surfaces the
+ * honest answer instead of a dead empty result.
+ */
+const COMPANIES: Entry[] = [
+  {
+    kind: "company",
+    id: "companies",
+    label: "Companies",
+    hint: "no company, firm, supplier or issuer data connected in this build",
+    meta: "unavailable",
+    to: "/app/companies",
+  },
+];
 
 /**
  * Domains a reader will reasonably search for that this build does not measure.
@@ -69,14 +99,6 @@ const SCREENS: Entry[] = [
     hint: "reported growth and coverage — no price feed connected",
     meta: "",
     to: "/app/markets",
-  },
-  {
-    kind: "screen",
-    id: "companies",
-    label: "Companies",
-    hint: "not measured in this build",
-    meta: "empty",
-    to: "/app/companies",
   },
   {
     kind: "screen",
@@ -164,7 +186,7 @@ export function CommandPalette({
     }
     for (const row of countries?.corridors ?? []) {
       out.push({
-        kind: "country",
+        kind: "infrastructure",
         id: row.nodeId,
         label: row.label,
         hint: `${row.short} · ${row.kind} · ${row.region}`,
@@ -182,6 +204,19 @@ export function CommandPalette({
         to: `/app/industry/${row.id}`,
       });
     }
+    // Connected evidence sources, searchable by publisher, dataset or what
+    // they cover — each one landing on the observability dashboard.
+    for (const source of Object.values(SOURCES)) {
+      out.push({
+        kind: "source",
+        id: source.id,
+        label: source.label,
+        hint: `${source.publisher} · ${source.dataType}`,
+        meta: "evidence",
+        to: "/app/data",
+      });
+    }
+    out.push(...COMPANIES);
     out.push(...SCREENS);
     return out;
   }, [feed, countries, industries]);
@@ -191,11 +226,11 @@ export function CommandPalette({
       open={open}
       onOpenChange={onOpenChange}
       title="Jump to"
-      description="Search events, countries, sectors and screens."
+      description="Search events, countries, industries, infrastructure and sources."
       className="rounded-none border-rule"
     >
       <CommandInput
-        placeholder="Search countries, infrastructure, events, sectors…"
+        placeholder="Search India, Hormuz, semiconductors, shipping, World Bank…"
         className="h-11 border-b border-rule"
       />
       <CommandList className="max-h-[440px]">
