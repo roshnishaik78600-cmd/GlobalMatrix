@@ -476,10 +476,16 @@ function LandingNav() {
             </Link>
           ))}
           <Link
-            to="/auth"
+            to="/login"
             className="ml-1 rounded-full border border-[var(--exec-hairline-strong)] px-4 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
           >
             Sign in
+          </Link>
+          <Link
+            to="/signup"
+            className="ml-1.5 hidden rounded-full bg-[var(--exec-cyan)] px-4 py-2 text-[13px] font-semibold text-[#070A0F] transition-opacity hover:opacity-90 sm:block"
+          >
+            Create account
           </Link>
         </div>
       </div>

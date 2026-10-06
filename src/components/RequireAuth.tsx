@@ -15,11 +15,11 @@ import { Navigate, useLocation, useNavigate } from "react-router";
 /**
  * Wraps a route that requires a signed-in user.
  *
- * Signed-out visitors used to be bounced straight to `/auth`, which left them
- * on a bare sign-in form with no idea which page they had asked for or why they
- * were moved. The block is now stated on the page they landed on, and sign-in
- * still returns them to it via `returnTo`. Pass `redirectImmediately` for a
- * route where the bounce really is the better experience.
+ * Signed-out visitors used to be bounced straight to the auth URL with no idea
+ * which page they had asked for or why they were moved. The block is now stated
+ * on the page they landed on, and sign-in still returns them to it via
+ * `returnTo`. Pass `redirectImmediately` for a route where the bounce really is
+ * the better experience.
  */
 export function RequireAuth({
   children,
@@ -32,7 +32,7 @@ export function RequireAuth({
   title?: string;
   /** Says what the visitor gets by signing in. */
   description?: string;
-  /** Skip the explanation and go straight to `/auth`. */
+  /** Skip the explanation and go straight to `/login`. */
   redirectImmediately?: boolean;
 }) {
   const { isLoading, isAuthenticated } = useAuth();
@@ -52,7 +52,7 @@ export function RequireAuth({
 
   if (!isAuthenticated) {
     const returnTo = `${location.pathname}${location.search}`;
-    const signInHref = `/auth?returnTo=${encodeURIComponent(returnTo)}`;
+    const signInHref = `/login?returnTo=${encodeURIComponent(returnTo)}`;
 
     if (redirectImmediately) {
       return <Navigate to={signInHref} replace />;

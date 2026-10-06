@@ -25,7 +25,7 @@ export function useAuthAction() {
       const note = action
         ? `?returnTo=${encodeURIComponent(returnTo)}&reason=${encodeURIComponent(action)}`
         : `?returnTo=${encodeURIComponent(returnTo)}`;
-      navigate(`/auth${note}`);
+      navigate(`/login${note}`);
       return false;
     },
     [isAuthenticated, isLoading, location.pathname, location.search, navigate],

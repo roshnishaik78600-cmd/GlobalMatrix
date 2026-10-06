@@ -1,6 +1,14 @@
 import { useState, type ReactNode, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
-import { Bell, Search, User, X, LogOut } from "lucide-react";
+import { Bell, Bookmark, Search, User, X, LogOut } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { CountryDrawer } from "@/components/viz/exec/CountryDrawer";
 import { useAuth } from "@/hooks/use-auth";
 import { useAuthAction } from "@/hooks/use-auth-action";
@@ -62,7 +70,7 @@ export function Shell({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = () =>
-    navigate(`/auth?returnTo=${encodeURIComponent(window.location.pathname)}`);
+    navigate(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
@@ -123,28 +131,26 @@ export function Shell({ children }: { children: ReactNode }) {
               <Bell className="size-4" />
             </Link>
 
-            {isAuthenticated ? (
-              <div className="hidden items-center gap-2 lg:flex">
-                <span className="max-w-[12ch] truncate text-[13px] text-[var(--exec-ink-dim)]">
-                  {user?.name ?? user?.email ?? "Member"}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  title="Sign out"
-                  className="flex size-9 items-center justify-center rounded-lg border border-[var(--exec-hairline)] text-[var(--exec-ink-dim)] transition-colors hover:border-[var(--exec-hairline-strong)] hover:text-[var(--exec-ink)]"
-                >
-                  <LogOut className="size-4" />
-                </button>
+            {isAuthenticated && user ? (
+              <div className="hidden lg:block">
+                <AccountMenu user={user} onSignOut={handleSignOut} />
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={signIn}
-                className="hidden shrink-0 rounded-lg border border-[var(--exec-hairline-strong)] px-3 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)] lg:block"
-              >
-                Sign in
-              </button>
+              <div className="hidden items-center gap-1.5 lg:flex">
+                <button
+                  type="button"
+                  onClick={signIn}
+                  className="shrink-0 rounded-lg border border-[var(--exec-hairline-strong)] px-3 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
+                >
+                  Sign in
+                </button>
+                <Link
+                  to="/signup"
+                  className="shrink-0 rounded-full bg-[var(--exec-cyan)] px-3.5 py-2 text-[13px] font-semibold text-[#070A0F] transition-opacity hover:opacity-90"
+                >
+                  Create account
+                </Link>
+              </div>
             )}
 
             {/* The whole directory, one tap away on every viewport. */}
@@ -212,6 +218,84 @@ export function Shell({ children }: { children: ReactNode }) {
         <FocusDrawer />
       )}
     </div>
+  );
+}
+
+/**
+ * The compact account control shown when signed in.
+ *
+ * Initials + display name in the bar; identity details, the watchlist and
+ * sign-out in the menu. Deliberately lists only routes that exist — a menu
+ * promising Settings or My Exposure before those pages do would be a dead
+ * link dressed as a feature.
+ */
+function AccountMenu({
+  user,
+  onSignOut,
+}: {
+  user: { name?: string; email?: string; isAnonymous?: boolean };
+  onSignOut: () => void;
+}) {
+  const displayName =
+    user.name?.trim() ||
+    (user.isAnonymous ? "Guest" : null) ||
+    user.email?.split("@")[0] ||
+    "Account";
+
+  const initials = displayName
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "G";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className="flex h-9 max-w-[180px] items-center gap-2 rounded-lg border border-[var(--exec-hairline)] px-2 text-[13px] text-[var(--exec-ink-dim)] transition-colors hover:border-[var(--exec-hairline-strong)] hover:text-[var(--exec-ink)]"
+          aria-label={`Account menu — ${displayName}`}
+        >
+          <span
+            className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[var(--exec-cyan)]/15 text-[11px] font-semibold text-[var(--exec-cyan)]"
+            aria-hidden
+          >
+            {initials}
+          </span>
+          <span className="min-w-0 truncate">{displayName}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align="end"
+        className="w-60 border-[var(--exec-hairline)] bg-[var(--exec-surface)] text-[var(--exec-ink)]"
+      >
+        <DropdownMenuLabel className="px-3 py-2">
+          <p className="truncate text-[13px] font-medium text-[var(--exec-ink)]">
+            {displayName}
+          </p>
+          <p className="truncate text-[12px] font-normal text-[var(--exec-ink-muted)]">
+            {user.isAnonymous || !user.email
+              ? "Guest session — no email attached"
+              : user.email}
+          </p>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="bg-[var(--exec-hairline)]" />
+        <DropdownMenuItem asChild className="cursor-pointer text-[13px]">
+          <Link to="/app/watchlist">
+            <Bookmark className="size-4 text-[var(--exec-ink-muted)]" aria-hidden />
+            Watchlist
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-[var(--exec-hairline)]" />
+        <DropdownMenuItem
+          onSelect={onSignOut}
+          className="cursor-pointer text-[13px]"
+        >
+          <LogOut className="size-4 text-[var(--exec-ink-muted)]" aria-hidden />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -295,7 +379,7 @@ function MobileBar({ onOpenSearch }: { onOpenSearch: () => void }) {
   const { isAuthenticated } = useAuthAction();
   const signIn = () =>
     window.location.assign(
-      `/auth?returnTo=${encodeURIComponent(window.location.pathname)}`,
+      `/login?returnTo=${encodeURIComponent(window.location.pathname)}`,
     );
 
   return (
@@ -316,9 +400,12 @@ function MobileBar({ onOpenSearch }: { onOpenSearch: () => void }) {
           );
         }
         if (item.icon === User) {
+          // Signed out: Profile is the door to sign-in. Signed in: the only
+          // personal surface that exists today is the watchlist, so that is
+          // where the tab leads — no link to a page that is not there.
           return isAuthenticated ? (
-            <MobileLink key="profile" to={item.to} label={item.label}>
-              <Icon className="size-5" />
+            <MobileLink key="profile" to="/app/watchlist" label="Watchlist">
+              <Bookmark className="size-5" />
             </MobileLink>
           ) : (
             <MobileButton key="profile" label="Profile" onClick={signIn}>

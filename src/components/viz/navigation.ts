@@ -175,12 +175,12 @@ export const MOBILE_NAV: NavItem[] = [
   { to: "/app/events", label: "Events", icon: Activity },
   { to: "/app/world", label: "Map", icon: Globe2 },
   { to: "/app", label: "Search", icon: Search },
-  { to: "/auth", label: "Profile", icon: User },
+  { to: "/login", label: "Profile", icon: User },
 ];
 
 /** The right-hand cluster, in the order it is rendered. */
 export const UTILITY_NAV = {
   search: { label: "Search", icon: Search },
   alerts: { label: "Alerts", icon: Bell, to: "/app/events" },
-  profile: { label: "Profile", icon: User, to: "/auth" },
+  profile: { label: "Profile", icon: User, to: "/login" },
 } as const;

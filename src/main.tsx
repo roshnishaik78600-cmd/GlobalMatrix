@@ -178,6 +178,16 @@ createRoot(document.getElementById("root")!).render(
               <Routes>
               <Route path="/" element={<Landing />} />
               <Route
+                path="/login"
+                element={<AuthPage mode="login" redirectAfterAuth="/app" />}
+              />
+              <Route
+                path="/signup"
+                element={<AuthPage mode="signup" redirectAfterAuth="/app" />}
+              />
+              {/* Compat: the original auth URL keeps working and lands on the
+                  sign-in face of the same flow. */}
+              <Route
                 path="/auth"
                 element={<AuthPage redirectAfterAuth="/app" />}
               />
