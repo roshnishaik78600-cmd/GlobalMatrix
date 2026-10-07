@@ -288,7 +288,7 @@ export default function Landing() {
           >
             <Link
               to="/app"
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--exec-cyan)] px-5 py-3 text-[14px] font-semibold text-[#070A0F] transition-opacity hover:opacity-90"
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--exec-cyan)] px-5 py-3 text-[14px] font-semibold text-[var(--exec-base)] transition-opacity hover:opacity-90"
             >
               Explore Global Intelligence
               <ArrowRight className="size-4" />
@@ -483,7 +483,7 @@ function LandingNav() {
           </Link>
           <Link
             to="/signup"
-            className="ml-1.5 hidden rounded-full bg-[var(--exec-cyan)] px-4 py-2 text-[13px] font-semibold text-[#070A0F] transition-opacity hover:opacity-90 sm:block"
+            className="ml-1.5 hidden rounded-full bg-[var(--exec-cyan)] px-4 py-2 text-[13px] font-semibold text-[var(--exec-base)] transition-opacity hover:opacity-90 sm:block"
           >
             Create account
           </Link>

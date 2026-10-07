@@ -482,7 +482,7 @@ function Auth({ redirectAfterAuth, mode = "login" }: AuthProps = {}) {
                     type="submit"
                     disabled={isLoading}
                     aria-busy={isLoading || undefined}
-                    className="h-11 w-full rounded-full bg-[var(--exec-cyan)] text-[14px] font-semibold text-[#070A0F] hover:opacity-90"
+                    className="h-11 w-full rounded-full bg-[var(--exec-cyan)] text-[14px] font-semibold text-[var(--exec-base)] hover:opacity-90"
                   >
                     {isLoading ? (
                       <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -626,7 +626,7 @@ function Auth({ redirectAfterAuth, mode = "login" }: AuthProps = {}) {
                     type="submit"
                     disabled={isLoading || otp.length !== 6}
                     aria-busy={isLoading || undefined}
-                    className="h-11 w-full rounded-full bg-[var(--exec-cyan)] text-[14px] font-semibold text-[#070A0F] hover:opacity-90"
+                    className="h-11 w-full rounded-full bg-[var(--exec-cyan)] text-[14px] font-semibold text-[var(--exec-base)] hover:opacity-90"
                   >
                     {isLoading ? (
                       <Loader2 className="size-4 animate-spin" aria-hidden />

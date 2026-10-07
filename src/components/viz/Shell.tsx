@@ -146,7 +146,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 </button>
                 <Link
                   to="/signup"
-                  className="shrink-0 rounded-full bg-[var(--exec-cyan)] px-3.5 py-2 text-[13px] font-semibold text-[#070A0F] transition-opacity hover:opacity-90"
+                  className="shrink-0 rounded-full bg-[var(--exec-cyan)] px-3.5 py-2 text-[13px] font-semibold text-[var(--exec-base)] transition-opacity hover:opacity-90"
                 >
                   Create account
                 </Link>

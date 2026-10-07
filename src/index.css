@@ -54,6 +54,7 @@
   --color-signal: var(--signal);
   --color-cyan: var(--cyan);
   --color-violet: var(--violet);
+  --color-info: var(--info);
   --color-grid: var(--grid);
   --font-sans: "Inter", "Helvetica Neue", Helvetica, ui-sans-serif, system-ui,
     -apple-system, "Segoe UI", Arial, sans-serif;
@@ -79,87 +80,92 @@
      language rather than two. */
   --radius: 1.125rem;
 
-  --background: #070a0f;
-  --foreground: #f8fafc;
-  --card: #0d121a;
-  --card-foreground: #f8fafc;
-  --popover: #111923;
-  --popover-foreground: #f8fafc;
-  --primary: #f8fafc;
-  --primary-foreground: #070a0f;
-  --secondary: #111923;
-  --secondary-foreground: #f8fafc;
-  --muted: #111923;
+  --background: #080b10;
+  --foreground: #f5f7fa;
+  --card: #0e131a;
+  --card-foreground: #f5f7fa;
+  --popover: #141a22;
+  --popover-foreground: #f5f7fa;
+  --primary: #f5f7fa;
+  --primary-foreground: #080b10;
+  --secondary: #141a22;
+  --secondary-foreground: #f5f7fa;
+  --muted: #141a22;
   /* Secondary text. The overwhelming majority of supporting copy sits here. */
-  --muted-foreground: #94a3b8;
+  --muted-foreground: #a7b0bc;
   /* Muted text. Reserved for the lowest-priority register — labels inside a
      chart, a legend caption, anything a reader should be able to skip without
      missing an argument. Three text rungs, not two, because a design system
      that claims a muted colour and never defines it is a design system with a
      hole in it. */
-  --muted-text: #64748b;
-  --accent: #18222f;
-  --accent-foreground: #f8fafc;
-  --destructive: #ff4d6d;
-  --border: #202b38;
-  --input: #202b38;
-  --ring: #00e5ff;
+  --muted-text: #6f7a87;
+  --accent: #1a222d;
+  --accent-foreground: #f5f7fa;
+  --destructive: #f06a7a;
+  --border: #27313d;
+  --input: #27313d;
+  --ring: #4fd1c5;
 
   /* The secondary surface, as a first-class name. Two lifts only: a card sits
      on `--card`, a nested well or a control bed sits on this. */
-  --surface-2: #111923;
+  --surface-2: #141a22;
 
-  --rule: #202b38;
-  --grid: #1a2430;
+  --rule: #27313d;
+  --grid: #1e2732;
 
   /* Status ramp. Green means "measured and improving", red means "measured and
      worse", amber means "measured but stale or unresolved". None of them are
      decorative and none of them are ever used for a non-status meaning. */
-  --stable: #22c55e;
-  --warning: #f59e0b;
-  --elevated: #f59e0b;
-  --critical: #ff4d6d;
-  --signal: #ff4d6d;
+  --stable: #36c98f;
+  --warning: #f2b84b;
+  --elevated: #f2b84b;
+  --critical: #f06a7a;
+  --signal: #f06a7a;
 
   /* Accents. Rationed: cyan for live/interactive, violet for the propagation
      and uncertainty layer. */
-  --cyan: #00e5ff;
-  --violet: #7c5cff;
+  --cyan: #4fd1c5;
+  --violet: #8b7cff;
+  /* Information. The fourth signal colour, for neutral/informational states that
+     are neither positive, warning nor critical. */
+  --info: #6ea8fe;
 
-  --chart-1: #ff4d6d;
-  --chart-2: #00e5ff;
-  --chart-3: #22c55e;
-  --chart-4: #f59e0b;
-  --chart-5: #7c5cff;
+  --chart-1: #f06a7a;
+  --chart-2: #4fd1c5;
+  --chart-3: #36c98f;
+  --chart-4: #f2b84b;
+  --chart-5: #8b7cff;
+  --chart-6: #6ea8fe;
 
-  --sidebar: #070a0f;
-  --sidebar-foreground: #f8fafc;
-  --sidebar-primary: #f8fafc;
-  --sidebar-primary-foreground: #070a0f;
-  --sidebar-accent: #111923;
-  --sidebar-accent-foreground: #f8fafc;
-  --sidebar-border: #202b38;
-  --sidebar-ring: #00e5ff;
+  --sidebar: #080b10;
+  --sidebar-foreground: #f5f7fa;
+  --sidebar-primary: #f5f7fa;
+  --sidebar-primary-foreground: #080b10;
+  --sidebar-accent: #141a22;
+  --sidebar-accent-foreground: #f5f7fa;
+  --sidebar-border: #27313d;
+  --sidebar-ring: #4fd1c5;
 
   /* Executive risk-surface tokens. Values mirror the tokens above; they are
      kept as separate names because a large share of the console is written
      against `--exec-*`, and retuning one register must not silently retune the
      other. The mapping is enforced by the fact that both ramps resolve to the
      same six colours. */
-  --exec-base: #070a0f;
-  --exec-panel: #0d121a;
-  --exec-surface: #111923;
-  --exec-surface-strong: #18222f;
-  --exec-hairline: #202b38;
-  --exec-hairline-strong: #2b3a4a;
-  --exec-ink: #f8fafc;
-  --exec-ink-dim: #94a3b8;
-  --exec-ink-muted: #64748b;
-  --exec-cyan: #00e5ff;
-  --exec-violet: #7c5cff;
-  --exec-amber: #f59e0b;
-  --exec-crimson: #ff4d6d;
-  --exec-emerald: #22c55e;
+  --exec-base: #080b10;
+  --exec-panel: #0e131a;
+  --exec-surface: #141a22;
+  --exec-surface-strong: #1a222d;
+  --exec-hairline: #27313d;
+  --exec-hairline-strong: #35414f;
+  --exec-ink: #f5f7fa;
+  --exec-ink-dim: #a7b0bc;
+  --exec-ink-muted: #6f7a87;
+  --exec-cyan: #4fd1c5;
+  --exec-violet: #8b7cff;
+  --exec-amber: #f2b84b;
+  --exec-crimson: #f06a7a;
+  --exec-emerald: #36c98f;
+  --exec-info: #6ea8fe;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas,
     monospace;
 }
@@ -333,7 +339,7 @@
   .exec-surface,
   .panel {
     border-radius: var(--radius);
-    border: 1px solid #202b38;
+    border: 1px solid var(--exec-hairline);
     background: var(--card);
     transition:
       border-color 160ms ease,
@@ -342,7 +348,7 @@
 
   .glass-strong {
     border-radius: var(--radius);
-    border: 1px solid #202b38;
+    border: 1px solid var(--exec-hairline);
     background: var(--surface-2);
     transition:
       border-color 160ms ease,
@@ -364,11 +370,11 @@
   .card-hover:hover,
   .glass-hover:hover {
     background: var(--surface-2);
-    border-color: #2b3a4a;
+    border-color: var(--exec-hairline-strong);
   }
 
   .chip {
-    @apply inline-flex items-center gap-1 rounded-full border border-[#202B38] px-2 py-0.5 text-[12px] leading-tight font-medium;
+    @apply inline-flex items-center gap-1 rounded-full border border-[var(--exec-hairline)] px-2 py-0.5 text-[12px] leading-tight font-medium;
   }
 
   /* One content width for the entire product. Every page frame, every landing
@@ -532,9 +538,9 @@
   .shimmer {
     background: linear-gradient(
       90deg,
-      #111923 0%,
-      #1a2430 50%,
-      #111923 100%
+      var(--exec-surface) 0%,
+      var(--grid) 50%,
+      var(--exec-surface) 100%
     );
     background-size: 200% 100%;
     animation: shimmer 1.6s linear infinite;
