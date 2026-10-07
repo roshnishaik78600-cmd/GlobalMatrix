@@ -1,6 +1,9 @@
 node_modules
 dist
-src/convex/_generated
+
+# NOTE: src/convex/_generated is intentionally NOT ignored. Convex requires
+# this generated client to be committed — a clean clone cannot typecheck or
+# build without it (see https://docs.convex.dev/cli/reference/codegen).
 
 # Secrets and environment files. `.env.keys` is the Freebuff-managed key store
 # and `.env.local` the local runtime config; neither may ever reach the repo.
