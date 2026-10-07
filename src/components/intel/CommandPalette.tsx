@@ -71,7 +71,7 @@ const SCREENS: Entry[] = [
   {
     kind: "screen",
     id: "chain",
-    label: "Event → world",
+    label: "Impact graph",
     hint: "follow one event through every layer it touches",
     meta: "",
     to: "/app/chain",

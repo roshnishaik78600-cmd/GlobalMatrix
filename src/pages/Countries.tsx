@@ -163,7 +163,7 @@ export default function Countries() {
         <div className="flex flex-wrap items-center gap-2">
           <ExecIconLink
             to="/app/chain"
-            label="Event → world"
+            label="Impact graph"
             icon={<Compass className="size-3.5" />}
           />
           <ExecIconLink

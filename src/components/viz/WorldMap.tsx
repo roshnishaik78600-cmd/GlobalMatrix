@@ -528,7 +528,7 @@ export function WorldMap({
           <p className="num mt-0.5 text-[12px] text-[var(--exec-ink-dim)]">
             {hovered.node.region} · {hovered.node.kind} ·{" "}
             {loadFor(hovered) === null
-              ? `no ${CHANNEL_LABEL[channel!]} reading`
+              ? `no ${channel ? CHANNEL_LABEL[channel] : "channel"} reading`
               : `${channel ? `${CHANNEL_LABEL[channel]} load` : "load"} ${(
                   (loadFor(hovered) ?? 0) * 100
                 ).toFixed(0)}%`}{" "}

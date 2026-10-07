@@ -96,7 +96,7 @@ export default function NotAvailable() {
             <ul className="divide-y divide-rule">
               {[
                 ["Overview", "/app", "map, six signals, live change"],
-                ["Event → world", "/app/chain", "event to market, stage by stage"],
+                ["Impact graph", "/app/chain", "event to market, stage by stage"],
                 ["Events", "/app/events", "ranked detection feed"],
                 ["World", "/app/world", "real geography, couplings, events"],
                 ["Countries", "/app/countries", "economies + infrastructure"],

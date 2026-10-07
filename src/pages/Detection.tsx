@@ -102,7 +102,7 @@ export default function Detection() {
       lede="Every event in the corpus with the pressure, evidence and interval behind its score."
       actions={
         <>
-<Action to="/app/chain">Event → world</Action>
+<Action to="/app/chain">Impact graph</Action>
         </>
       }
     >{/* Filters drive the query, the stream and the map together. */}
