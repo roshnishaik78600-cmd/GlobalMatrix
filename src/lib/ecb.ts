@@ -35,6 +35,20 @@ export type ConnectorOutcome = {
   sourceId: string;
   key: string;
   asOf: string;
+  /**
+   * The source's own publication time for the item, in epoch ms, on the feeds
+   * that supply one.
+   *
+   * Deliberately separate from the other two timestamps, because all three
+   * answer different questions and collapsing them is how a stale feed comes to
+   * look current: `publishedAt` is when the publisher issued the item,
+   * `asOf` is the period it describes, and `retrievedAt` is when we fetched it.
+   *
+   * Left undefined rather than inferred. The ECB, for instance, publishes a
+   * reference *date* fixed at 14:15 CET, not a timestamp — deriving one would be
+   * inventing precision the source never gave us.
+   */
+  publishedAt?: number;
   retrievedAt: number;
   status: string;
   ok: boolean;

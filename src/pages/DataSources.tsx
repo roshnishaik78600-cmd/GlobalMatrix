@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useConvex, useQuery } from "convex/react";
 import { motion } from "framer-motion";
 import { ExternalLink, RefreshCw } from "lucide-react";
@@ -8,6 +9,8 @@ import { Skeleton } from "@/components/viz/core";
 import { SOURCE_LIST, formatAsOf } from "@/lib/sources";
 import { freshnessOf, type Freshness } from "@/lib/freshness";
 import { timestamp } from "@/lib/format";
+import { LiveSignal } from "@/components/viz/Live";
+import { useSourceControl } from "@/hooks/use-verified-data";
 
 /**
  * Data sources and their live status.
@@ -103,15 +106,78 @@ const KINDS = [
 type Health = {
   sourceId: string;
   ok: boolean;
+  /** Timestamp of the most recent attempt, successful or not. */
   retrievedAt: number;
   asOf: string;
   lastSuccessAt: number;
+  lastAttemptAt: number;
+  publishedAt?: number;
+  nextAttemptAt: number;
+  consecutiveFailures: number;
+  readingCount: number;
+  cadence: string;
   problem?: string;
 };
 
+/**
+ * Ask every connected source for a run, once.
+ *
+ * Each request goes through the same governor the cron schedule uses, so a
+ * healthy source is re-asked and a struggling one politely refuses. The count
+ * of refusals is reported rather than swallowed: a button that appears to do
+ * nothing is indistinguishable from a broken button.
+ */
+function RefreshAllButton() {
+  const [asked, setAsked] = useState<{ refused: number; total: number } | null>(
+    null,
+  );
+  const [busy, setBusy] = useState(false);
+  const convex = useConvex();
+
+  const onClick = async () => {
+    setBusy(true);
+    // Four explicit calls rather than a loop over the registry: these are
+    // four different functions with four different argument shapes, and
+    // reaching them through a map would hide that behind a lookup table.
+    const results = await Promise.all(
+      [
+        convex.action(api.sources.refreshMacro, { force: true }),
+        convex.action(api.sources.refreshTrade, { force: true }),
+        convex.action(api.sources.refreshAttention, { force: true }),
+        convex.action(api.sources.refreshEcb, { force: true }),
+      ].map((p) => p.catch(() => undefined)),
+    );
+    setBusy(false);
+    setAsked({
+      refused: results.filter((r) => r?.skipped !== undefined).length,
+      total: results.length,
+    });
+  };
+
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={() => void onClick()}
+        disabled={busy}
+        className="inline-flex items-center gap-2 rounded-full border border-[var(--exec-hairline-strong)] px-3.5 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)] disabled:opacity-50"
+      >
+        <RefreshCw className={busy ? "size-3.5 animate-spin" : "size-3.5"} aria-hidden />
+        Re-fetch from all connected sources
+      </button>
+      {asked ? (
+        <span className="exec-label text-[var(--exec-ink-dim)]">
+          {asked.refused === 0
+            ? `${asked.total} SOURCES ASKED`
+            : `${asked.total - asked.refused} ASKED · ${asked.refused} HELD BY THEIR OWN SCHEDULE`}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export default function DataSources() {
   const health = useQuery(api.observations.sourceHealth);
-  const convex = useConvex();
 
   return (
     <PageFrame
@@ -198,22 +264,16 @@ export default function DataSources() {
             ))}
           </ul>
 
-          <div className="border-t border-[var(--exec-hairline)] px-4 py-3">
-            <button
-              type="button"
-              onClick={() => {
-                // Fire-and-forget: failures are already recorded per source and
-                // render as an honest unavailable state, so nothing to surface here.
-                void convex.action(api.sources.refreshMacro, {});
-                void convex.action(api.sources.refreshTrade, {});
-                void convex.action(api.sources.refreshAttention, {});
-                void convex.action(api.sources.refreshEcb, {});
-              }}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--exec-hairline-strong)] px-3.5 py-2 text-[13px] font-medium text-[var(--exec-ink)] transition-colors hover:border-[var(--exec-cyan)]"
-            >
-              <RefreshCw className="size-3.5" aria-hidden />
-              Re-fetch from all connected sources
-            </button>
+          <div className="flex flex-wrap items-center gap-3 border-t border-[var(--exec-hairline)] px-4 py-3">
+            <RefreshAllButton />
+            <p className="min-w-0 flex-1 text-[12px] leading-relaxed text-[var(--exec-ink-dim)]">
+              Each source is polled on the schedule its publisher actually
+              keeps — weekly for the annual datasets, every 30 minutes for GDELT
+              — and a source that fails is backed off instead of retried in a
+              loop. Asking now is a request, not a command: the server refuses
+              it if a fetch is already running or the source is still in
+              backoff.
+            </p>
           </div>
         </div>
       </div>
@@ -251,6 +311,7 @@ function SourceCard({
   row: Health | undefined;
   index: number;
 }) {
+  const control = useSourceControl(source.id);
   const neverContacted = row === undefined || row.retrievedAt === 0;
   // A source is only unavailable when it has *never* produced a reading. A
   // connector that is being throttled right now but succeeded yesterday still
@@ -314,6 +375,25 @@ function SourceCard({
       {/* SOURCE → RETRIEVED → OBSERVATION, the two timestamps kept apart.
           A source can be fetched at 14:20 and describe 2026-07-13; collapsing
           those into one number would make a lagging feed look current. */}
+      {/* The live line: source, real last-verified time, health, cadence, and
+          this source's own refresh and pause controls. */}
+      <LiveSignal
+        sourceId={source.id}
+        lastVerifiedAt={row?.lastSuccessAt ?? 0}
+        lastAttemptAt={row?.lastAttemptAt ?? 0}
+        publishedAt={row?.publishedAt}
+        problem={row?.problem}
+        nextAttemptAt={row?.nextAttemptAt}
+        cadence={row?.cadence ?? source.dataType}
+        refreshing={control.refreshing}
+        paused={control.paused}
+        onRefresh={() => void control.refresh()}
+        onTogglePause={() => control.setPaused(!control.paused)}
+        skipped={control.skipped}
+        retryInMs={control.retryInMs}
+        className="rounded-sm border border-[var(--exec-hairline)] px-2.5 py-2"
+      />
+
       <dl className="flex flex-col gap-2">
         <div className="flex items-baseline justify-between gap-3">
           <dt className="exec-label shrink-0">Observation period</dt>
@@ -322,9 +402,21 @@ function SourceCard({
           </dd>
         </div>
         <div className="flex items-baseline justify-between gap-3">
-          <dt className="exec-label shrink-0">Last update</dt>
+          <dt className="exec-label shrink-0">Last verified fetch</dt>
           <dd className="exec-num min-w-0 truncate text-right text-[13px] text-[var(--exec-ink)]">
             {hasReading ? timestamp(row.lastSuccessAt) : "No successful fetch"}
+          </dd>
+        </div>
+        {/* Attempted and verified are deliberately two rows. A source that was
+            attempted at 16:10 and last verified at 09:00 is a different
+            situation from one that has never been reachable, and one timestamp
+            cannot express both. */}
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="exec-label shrink-0">Last attempt</dt>
+          <dd className="exec-num min-w-0 truncate text-right text-[13px] text-[var(--exec-ink-dim)]">
+            {row && row.lastAttemptAt > 0
+              ? timestamp(row.lastAttemptAt)
+              : "Not yet attempted"}
           </dd>
         </div>
         <div className="flex items-baseline justify-between gap-3">

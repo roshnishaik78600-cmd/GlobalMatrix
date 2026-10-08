@@ -13,7 +13,9 @@ import {
   type AttentionPoint,
   type Headline,
   type MacroReading,
+  type Verified,
 } from "@/hooks/use-verified-data";
+import { LiveSignal } from "@/components/viz/Live";
 import { getNode } from "@/lib/intel/nodes";
 import { pct } from "@/lib/format";
 
@@ -26,6 +28,34 @@ import { pct } from "@/lib/format";
  * corpus, because mixing a modelled number into a verified panel would make the
  * whole panel untrustworthy.
  */
+
+/**
+ * The live line for a verified panel.
+ *
+ * One place, wired straight to the shared hook shape, so all four externally
+ * sourced panels state their source, their real last-verified time, their
+ * health and their cadence in the same words. Each previously implied freshness
+ * by rendering a timestamp that never moved.
+ */
+function LiveLine({ data }: { data: Verified<unknown> }) {
+  return (
+    <LiveSignal
+      sourceId={data.sourceId}
+      lastVerifiedAt={data.lastVerifiedAt}
+      lastAttemptAt={data.lastAttemptAt}
+      publishedAt={data.publishedAt}
+      problem={data.problem}
+      cadence={data.cadence}
+      refreshing={data.refreshing}
+      paused={data.paused}
+      onRefresh={() => void data.refresh()}
+      onTogglePause={() => data.setPaused(!data.paused)}
+      skipped={data.skipped}
+      retryInMs={data.retryInMs}
+      className="mt-1.5"
+    />
+  );
+}
 
 /**
  * Compact absolute-size formatting for trade values.
@@ -162,6 +192,7 @@ export function MacroPanel({ limit = 7 }: { limit?: number }) {
             status: "observed",
           }}
         />
+        <LiveLine data={macro} />
       </div>
       <ul className="divide-y divide-rule">
         {growth.map(({ latest, history }) => {
@@ -249,6 +280,7 @@ export function TradePanel({ limit = 7 }: { limit?: number }) {
             status: "observed",
           }}
         />
+        <LiveLine data={trade} />
         <SourceNote note="Public preview tier: sampled, abbreviated detail. Balance is arithmetic on the two reported totals." />
       </div>
       <ul className="divide-y divide-rule">
@@ -386,6 +418,7 @@ function AttentionPanel() {
             status: "observed",
           }}
         />
+        <LiveLine data={attention} />
         <SourceNote note="Measures how much news coverage a topic is getting. It is not evidence that an event occurred, nor how severe it is." />
       </div>
       <ul className="divide-y divide-rule">
@@ -476,6 +509,7 @@ function HeadlinesPanel() {
             status: "observed",
           }}
         />
+        <LiveLine data={headlines} />
       </div>
       <ul className="divide-y divide-rule">
         {items.slice(0, 9).map((h) => (

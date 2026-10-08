@@ -14,6 +14,7 @@ import type * as auth_emailOtp from "../auth/emailOtp.js";
 import type * as brief from "../brief.js";
 import type * as briefs from "../briefs.js";
 import type * as chokepoints from "../chokepoints.js";
+import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as intel from "../intel.js";
 import type * as macroTopology from "../macroTopology.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   brief: typeof brief;
   briefs: typeof briefs;
   chokepoints: typeof chokepoints;
+  crons: typeof crons;
   http: typeof http;
   intel: typeof intel;
   macroTopology: typeof macroTopology;

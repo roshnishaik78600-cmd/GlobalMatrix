@@ -16,6 +16,7 @@
 
 import { action } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { v } from "convex/values";
 import {
   pullEcbFx,
   pullEcbYield,
@@ -383,6 +384,26 @@ export type Headline = {
   provenance: Provenance;
 };
 
+/**
+ * GDELT's own publication stamp, `YYYYMMDDTHHMMSSZ`, as epoch ms.
+ *
+ * This is the *publisher's* time, not ours. A syndicated wire story routinely
+ * carries a stamp hours older than the fetch that found it, so keeping it
+ * separate from `retrievedAt` is what stops a re-fetch of an old article from
+ * reading as new information.
+ *
+ * Returns undefined for anything unparseable. An unreadable publication time is
+ * no publication time; manufacturing one would be exactly the false precision
+ * this cache exists to prevent.
+ */
+function gdeltStamp(raw: string): number | undefined {
+  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(raw.trim());
+  if (!m) return undefined;
+  const [, y, mo, d, h, mi, s] = m;
+  const ms = Date.UTC(+y, +mo - 1, +d, +h, +mi, +s);
+  return Number.isFinite(ms) && ms > 0 ? ms : undefined;
+}
+
 const GDELT_MIN_INTERVAL_MS = 8_000;
 const GDELT_RETRIES = 2;
 let gdeltLastCall = 0;
@@ -525,10 +546,21 @@ async function pullGdeltHeadlines(topic: string): Promise<ConnectorOutcome> {
 
   if (items.length === 0) return fail("gdelt", `headlines:${topic}`, PROBLEMS.empty);
 
+  // Newest publisher stamp across the batch, so the panel can say when the
+  // coverage itself was written rather than only when we looked.
+  let publishedAt: number | undefined;
+  for (const item of items) {
+    const stamp = gdeltStamp(item.seenAt);
+    if (stamp !== undefined && (publishedAt === undefined || stamp > publishedAt)) {
+      publishedAt = stamp;
+    }
+  }
+
   return {
     sourceId: "gdelt",
     key: `headlines:${topic}`,
     asOf: items[0].seenAt,
+    publishedAt,
     retrievedAt,
     status: "observed",
     ok: true,
@@ -551,41 +583,100 @@ const tally = (out: ConnectorOutcome[]) => ({
 });
 
 /**
+ * What a refresh action reports.
+ *
+ * `skipped` is a first-class outcome rather than an error: another run already
+ * owns the source, or the governor is holding it in a failure backoff. Both are
+ * the mechanism working. Both are also reported to the caller, because a human
+ * who pressed refresh needs to be told "this was asked 30 seconds ago" instead
+ * of watching nothing happen.
+ */
+export type RefreshResult = {
+  refreshed: number;
+  failed: number;
+  skipped?: "in_flight" | "cooling_down";
+  retryInMs?: number;
+};
+
+const skip = (
+  reason: "in_flight" | "cooling_down",
+  retryInMs: number,
+): RefreshResult => ({ refreshed: 0, failed: 0, skipped: reason, retryInMs });
+
+/**
  * Refresh entry points, one per upstream.
  *
- * Split deliberately: GDELT throttles to one request every five seconds, so it
- * runs on its own action rather than stretching the macro refresh. Each action
- * also records its own failures, so one dead source never stops the others.
+ * Split by upstream because their cadences have nothing in common: GDELT
+ * rate-limits to one request every five seconds, World Bank throttles bursts of
+ * a quarterly API, and the ECB publishes once per business day. Each action also
+ * records its own failures, so one dead source never stops the others.
+ *
+ * Every one of them claims its source first. That single step is what moves
+ * ingestion server-side: the cron schedule and any human refresh go through the
+ * same gate, so a source is polled once no matter how many browsers are open,
+ * and a source that is failing or throttling is backed off instead of being
+ * hammered by every page that renders it.
+ *
+ * The Node runtime has no database handle, so results go through an internal
+ * mutation on the Convex runtime that validates them again on the way in and
+ * refuses anything not attributable to a real connector run.
  */
 export const refreshMacro = action({
-  handler: async (ctx): Promise<{ refreshed: number; failed: number }> => {
+  args: { force: v.optional(v.boolean()) },
+  handler: async (ctx, args): Promise<RefreshResult> => {
+    const claim = await ctx.runMutation(internal.observations.claimRefresh, {
+      sourceId: "worldbank",
+      force: args.force,
+    });
+    if (!claim.proceed) return skip(claim.reason, claim.retryInMs);
+
     const out: ConnectorOutcome[] = [];
     // Sequential on purpose: World Bank throttles bursts.
     for (const series of WB_SERIES) out.push(await pullWorldBank(series));
-    // The Node runtime has no database handle, so results go through an
-    // internal mutation on the Convex runtime that validates them again on the
-    // way in and refuses anything not attributable to a real connector run.
-    await ctx.runMutation(internal.observations.storeObservations, { items: out });
+    await ctx.runMutation(internal.observations.storeObservations, {
+      sourceId: "worldbank",
+      items: out,
+    });
     return tally(out);
   },
 });
 
 export const refreshTrade = action({
-  handler: async (ctx): Promise<{ refreshed: number; failed: number }> => {
+  args: { force: v.optional(v.boolean()) },
+  handler: async (ctx, args): Promise<RefreshResult> => {
+    const claim = await ctx.runMutation(internal.observations.claimRefresh, {
+      sourceId: "comtrade",
+      force: args.force,
+    });
+    if (!claim.proceed) return skip(claim.reason, claim.retryInMs);
+
     const out = [await pullComtrade(await latestComtradeYear())];
-    await ctx.runMutation(internal.observations.storeObservations, { items: out });
+    await ctx.runMutation(internal.observations.storeObservations, {
+      sourceId: "comtrade",
+      items: out,
+    });
     return tally(out);
   },
 });
 
 export const refreshAttention = action({
-  handler: async (ctx): Promise<{ refreshed: number; failed: number }> => {
+  args: { force: v.optional(v.boolean()) },
+  handler: async (ctx, args): Promise<RefreshResult> => {
+    const claim = await ctx.runMutation(internal.observations.claimRefresh, {
+      sourceId: "gdelt",
+      force: args.force,
+    });
+    if (!claim.proceed) return skip(claim.reason, claim.retryInMs);
+
     const out: ConnectorOutcome[] = [];
     // Headlines first: a citable, linkable article is worth more to a reader
     // than another sparkline, so it is what we fight for when throttled.
     for (const topic of ATTENTION_TOPICS) out.push(await pullGdeltHeadlines(topic));
     for (const topic of ATTENTION_TOPICS) out.push(await pullGdeltAttention(topic));
-    await ctx.runMutation(internal.observations.storeObservations, { items: out });
+    await ctx.runMutation(internal.observations.storeObservations, {
+      sourceId: "gdelt",
+      items: out,
+    });
     return tally(out);
   },
 });
@@ -601,9 +692,19 @@ export const refreshAttention = action({
  * limit.
  */
 export const refreshEcb = action({
-  handler: async (ctx): Promise<{ refreshed: number; failed: number }> => {
+  args: { force: v.optional(v.boolean()) },
+  handler: async (ctx, args): Promise<RefreshResult> => {
+    const claim = await ctx.runMutation(internal.observations.claimRefresh, {
+      sourceId: "ecb",
+      force: args.force,
+    });
+    if (!claim.proceed) return skip(claim.reason, claim.retryInMs);
+
     const out = [await pullEcbFx(), ...(await pullEcbYield())];
-    await ctx.runMutation(internal.observations.storeObservations, { items: out });
+    await ctx.runMutation(internal.observations.storeObservations, {
+      sourceId: "ecb",
+      items: out,
+    });
     return tally(out);
   },
 });

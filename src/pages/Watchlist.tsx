@@ -16,6 +16,46 @@ import {
 import { useAuthAction, useToggleWatch } from "@/hooks/use-auth-action";
 import { BAND_LABEL, CHANNEL_LABEL, STAGE_LABEL, type Channel } from "@/lib/intel/types";
 import { pct } from "@/lib/format";
+import { SOURCE_LIST } from "@/lib/sources";
+import { LiveSignal } from "@/components/viz/Live";
+import { useSourceControl } from "@/hooks/use-verified-data";
+
+/**
+ * One external feed, as it stands right now.
+ *
+ * A component per row rather than a loop in the parent, because each row needs
+ * its own subscription and its own controls, and hooks cannot be called from
+ * inside a map.
+ */
+function WatchSourceRow({ sourceId }: { sourceId: string }) {
+  const status = useQuery(api.observations.sourceStatus, { sourceId });
+  const control = useSourceControl(sourceId);
+
+  if (status === undefined) {
+    return <div className="px-4 py-3"><span className="shimmer block h-4 w-2/3" /></div>;
+  }
+  if (status === null) return null;
+
+  return (
+    <div className="px-4 py-3">
+      <LiveSignal
+        sourceId={sourceId}
+        lastVerifiedAt={status.lastVerifiedAt}
+        lastAttemptAt={status.lastAttemptAt}
+        publishedAt={status.publishedAt}
+        problem={status.problem}
+        nextAttemptAt={status.nextAttemptAt}
+        cadence={status.cadence}
+        refreshing={control.refreshing}
+        paused={control.paused}
+        onRefresh={() => void control.refresh()}
+        onTogglePause={() => control.setPaused(!control.paused)}
+        skipped={control.skipped}
+        retryInMs={control.retryInMs}
+      />
+    </div>
+  );
+}
 
 /**
  * The watchlist, aggregated.
@@ -292,6 +332,42 @@ export default function Watchlist() {
           </div>
         )}
       </div>
+
+      {/* The external feeds behind the tracked world.
+
+          A watchlist that only re-rendered from the scenario corpus would be
+          inert: the corpus is versioned in code and never changes at runtime,
+          so nothing could ever arrive to update it. These are the connectors
+          that DO move, subscribed reactively, so a newly stored verified
+          observation lands on this page without a reload — and each line says
+          which source it is, when it last verified and whether it is currently
+          backed off. */}
+      {isAuthenticated ? (
+        <div className="lg:col-span-12">
+          <ExecCard bodyClassName="flex flex-col">
+            <SectionTitle
+              meta="live connectors"
+              right={<BasisTag basis="observed" />}
+            >
+              Verified sources behind what you track
+            </SectionTitle>
+            <ul className="divide-y divide-[var(--exec-hairline)]">
+              {SOURCE_LIST.map((source) => (
+                <li key={source.id}>
+                  <WatchSourceRow sourceId={source.id} />
+                </li>
+              ))}
+            </ul>
+            <p className="border-t border-[var(--exec-hairline)] px-4 py-3 text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
+              Tracked events come from the versioned scenario corpus, not from
+              these feeds — no external publisher announces a scenario. These
+              rows are the measured data underneath the countries you track:
+              they update here as the server stores new verified readings, not
+              on a page timer.
+            </p>
+          </ExecCard>
+        </div>
+      ) : null}
 
       {/* The honest label for the whole page: events are scenario corpus. */}
       <p className="lg:col-span-12 text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
