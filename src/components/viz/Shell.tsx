@@ -74,6 +74,17 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
+      {/* Keyboard entry point. Without it a keyboard reader tabs through the
+          wordmark, seven primary destinations and every utility control on each
+          new page before reaching the content — the header is repeated on every
+          route, so its cost is paid again on every navigation. Visually hidden
+          until focused, so it costs sighted readers nothing. */}
+      <a
+        href="#gm-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-[var(--exec-ink)] focus:px-3 focus:py-2 focus:text-[13px] focus:font-semibold focus:text-[var(--exec-base)]"
+      >
+        Skip to content
+      </a>
       {/* Top navigation. `shrink-0` so it never takes part in the scroll, and the
           page body below is the one and only scroll container. */}
       <header className="sticky top-0 z-30 shrink-0 border-b border-[var(--exec-hairline)] bg-[var(--exec-base)]">
@@ -201,7 +212,11 @@ export function Shell({ children }: { children: ReactNode }) {
       {/* The one scroll container. Everything above is fixed height, so a long
           page scrolls here and nowhere else. `pb-24 lg:pb-0` reserves the space
           the fixed mobile bar occupies rather than letting it cover a row. */}
-      <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-20 lg:pb-0">
+      <div
+        id="gm-content"
+        tabIndex={-1}
+        className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain pb-20 focus:outline-none lg:pb-0"
+      >
         {children}
       </div>
 

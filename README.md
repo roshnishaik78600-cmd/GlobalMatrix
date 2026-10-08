@@ -97,6 +97,24 @@ bun run dev
 
 Copy `.env.example` to `.env.local` and fill in the keys it lists.
 
+### Environment
+
+Vite only exposes variables prefixed with `VITE_` to the browser. Everything
+else is read by the Convex CLI — and variables consumed by the Convex
+**functions** must be set on the deployment itself, not in `.env.local`
+(`npx convex env set NAME value`, `npx convex env list`).
+
+| Variable | Where it lives | Required | Purpose |
+|---|---|---|---|
+| `VITE_CONVEX_URL` | `.env.local` | Yes | Convex deployment URL. Without it the app renders an explicit "configuration required" screen rather than a blank page. |
+| `CONVEX_DEPLOYMENT` | `.env.local` | Yes | Deployment targeted by `npx convex dev`. |
+| `CONVEX_SITE_URL` | Convex deployment env | Yes | Origin Convex Auth issues tokens for (`http://localhost:5173` in dev). |
+| `ANTHROPIC_API_KEY` | Convex deployment env | Optional | Enables the AI analyst brief (`src/convex/brief.ts`). With no key the action returns a structured "add ANTHROPIC_API_KEY" refusal instead of degrading to invented prose. |
+| `VLY_INTEGRATION_KEY` | Convex deployment env | Auto | Sends email sign-in codes (`src/convex/auth/emailOtp.ts`). Injected on Freebuff-created projects. |
+
+`.env`, `.env.*` and `.env.keys` are git-ignored. No secret may ever carry a
+`VITE_` prefix: that prefix compiles the value into the public client bundle.
+
 ### Quality gates
 
 ```bash

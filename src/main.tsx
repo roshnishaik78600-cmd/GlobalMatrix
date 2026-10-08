@@ -136,9 +136,51 @@ class RootErrorBoundary extends React.Component<
   }
 }
 
-const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+/**
+ * The Convex deployment URL, read once at startup.
+ *
+ * `ConvexReactClient` throws on a missing or malformed URL, and this module
+ * runs before React mounts — so an unconfigured deployment used to take the
+ * whole bundle down at module scope: no shell, no error boundary, no page, just
+ * one line in the console. Missing configuration is an ordinary deployment
+ * state, so it is answered here with something a reader can act on.
+ */
+const convexUrl = import.meta.env.VITE_CONVEX_URL;
+const convex = convexUrl ? new ConvexReactClient(convexUrl) : null;
 
-
+/**
+ * Shown instead of the application when no backend is configured.
+ *
+ * Every surface in GlobalMatrix reads from Convex, so there is no degraded mode
+ * to fall back to: the honest answer is to say the deployment is not wired up
+ * rather than to render an empty shell.
+ */
+function ConfigurationError() {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-[var(--exec-base)] px-4 py-10 text-[var(--exec-ink)]">
+      <div className="card w-full max-w-lg p-6">
+        <div className="flex flex-col gap-2">
+          <span className="exec-label text-[var(--exec-crimson)]">
+            CONFIGURATION REQUIRED
+          </span>
+          <p className="t-card text-[var(--exec-ink)]">
+            This deployment is not connected to a backend
+          </p>
+          <p className="text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
+            GlobalMatrix reads every event, exposure figure and verified
+            observation from its Convex deployment. This build was started with
+            no <code>VITE_CONVEX_URL</code>, so there is no backend to read and
+            nothing is drawn in its place.
+          </p>
+          <p className="text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
+            Set <code>VITE_CONVEX_URL</code> (and the matching
+            <code> CONVEX_DEPLOYMENT</code>) for this environment and rebuild.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function RouteSyncer() {
   const location = useLocation();
@@ -166,6 +208,9 @@ function RouteSyncer() {
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    {convex === null ? (
+      <ConfigurationError />
+    ) : (
     <RootErrorBoundary>
       <ToolbarErrorBoundary>
         <VlyToolbar />
@@ -221,5 +266,6 @@ createRoot(document.getElementById("root")!).render(
         <Toaster />
       </ConvexAuthProvider>
     </RootErrorBoundary>
+    )}
   </StrictMode>,
 );
