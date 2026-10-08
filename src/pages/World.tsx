@@ -372,7 +372,7 @@ export default function World() {
   if (!feed || !overview || !matrix) {
     return (
       <PageLoading
-        eyebrow="WORLD IMPACT"
+        eyebrow="World map"
         title="Event → World"
         lede="Trace how a global event propagates across countries, trade, energy, infrastructure and supply chains."
         dominant="lg:col-span-12"
@@ -410,7 +410,7 @@ export default function World() {
 
   return (
     <PageFrame
-      eyebrow="WORLD IMPACT"
+      eyebrow="World map"
       title="Event → World"
       lede="Trace how a global event propagates across countries, trade, energy, infrastructure and supply chains."
       actions={

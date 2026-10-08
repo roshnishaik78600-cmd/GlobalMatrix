@@ -57,13 +57,6 @@ export const MAP_LAYERS: { id: MapLayer; label: string; hint: string }[] = [
   },
 ];
 
-export const WINDOW_MS: Record<TimeWindow, number> = {
-  "1h": 60 * 60 * 1000,
-  "6h": 6 * 60 * 60 * 1000,
-  "24h": 24 * 60 * 60 * 1000,
-  "7d": 7 * 24 * 60 * 60 * 1000,
-};
-
 interface FocusValue {
   focus: Focus;
   /** Select, or deselect when the same thing is chosen again. */

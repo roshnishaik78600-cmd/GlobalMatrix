@@ -12,6 +12,7 @@ import { loadColour } from "@/components/viz/exec/Topology";
 import {
   Action,
   PageFrame,
+  PageLoading,
   Region,
 } from "@/components/viz/exec/design";
 import {
@@ -94,6 +95,19 @@ export default function Detection() {
   }, [mapEvents]);
 
   const active = rows.find((r) => r.id === selectedEvent) ?? null;
+
+  // The feed is still in flight. An empty stream below would read as "no event
+  // matches these filters", which is a claim about the corpus — and the corpus
+  // has not been read yet. Hold the page's own shape until it has.
+  if (!data) {
+    return (
+      <PageLoading
+        eyebrow="Events"
+        title="Global event observatory"
+        lede="Every event in the corpus with the pressure, evidence and interval behind its score."
+      />
+    );
+  }
 
   return (
         <PageFrame

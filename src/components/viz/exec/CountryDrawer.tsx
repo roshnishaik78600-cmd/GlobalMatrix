@@ -299,13 +299,16 @@ function TradeTab({ nodeId }: { nodeId: string }) {
       >
         Trade
       </SectionTitle>
-      {rows.length === 0 ? (
+      {trade.data === null ? (
+        // In flight, not failed. "Publishes no total for this reporter" is a
+        // statement about the publisher, so it waits until the publisher has
+        // actually answered.
+        <p className="px-3 py-4 text-[13px] text-[var(--exec-ink-dim)]">
+          Reading UN Comtrade for this reporter…
+        </p>
+      ) : rows.length === 0 ? (
         <NoDataAvailable
-          title={
-            trade.data === null
-              ? "UN Comtrade has not returned a reading"
-              : `UN Comtrade publishes no total for this reporter`
-          }
+          title={`UN Comtrade publishes no total for this reporter`}
           reason={
             trade.problem ??
             "Comtrade's public preview returns total merchandise trade by reporter. It does not return bilateral corridors or commodity detail at this tier, so GlobalMatrix will not draw a bilateral chord or a commodity split for it."

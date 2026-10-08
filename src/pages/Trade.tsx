@@ -13,6 +13,7 @@ import { TradeBalance, TradeOpenness, TradeSankey } from "@/components/viz/exec/
 import {
   Action,
   PageFrame,
+  PageLoading,
   Region,
 } from "@/components/viz/exec/design";
 import {
@@ -71,9 +72,22 @@ export default function Trade() {
     }[];
   }, [trade.data]);
 
-  const freshness = trade.data === null
-    ? "unavailable"
-    : freshnessOf(trade.retrievedAt, "comtrade");
+  // `data === null` is the in-flight state, not a failed source: the readings
+  // query has not answered yet. Show the page's own shape rather than a
+  // freshness tag announcing a failure that has not happened.
+  if (trade.data === null) {
+    return (
+      <PageLoading
+        eyebrow="Trade"
+        title="Trade flow engine"
+        lede="Reported merchandise values for every economy GlobalMatrix follows, flowed into world trade and ranked by balance."
+      />
+    );
+  }
+
+  // freshnessOf already answers "unavailable" when no reading has been stored,
+  // so a source failure is reported by the data rather than asserted here.
+  const freshness = freshnessOf(trade.retrievedAt, "comtrade");
 
   return (
     <PageFrame
@@ -141,9 +155,7 @@ export default function Trade() {
                   NO VERIFIED GEOGRAPHIC DATA AVAILABLE
                 </p>
                 <p className="mt-1.5 max-w-md text-[13px] leading-relaxed text-[var(--exec-ink-dim)]">
-                  {trade.data === null
-                    ? "UN Comtrade has not returned a reading, so there is nothing to place on a map. GlobalMatrix does not fall back to approximate national output shares to fill it."
-                    : "No reporter returned a total for a place GlobalMatrix can plot. Nothing is drawn rather than substituting an estimate."}
+                  {"No reporter returned a total for a place GlobalMatrix can plot. Nothing is drawn rather than substituting an estimate."}
                 </p>
               </div>
             ) : (

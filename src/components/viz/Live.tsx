@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
+import { useQuery } from "convex/react";
 import { Pause, Play, RefreshCw } from "lucide-react";
+import { api } from "@/convex/_generated/api";
 import { cn } from "@/lib/utils";
 import { sourceById } from "@/lib/sources";
 import {
@@ -9,6 +12,96 @@ import {
   relativeAge,
   utcDateTime,
 } from "@/lib/freshness";
+
+/**
+ * Global source-health indicator.
+ *
+ * Sits in the top bar where the product previously showed a bell labelled
+ * "Alerts" that opened the events page. There is no alert system in this build —
+ * delivery is explicitly out of scope — so the bell promised a capability that
+ * did not exist while duplicating a destination that was already in the nav.
+ * This replaces it with the opposite: a control whose text is derived entirely
+ * from stored connector state, and which opens the source register.
+ *
+ * "Verified" means a verified reading is stored for that source — not that the
+ * source is live. Two of the four publish annually, so a chip reading "4/4
+ * verified" next to a LIVE badge would be a different (and false) claim; the
+ * per-source freshness is spelled out in the tooltip instead of being collapsed
+ * into one word.
+ *
+ * Width is why it appears only from `xl`: the bar's budget at `lg` is already
+ * five nav labels plus the wordmark and the account cluster, and a chip that
+ * pushed those into each other would cost more than it is worth.
+ */
+export function SourceHealthChip({ className }: { className?: string }) {
+  const health = useQuery(api.observations.sourceHealth);
+  const rows = health ?? [];
+
+  const total = rows.length;
+  const verified = rows.filter((r) => r.lastSuccessAt > 0).length;
+  // Failing *now*: the latest attempt is no newer than the last verified read.
+  const held = rows.filter(
+    (r) => r.lastAttemptAt > 0 && r.lastAttemptAt > r.lastSuccessAt,
+  ).length;
+
+  const tone =
+    total === 0 || verified === 0
+      ? "var(--exec-crimson)"
+      : held > 0
+        ? "var(--exec-amber)"
+        : "var(--exec-emerald)";
+
+  const label =
+    health === undefined
+      ? "CHECKING SOURCES"
+      : total === 0
+        ? "NO SOURCES"
+        : held > 0
+          ? `${verified}/${total} VERIFIED · ${held} HELD`
+          : `${verified}/${total} VERIFIED`;
+
+  const detail =
+    health === undefined
+      ? "Reading connector state."
+      : rows
+          .map((r) => {
+            const name = sourceById(r.sourceId)?.label ?? r.sourceId;
+            const state =
+              r.lastSuccessAt === 0
+                ? "no verified reading yet"
+                : `last verified ${relativeAge(r.lastSuccessAt)}`;
+            const healthWord =
+              r.lastAttemptAt > r.lastSuccessAt
+                ? " · latest attempt failed"
+                : "";
+            return `${name}: ${state}${healthWord}`;
+          })
+          .join("\n");
+
+  return (
+    <Link
+      to="/app/data"
+      title={detail}
+      aria-label={`Data sources — ${label}. Open the source register.`}
+      className={cn(
+        "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--exec-hairline)] px-2.5 transition-colors hover:border-[var(--exec-hairline-strong)]",
+        className,
+      )}
+    >
+      <span
+        className={cn(
+          "size-1.5 shrink-0 rounded-full",
+          held === 0 && verified > 0 && "live-dot",
+        )}
+        style={{ background: tone }}
+        aria-hidden
+      />
+      <span className="exec-label whitespace-nowrap" style={{ color: tone }}>
+        {label}
+      </span>
+    </Link>
+  );
+}
 
 /**
  * The live status line for one externally sourced panel.

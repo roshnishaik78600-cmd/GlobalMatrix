@@ -69,8 +69,8 @@ export default function GraphExplorerPage() {
 
   return (
       <PageFrame
-      eyebrow="Graph"
-      title="Graph"
+      eyebrow="Knowledge graph"
+      title="Knowledge graph"
       lede="The transmission graph as a knowledge web: pick an entity and see everything it shares exposure with."
       actions={
         <>

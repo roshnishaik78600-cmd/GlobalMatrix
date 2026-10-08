@@ -1,4 +1,4 @@
-import { STALE_AFTER_MS, type DataStatus } from "@/lib/sources";
+import { STALE_AFTER_MS } from "@/lib/sources";
 
 /**
  * How current a reading actually is.
@@ -80,22 +80,6 @@ export function utcDateTime(ms: number | undefined): string {
   return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(
     d.getUTCDate(),
   )} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
-}
-
-/** The freshness implied by a provenance status the server already assigned. */
-export function freshnessFromStatus(status: DataStatus): Freshness {
-  switch (status) {
-    case "observed":
-      return "recent";
-    case "model":
-      return "recent";
-    case "scenario":
-      return "historical";
-    case "stale":
-      return "delayed";
-    default:
-      return "unavailable";
-  }
 }
 
 /**

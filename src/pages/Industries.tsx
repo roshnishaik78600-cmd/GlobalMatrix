@@ -98,6 +98,28 @@ export default function Industries() {
           caption={`Sectors · ${industries.length}`}
           aside="Ranked by live exposure to the current corpus"
         >
+          {industries.length === 0 ? (
+            // Not an absence of data: every sector is still in the corpus, the
+            // filter is simply excluding all of them. Say that, and offer the way
+            // back, rather than showing an unexplained blank list.
+            <div className="flex flex-col items-start gap-2 px-4 py-8">
+              <p className="label text-muted-foreground">
+                Nothing on this watchlist yet
+              </p>
+              <p className="max-w-prose text-[13px] leading-relaxed text-muted-foreground">
+                None of the {allIndustries.length} modelled sectors is saved to
+                your watchlist, so this filter has nothing to show. All of them
+                are still listed without it.
+              </p>
+              <button
+                type="button"
+                onClick={() => setWatchedOnly(false)}
+                className="exec-label mt-1 border border-rule px-2 py-1 transition-colors hover:border-foreground/30"
+              >
+                Show all {allIndustries.length} sectors
+              </button>
+            </div>
+          ) : (
           <ul className="divide-y divide-rule">
             {industries.map((row, i) => (
               <motion.li
@@ -240,6 +262,7 @@ export default function Industries() {
                 </motion.li>
             ))}
           </ul>
+          )}
         </Panel>
   </PageFrame>
   );

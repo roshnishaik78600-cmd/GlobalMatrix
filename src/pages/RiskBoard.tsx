@@ -99,7 +99,7 @@ export default function RiskBoard() {
   if (!data) {
     return (
       <PageLoading
-        eyebrow="Risk"
+        eyebrow="Risk explorer"
         title="Global risk"
         lede="Where risk is concentrated, what is driving it, and how it has moved."
         dominant="lg:col-span-12"
@@ -121,7 +121,7 @@ export default function RiskBoard() {
 
   return (
     <PageFrame
-      eyebrow="Risk"
+      eyebrow="Risk explorer"
       title="Global risk"
       lede="Where risk is concentrated right now, what is driving it, and how far it can be trusted."
       actions={

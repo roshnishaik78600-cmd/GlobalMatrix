@@ -136,24 +136,6 @@ export interface Datum<T = number> {
   provenance: Provenance;
 }
 
-/**
- * Shape every connector returns. On failure the readings array is empty and
- * `provenance.status` is "unavailable" — there is deliberately no partial
- * success that silently drops the provenance.
- */
-export interface SourceResult<T> {
-  provenance: Provenance;
-  readings: T[];
-  /** Safe to show a human. Never contains a stack trace or upstream body. */
-  problem?: string;
-}
-
-export const unavailable = (problem: string): SourceResult<never> => ({
-  provenance: { sourceId: "none", asOf: "", retrievedAt: Date.now(), status: "unavailable" },
-  readings: [],
-  problem,
-});
-
 /** Age at which a cached reading stops counting as current, per source. */
 export const STALE_AFTER_MS: Record<string, number> = {
   worldbank: 1000 * 60 * 60 * 24 * 7,
@@ -165,20 +147,6 @@ export const STALE_AFTER_MS: Record<string, number> = {
   // rate LIVE.
   ecb: 1000 * 60 * 60 * 24 * 4,
 };
-
-/**
- * Downgrade a provenance record once its cached copy ages out. A stale number
- * is still real data, so it stays on screen — but it stops claiming to be
- * current.
- */
-export function withStaleness(p: Provenance): Provenance {
-  const window = STALE_AFTER_MS[p.sourceId];
-  if (!window) return p;
-  if (p.status !== "observed") return p;
-  return Date.now() - p.retrievedAt > window
-    ? { ...p, status: "stale", note: "Past its refresh window." }
-    : p;
-}
 
 export function sourceById(id: string): SourceDef | undefined {
   return (SOURCE_LIST as SourceDef[]).find((s) => s.id === id);

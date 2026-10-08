@@ -1,6 +1,6 @@
 import { useState, type ReactNode, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
-import { Bell, Bookmark, Search, User, X, LogOut } from "lucide-react";
+import { Bookmark, Search, User, X, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,7 @@ import { CountryDrawer } from "@/components/viz/exec/CountryDrawer";
 import { useAuth } from "@/hooks/use-auth";
 import { useAuthAction } from "@/hooks/use-auth-action";
 import { CommandPalette } from "@/components/intel/CommandPalette";
+import { SourceHealthChip } from "@/components/viz/Live";
 import { ExplorePanel } from "@/components/viz/NavRail";
 import { FocusDrawer } from "@/components/viz/FocusPanel";
 import { useFocus } from "@/lib/focus";
@@ -133,14 +134,14 @@ export function Shell({ children }: { children: ReactNode }) {
               <Search className="size-4" />
             </IconButton>
 
-            <Link
-              to="/app/events"
-              title="Alerts — the watchlist filter on the events observatory"
-              aria-label="Alerts"
-              className="hidden size-9 items-center justify-center rounded-lg border border-[var(--exec-hairline)] text-[var(--exec-ink-dim)] transition-colors hover:border-[var(--exec-hairline-strong)] hover:text-[var(--exec-ink)] sm:flex"
-            >
-              <Bell className="size-4" />
-            </Link>
+            {/* Connector state, in the bar where a reader looks for status.
+                Replaces a bell that claimed "Alerts": there is no alert
+                delivery in this build, and the bell only re-opened the events
+                page that the nav already links. This one says something the
+                backend can actually defend — how many sources have a verified
+                reading stored, and how many are currently failing — and opens
+                the register where each one is explained. */}
+            <SourceHealthChip className="hidden xl:inline-flex" />
 
             {isAuthenticated && user ? (
               <div className="hidden lg:block">

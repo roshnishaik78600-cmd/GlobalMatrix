@@ -14,6 +14,7 @@ import { loadColour } from "@/components/viz/exec/Topology";
 import {
   Action,
   PageFrame,
+  PageLoading,
   Region,
   Segmented,
 } from "@/components/viz/exec/design";
@@ -101,6 +102,20 @@ export default function Supply() {
   }, [flow]);
 
   const sector = directory?.industries.find((i) => i.id === activeIndustry);
+
+  // Both boards are unconditional queries, and every list below is built from
+  // them. Until they answer, an empty list would say "no chokepoint carries
+  // exposure in this corpus" — a claim about the data, made before the data
+  // arrived. The page holds its own shape instead.
+  if (!board || !directory) {
+    return (
+      <PageLoading
+        eyebrow="Supply chains"
+        title="Supply chain chokepoint analyzer"
+        lede="Single points of failure, one at a time, and the sectors that depend on each."
+      />
+    );
+  }
 
   return (
     <PageFrame
@@ -228,7 +243,21 @@ export default function Supply() {
                 </>
               }
             >
-              {flow && flow.stages.length > 0 ? (
+              {flow === undefined ? (
+                // flow is selected per sector, so it loads after the page does.
+                // "declares no dependency stages" is a statement about the
+                // sector, so it must wait until the sector has been read.
+                <p className="px-3 py-6 text-[13px] text-[var(--exec-ink-dim)]">
+                  Reading the declared structure for this sector…
+                </p>
+              ) : flow === null ? (
+                // The query reserves null for an id the sector registry does not
+                // hold — a real not-found, distinct from the loading branch above.
+                <NoDataAvailable
+                  title="No structure for this sector id"
+                  reason="The sector registry holds no entry for this id, so there is no declared structure to walk. Nothing is inferred in its place."
+                />
+              ) : flow.stages.length > 0 ? (
                 <FlowDiagram stages={flow.stages} edges={flow.edges} />
               ) : (
                 <NoDataAvailable

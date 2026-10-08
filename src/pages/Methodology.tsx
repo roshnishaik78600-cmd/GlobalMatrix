@@ -92,7 +92,11 @@ export default function Methodology() {
 
       <header className="border-b border-[var(--exec-hairline)]">
         <div className="gm-width px-4 pt-12 pb-8 lg:px-8 lg:pt-16">
-          <p className="exec-label text-[var(--exec-cyan)]">How it works</p>
+          {/* The kicker is the page's name, not a strapline. Every entry in the
+              navigation names the destination it opens, and this is the string
+              the "Methodology" item lands on — a reader who clicks it should
+              see the same word at the top of the page. */}
+          <p className="exec-label text-[var(--exec-cyan)]">Methodology</p>
           <h1 className="t-page mt-2 max-w-3xl text-[var(--exec-ink)]">
             A model you can argue with.
           </h1>
