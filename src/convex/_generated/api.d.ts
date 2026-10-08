@@ -18,6 +18,7 @@ import type * as http from "../http.js";
 import type * as intel from "../intel.js";
 import type * as macroTopology from "../macroTopology.js";
 import type * as observations from "../observations.js";
+import type * as poll from "../poll.js";
 import type * as research from "../research.js";
 import type * as sources from "../sources.js";
 import type * as users from "../users.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   intel: typeof intel;
   macroTopology: typeof macroTopology;
   observations: typeof observations;
+  poll: typeof poll;
   research: typeof research;
   sources: typeof sources;
   users: typeof users;

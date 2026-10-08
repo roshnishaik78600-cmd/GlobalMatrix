@@ -20,16 +20,8 @@ The `@vly-ai/integrations` package is already included in package.json.
 ```typescript
 "use node";
 
-import { createVlyIntegrations } from '@vly-ai/integrations';
+import { vly } from '../lib/vly-integrations';
 import { action } from "./_generated/server";
-
-// Convex actions run in the Node runtime, so the key is read from the
-// deployment environment. Never put it in a VITE_* variable — anything with
-// that prefix is compiled into the client bundle. VLY_INTEGRATION_KEY is
-// injected automatically on Freebuff-created projects.
-const vly = createVlyIntegrations({
-  deploymentToken: process.env.VLY_INTEGRATION_KEY,
-});
 
 export const generateAIResponse = action({
   handler: async (ctx, args) => {
