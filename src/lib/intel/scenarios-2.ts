@@ -120,10 +120,20 @@ export const SCENARIOS_2: Scenario[] = [
           { nodeId: "US", exposure: 0.58, impact: 0.31, lagDays: 28, note: "Enforcement coherence under pressure" },
         ],
       },
+      // A channel that was assessed and ruled out.
+      //
+      // This pathway reaches no node, which is the point: component-level
+      // enforcement does not touch hydrocarbon flows. It is kept because the
+      // reasoning is part of the record, and it carries magnitude 0 so the
+      // authored figure agrees with the mechanism above it. A non-zero figure
+      // here used to feed the composite — energy carries the largest weight of
+      // the four channels — so the event scored as though it transmitted on
+      // energy while exposing nothing on it. `channelPressureOf` now ignores a
+      // pathway that exposes no node for the same reason, so this cannot recur.
       {
         channel: "energy",
         direction: "mixed",
-        magnitude: 0.19,
+        magnitude: 0,
         lagDays: [90, 200],
         confidence: 0.31,
         mechanism: "Negligible. Component-level enforcement does not touch hydrocarbon flows.",
@@ -393,7 +403,7 @@ export const SCENARIOS_2: Scenario[] = [
     confidence: 0.9,
     novelty: 0.41,
     velocity: 0.74,
-    actors: ["AR", "BR", "US", "EU", "CN", "MLT"],
+    actors: ["AR", "BR", "US", "EU", "CN", "CBRICKS"],
     regions: ["South America", "Global"],
     tags: ["sovereign debt", "fiscal", "emerging markets"],
     analystNote:
@@ -466,7 +476,7 @@ export const SCENARIOS_2: Scenario[] = [
         exposures: [
           { nodeId: "BR", exposure: 0.88, impact: 0.64, lagDays: 8, note: "Global risk appetite transmits through the region's benchmark" },
           { nodeId: "AR", exposure: 0.94, impact: 0.71, lagDays: 5, note: "Front-end repricing anchored on fiscal credibility" },
-          { nodeId: "MLT", exposure: 0.72, impact: 0.44, lagDays: 20, note: "Programme design and conditionality under negotiation" },
+          { nodeId: "CBRICKS", exposure: 0.72, impact: 0.44, lagDays: 20, note: "Programme design and conditionality under negotiation" },
           { nodeId: "INSTL", exposure: 0.6, impact: 0.29, lagDays: 12, note: "EM allocation trimmed at the sovereign level" },
           { nodeId: "SWIFT", exposure: 0.48, impact: 0.24, lagDays: 10, note: "Cross-border funding cost repricing" },
         ],
@@ -493,7 +503,7 @@ export const SCENARIOS_2: Scenario[] = [
         mechanism:
           "Compressed engagement timetable converts a domestic political outcome into a multilateral negotiation with a hard deadline.",
         exposures: [
-          { nodeId: "MLT", exposure: 0.6, impact: 0.3, lagDays: 30, note: "Conditionality debate becomes the binding constraint" },
+          { nodeId: "CBRICKS", exposure: 0.6, impact: 0.3, lagDays: 30, note: "Conditionality debate becomes the binding constraint" },
           { nodeId: "US", exposure: 0.48, impact: 0.22, lagDays: 35, note: "Programme participation under domestic review" },
           { nodeId: "EU", exposure: 0.42, impact: 0.18, lagDays: 40, note: "Exposure concentrated in one member" },
         ],

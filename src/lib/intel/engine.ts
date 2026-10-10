@@ -94,11 +94,27 @@ export function centralityOf(scenario: Scenario): number {
   return clamp(peak);
 }
 
-/** Mean pressure on each channel, 0..1, weighted by pathway confidence. */
+/**
+ * Mean pressure on each channel, 0..1, weighted by pathway confidence.
+ *
+ * A pathway that exposes no node is not a transmission and is skipped. It used
+ * to be counted: the corpus can carry a channel that was assessed and ruled out
+ * (see MER-4135's energy pathway, whose own mechanism reads "Negligible"), and a
+ * non-zero magnitude on such a pathway fed the composite while exposing nothing.
+ * Energy carries the largest weight of the four channels, so the effect was not
+ * cosmetic — the event scored higher than its exposures could account for, and a
+ * reader auditing the drivers panel down to the exposures would find the trail
+ * end in a channel that transmits to nobody.
+ *
+ * Pressure is only meaningful as pressure *on something*, which is why the test
+ * is on the exposures rather than on the magnitude.
+ */
 export function channelPressureOf(scenario: Scenario): Record<Channel, number> {
   const out = {} as Record<Channel, number>;
   for (const channel of CHANNELS) {
-    const relevant = scenario.pathways.filter((p) => p.channel === channel);
+    const relevant = scenario.pathways.filter(
+      (p) => p.channel === channel && p.exposures.length > 0,
+    );
     if (relevant.length === 0) {
       out[channel] = 0;
       continue;

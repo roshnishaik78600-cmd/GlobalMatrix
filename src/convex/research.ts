@@ -8,6 +8,27 @@ const requireUser = async (ctx: { auth: unknown }) => {
   return userId;
 };
 
+/**
+ * Longest identifier a client may store against itself.
+ *
+ * Every real key is a corpus id, a `NODE:`/`SECTOR:` reference, or an
+ * `EVENT:`-prefixed event id — all far inside this. The bound exists because
+ * these arguments are free-form strings written straight into the database by
+ * a signed-in caller: without it, the watchlist and annotations tables are
+ * unbounded per-user storage that anyone with an account can fill.
+ */
+const MAX_KEY_LENGTH = 120;
+
+/** Validated identifier, or a thrown error naming the problem. */
+function cleanKey(raw: string): string {
+  const key = raw.trim();
+  if (!key) throw new Error("Nothing to track — the identifier was empty.");
+  if (key.length > MAX_KEY_LENGTH) {
+    throw new Error("That identifier is not a valid GlobalMatrix reference.");
+  }
+  return key;
+}
+
 /** Add or remove an event from the researcher's watchlist.
  *
  * Event keys exist in two forms across the product — the bare scenario id and
@@ -18,16 +39,17 @@ export const toggleWatch = mutation({
   args: { eventId: v.string() },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
+    const eventId = cleanKey(args.eventId);
 
     // Namespaced kinds (`NODE:`, `SECTOR:`) are exact-match only.
     const isEventKey =
-      !args.eventId.includes(":") || args.eventId.startsWith("EVENT:");
-    const bare = args.eventId.startsWith("EVENT:")
-      ? args.eventId.slice("EVENT:".length)
-      : args.eventId;
+      !eventId.includes(":") || eventId.startsWith("EVENT:");
+    const bare = eventId.startsWith("EVENT:")
+      ? eventId.slice("EVENT:".length)
+      : eventId;
     const forms = isEventKey
-      ? [...new Set([args.eventId, bare, `EVENT:${bare}`])]
-      : [args.eventId];
+      ? [...new Set([eventId, bare, `EVENT:${bare}`])]
+      : [eventId];
 
     async function findRow(form: string) {
       return ctx.db
@@ -53,7 +75,7 @@ export const toggleWatch = mutation({
 
     await ctx.db.insert("watchlist", {
       userId,
-      eventId: isEventKey ? `EVENT:${bare}` : args.eventId,
+      eventId: isEventKey ? `EVENT:${bare}` : eventId,
       createdAt: Date.now(),
     });
     return { watched: true };
@@ -65,12 +87,13 @@ export const addAnnotation = mutation({
   args: { eventId: v.string(), body: v.string() },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
+    const eventId = cleanKey(args.eventId);
     const body = args.body.trim();
     if (!body) throw new Error("Annotation cannot be empty.");
     if (body.length > 2000) throw new Error("Annotation is limited to 2000 characters.");
     await ctx.db.insert("annotations", {
       userId,
-      eventId: args.eventId,
+      eventId,
       body,
       createdAt: Date.now(),
     });

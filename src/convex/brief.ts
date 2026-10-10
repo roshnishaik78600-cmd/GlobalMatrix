@@ -20,9 +20,20 @@ type BriefFailureReason =
   | "not_signed_in"
   | "unknown_event"
   | "missing_key"
+  | "rate_limited"
   | "upstream_error"
   | "empty_response"
   | "unparseable";
+
+/**
+ * Shortest gap between two brief generations for one account.
+ *
+ * Every call bills the deployment's own Anthropic key, so the number is set by
+ * what a person actually does: read one brief, then ask for another. It is
+ * deliberately per user and irrespective of which event is asked for, because
+ * the cost is per call rather than per event.
+ */
+const MIN_BRIEF_INTERVAL_MS = 20_000;
 
 type BriefActionResult =
   | { ok: true; brief: BriefShape; createdAt: number }
@@ -70,6 +81,22 @@ export const generateBrief = action({
         reason: "missing_key" as const,
         message:
           "Add ANTHROPIC_API_KEY in the project's Keys tab to generate model-written briefs.",
+      };
+    }
+
+    // Claim a throttle slot before spending anything upstream. Both refusals
+    // above are free, so the guard sits after them: a reader who has not signed
+    // in, or who asked for an event that does not exist, should not have their
+    // next request rate-limited for it.
+    const claim = await ctx.runMutation(internal.briefs.claimBrief, {
+      userId,
+      minIntervalMs: MIN_BRIEF_INTERVAL_MS,
+    });
+    if (!claim.ok) {
+      return {
+        ok: false as const,
+        reason: "rate_limited" as const,
+        message: `Briefs are limited to one every ${MIN_BRIEF_INTERVAL_MS / 1000} seconds. Try again in ${Math.ceil(claim.retryInMs / 1000)}s.`,
       };
     }
 

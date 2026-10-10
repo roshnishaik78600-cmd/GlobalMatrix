@@ -193,9 +193,13 @@ export function buildStages(chain: ChainPayload): ChainStage[] {
         detail: t.note,
       })),
       unmeasured: {
-        title: "No trade pathway",
+        title: "Nothing travels on trade",
+        // Stated in terms of exposure rather than of the pathway list, because
+        // the corpus can hold a channel it assessed and ruled out — one that
+        // exists but exposes no node. "No pathway in the corpus" would be false
+        // in exactly that case, which is the case the copy has to survive.
         reason:
-          "This event has no trade-channel pathway in the corpus, so nothing travels along trade for it. That is an absence, not a zero.",
+          "No trade-channel pathway for this event exposes a tracked node, so nothing travels along trade for it. That is an absence, not a zero.",
       },
     },
     {
@@ -213,9 +217,9 @@ export function buildStages(chain: ChainPayload): ChainStage[] {
         detail: t.note,
       })),
       unmeasured: {
-        title: "No energy pathway",
+        title: "Nothing travels on energy",
         reason:
-          "This event has no energy-channel pathway in the corpus, so it carries no energy transmission.",
+          "No energy-channel pathway for this event exposes a tracked node, so it carries no energy transmission. That is an absence, not a zero.",
       },
     },
     {

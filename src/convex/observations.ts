@@ -165,6 +165,11 @@ type ClaimResult =
  * *successful* run, because a reader asking for fresh numbers is a legitimate
  * reason to ask the publisher again. It never bypasses a failure backoff, and
  * it never bypasses an in-flight run: neither is a matter of preference.
+ *
+ * It also never bypasses `forceFloorMs`. These actions are unauthenticated, so
+ * "force always proceeds" was a rate-limit hole in the direction that matters:
+ * a client, not the cron schedule, was the thing asking the publisher for data.
+ * The floor is what keeps a manual refresh a manual refresh.
  */
 export const claimRefresh = internalMutation({
   args: { sourceId: v.string(), force: v.optional(v.boolean()) },
@@ -186,11 +191,20 @@ export const claimRefresh = internalMutation({
         return { proceed: false, reason: "in_flight", retryInMs };
       }
 
-      const cooling = lock.nextAllowedAt - now;
-      // A healthy source may be re-asked on request. A failing one may not.
-      const mayForce = args.force === true && lock.consecutiveFailures === 0;
-      if (cooling > 0 && !mayForce) {
-        return { proceed: false, reason: "cooling_down", retryInMs: cooling };
+      // A healthy source may be re-asked on request, but only once the run
+      // before it is older than the floor. `startedAt` survives the run, so it
+      // is the age of the last run and needs no extra column.
+      const forced = args.force === true && lock.consecutiveFailures === 0;
+      const cooling = Math.max(0, lock.nextAllowedAt - now);
+      const floorWait = forced
+        ? Math.max(0, policy.forceFloorMs - (now - lock.startedAt))
+        : 0;
+      const wait = forced ? floorWait : cooling;
+      // A forced run still has to clear the floor even when the success
+      // cooldown has already elapsed, so `wait` is checked on its own rather
+      // than folded into `cooling`.
+      if (wait > 0) {
+        return { proceed: false, reason: "cooling_down", retryInMs: wait };
       }
 
       await ctx.db.patch(lock._id, {

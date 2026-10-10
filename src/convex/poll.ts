@@ -28,6 +28,20 @@
 export interface SourcePoll {
   /** Shortest gap between two runs of this source, after a success. */
   minIntervalMs: number;
+  /**
+   * Shortest gap between two runs when a caller explicitly asked for a refresh.
+   *
+   * A manual refresh is allowed to ignore the success cooldown, because a
+   * reader asking for fresh numbers is a legitimate reason to ask the publisher
+   * again. It is not allowed to ignore this floor. Without one, `force: true`
+   * meant "always proceed", so an anonymous caller could drive an upstream
+   * fetch on every request — the cooldown protected the source from the cron
+   * schedule but not from the client, which is the direction the abuse comes
+   * from. The floor is set well below a human's refresh cadence and well above
+   * an attacker's, so it costs a reader nothing and caps the request rate the
+   * endpoint can be made to generate.
+   */
+  forceFloorMs: number;
   /** First retry delay after a failure; doubles each consecutive failure. */
   backoffBaseMs: number;
   /** Ceiling on that backoff, so a broken source is still retried eventually. */
@@ -44,6 +58,10 @@ const HOUR = 60 * MINUTE;
 export const POLL: Record<string, SourcePoll> = {
   worldbank: {
     minIntervalMs: 6 * HOUR,
+    // Annual data. A reader has no reason to ask more than once an hour, and
+    // World Bank throttles bursts, so this is the tightest bound that costs a
+    // human nothing.
+    forceFloorMs: 60 * MINUTE,
     backoffBaseMs: 15 * MINUTE,
     maxBackoffMs: 12 * HOUR,
     maxRunMs: 2 * MINUTE,
@@ -51,6 +69,7 @@ export const POLL: Record<string, SourcePoll> = {
   },
   comtrade: {
     minIntervalMs: 12 * HOUR,
+    forceFloorMs: 60 * MINUTE,
     backoffBaseMs: 30 * MINUTE,
     maxBackoffMs: 24 * HOUR,
     maxRunMs: 2 * MINUTE,
@@ -58,6 +77,10 @@ export const POLL: Record<string, SourcePoll> = {
   },
   gdelt: {
     minIntervalMs: 20 * MINUTE,
+    // The only genuinely moving feed, so the floor is low enough for a reader
+    // to re-check it during a live situation — and caps a client at six
+    // upstream requests an hour instead of one every two minutes.
+    forceFloorMs: 10 * MINUTE,
     backoffBaseMs: 10 * MINUTE,
     maxBackoffMs: 3 * HOUR,
     maxRunMs: 2 * MINUTE,
@@ -65,6 +88,7 @@ export const POLL: Record<string, SourcePoll> = {
   },
   ecb: {
     minIntervalMs: 3 * HOUR,
+    forceFloorMs: 30 * MINUTE,
     backoffBaseMs: 30 * MINUTE,
     maxBackoffMs: 12 * HOUR,
     maxRunMs: 2 * MINUTE,

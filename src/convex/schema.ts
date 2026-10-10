@@ -55,6 +55,19 @@ const schema = defineSchema(
       .index("by_user", ["userId"])
       .index("by_user_event", ["userId", "eventId"]),
 
+    // Throttle for the model-generated brief action.
+    //
+    // `generateBrief` is an unauthenticated-by-cost action: it is gated on
+    // sign-in, but any account can call it, and every call spends the
+    // deployment's own ANTHROPIC_API_KEY. One row per accepted run is what
+    // bounds that. It lives in its own table rather than on `users` so the
+    // claim is a plain insert, and so no auth-owned table is written by product
+    // code.
+    briefClaims: defineTable({
+      userId: v.id("users"),
+      at: v.number(),
+    }).index("by_user", ["userId"]),
+
     // Cached model-generated analyst briefs, one per user per event.
     briefs: defineTable({
       userId: v.id("users"),

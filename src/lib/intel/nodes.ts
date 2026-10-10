@@ -36,6 +36,47 @@ export const NODES: GraphNode[] = [
   { id: "SWIFT", label: "Cross-border settlement", short: "XBS", kind: "institution", region: "Global", criticality: 0.91 },
   { id: "INSTL", label: "Institutional portfolios", short: "INS", kind: "institution", region: "Global", criticality: 0.75 },
   { id: "CBRICKS", label: "Multilateral creditors", short: "MLT", kind: "institution", region: "Global", criticality: 0.58 },
+
+  // Three economies the corpus already treats as exposed, and which the graph
+  // was missing.
+  //
+  // The corpus names Egypt, Argentina and the Philippines in its pathways and
+  // its actor lists — those are authored claims about who an event reaches, and
+  // they are not removable. The reference table simply had no entry for them,
+  // so `getNode` fell through to its placeholder: the exposure list printed the
+  // bare ISO code in place of a country name and the row read "Unclassified",
+  // and `centralityOf` silently scored them at the placeholder's criticality.
+  //
+  // They are added as economies at that same 0.5 criticality, which is the
+  // value the model was already applying to them. That is deliberate: the point
+  // of this change is to stop the graph from inventing a label and a region, not
+  // to move any risk score. Egypt sits at 0.5 alongside its own Suez node rather
+  // than above it.
+  //
+  // What actually reads this entry, so the effect of adding it is on record:
+  // the per-event propagation graph and the ranked exposure lists, which label
+  // each node through `getNode`; the scenario shock selector, which offers every
+  // node in `GEO_NODES`; and `nearestNode`'s map hit-testing.
+  //
+  // It does NOT put them on the world map. `mapNodes` is built from the country
+  // directory plus the infrastructure index, not from this table, so a node with
+  // no `countries.ts` profile is not drawn however complete its coordinates are.
+  // The coordinates are real and are used by the two consumers above, which is
+  // why they are present rather than omitted for tidiness.
+  //
+  // `countries.ts` deliberately still has no macro profile for them. Until one
+  // is authored, their profile page states the exposure the model derives and
+  // shows no national-accounts section, rather than filling one with estimates.
+  // That page is reachable — `intel.countryProfile` gates on `isKnownNode` —
+  // which is why the eyebrow there is derived from `node.kind` and not from the
+  // presence of a profile.
+  { id: "EG", label: "Egypt", short: "EG", kind: "economy", region: "North Africa", criticality: 0.5, lat: 26.8, lon: 30.8 },
+  { id: "AR", label: "Argentina", short: "AR", kind: "economy", region: "South America", criticality: 0.5, lat: -34.0, lon: -64.0 },
+  { id: "PH", label: "Philippines", short: "PH", kind: "economy", region: "Asia-Pacific", criticality: 0.5, lat: 12.9, lon: 121.8 },
+  // Ukraine appears in an event's actor list, which the event page renders as
+  // chips. Left undefined it printed as the bare code "UA" in a row of country
+  // names. Actors do not enter the score, so this changes no number.
+  { id: "UA", label: "Ukraine", short: "UA", kind: "economy", region: "Eurasia", criticality: 0.5, lat: 48.4, lon: 31.2 },
 ];
 
 /** Nodes with a real geographic position, i.e. everything the map can plot. */

@@ -118,12 +118,33 @@ else is read by the Convex CLI — and variables consumed by the Convex
 ### Quality gates
 
 ```bash
-bunx tsc -b --noEmit   # typecheck
-bun run lint           # eslint
-bun run build          # production build
+bunx convex dev --once  # push functions and regenerate types
+bunx tsc -b --noEmit    # typecheck
+bun run lint            # eslint
+bun test                # unit suite
+bun run build           # production build
 ```
 
-There is currently **no automated test suite** in this repository; the gates above plus Convex function runs are the verification that exists.
+### Tests
+
+The suite runs on Bun's built-in runner — `bun test`, no framework to install.
+It covers the parts of the product where a silent error would be a lie rather
+than a crash, which is why it leans on data contracts rather than on rendering:
+
+| Area | What is pinned |
+|------|----------------|
+| `freshness` | The five freshness states and their boundaries. In particular that an annual publisher is **never** LIVE however recently it was fetched, and that a missing timestamp is UNAVAILABLE and never a zero. |
+| `sources` | Every source declares what it is *not* evidence of; `asOf` formatting normalises all three upstream shapes and returns nothing rather than guessing at an unparseable one. |
+| `ecb` | The connector's failure contract. Every failure path must produce **no reading**: `ok: false`, an empty payload, and a plain-language problem — never a salvaged partial body, and never a fabricated value. |
+| `exposure` | The exposure model is bounded, deterministic, reconciles its parts with its total, and traces every contribution back to a real event. |
+| `engine` | The 80% interval contains its own score at every horizon and widens with time; band thresholds are exact and monotone; the corpus memo is keyed on identity. |
+| `corpus` | Graph and corpus integrity: unique node ids, placed-or-abstract nodes, and **no dangling node references**. |
+
+The corpus test is not hypothetical. It was written against a real defect: four
+pathway exposures pointed at node ids the transmission graph did not define, so
+`getNode` answered with its placeholder and the UI printed a bare ISO code where
+a country name belongs. Nothing threw. See *Known limitations* below for what
+is still modelled but not profiled.
 
 ## Known limitations (stated, not hidden)
 
@@ -132,6 +153,7 @@ There is currently **no automated test suite** in this repository; the gates abo
 - **No email alerts.** Watchlists store what you track; delivery of alerts is not built.
 - **Scenario corpus.** Events are a versioned scenario set, labelled everywhere it renders.
 - **Search-interest signals**, where ever added, must be labelled SEARCH INTEREST SIGNAL and never used as causal evidence.
+- **Four modelled economies have no national-accounts profile.** Egypt, Argentina, the Philippines and Ukraine appear in the corpus and are defined as nodes in the transmission graph, because events genuinely reach them — but `countries.ts` has no macro profile for them. Their profile page renders the exposure the model derives and shows no trade or energy section, rather than filling one with estimates. They carry the reference `criticality` of 0.5, which is the value the model was already applying to them through `getNode`'s fallback; adding them changed no score.
 
 ## Responsible use
 

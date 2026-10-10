@@ -90,14 +90,22 @@ export default function CountryProfile() {
   );
   const declaredRoles = industries.filter((i) => i.share > 0).length;
 
+  // What kind of page this is comes from the node, not from whether a macro
+  // profile happens to exist. An economy the corpus models before its national
+  // accounts have been authored is still a country page; deriving the label
+  // from the profile instead labelled Egypt an "Infrastructure profile".
+  const isPlace = node.kind === "economy" || node.kind === "bloc";
+
   return (
     <PageFrame
-      eyebrow={country ? "Country profile" : "Infrastructure profile"}
+      eyebrow={isPlace ? "Country profile" : "Infrastructure profile"}
       title={node.label}
       lede={
         country
           ? country.note
-          : "An infrastructure node: this entry carries traffic rather than demand, so its exposure is measured by how many pathways route through it."
+          : isPlace
+            ? "This economy is tracked in the exposure model, but no national-accounts profile has been authored for it yet, so no macro section is shown rather than one filled with estimates."
+            : "An infrastructure node: this entry carries traffic rather than demand, so its exposure is measured by how many pathways route through it."
       }
       actions={
         <>
