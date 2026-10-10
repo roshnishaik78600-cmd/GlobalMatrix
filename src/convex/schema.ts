@@ -55,6 +55,23 @@ const schema = defineSchema(
       .index("by_user", ["userId"])
       .index("by_user_event", ["userId", "eventId"]),
 
+    // A reader's own declared dependencies — the exposure profile.
+    //
+    // No company or supplier feed is connected, so this table never holds a
+    // supply chain the product inferred: it holds pointers a signed-in reader
+    // explicitly chose (`kind` + `refId`), which the corpus walk then reports
+    // against. `kind` selects the id space (a transmission-graph node or an
+    // industry), which is why the label is not stored — it is resolved from the
+    // model at read time and can never drift or be spoofed by the client.
+    exposureDeps: defineTable({
+      userId: v.id("users"),
+      kind: v.union(v.literal("node"), v.literal("industry")),
+      refId: v.string(),
+      createdAt: v.number(),
+    })
+      .index("by_user", ["userId"])
+      .index("by_user_ref", ["userId", "kind", "refId"]),
+
     // Throttle for the model-generated brief action.
     //
     // `generateBrief` is an unauthenticated-by-cost action: it is gated on

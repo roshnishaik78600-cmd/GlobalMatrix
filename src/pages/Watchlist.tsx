@@ -18,6 +18,7 @@ import { BAND_LABEL, CHANNEL_LABEL, STAGE_LABEL, type Channel } from "@/lib/inte
 import { pct } from "@/lib/format";
 import { SOURCE_LIST } from "@/lib/sources";
 import { LiveSignal } from "@/components/viz/Live";
+import { ExposureProfile } from "@/components/viz/exec/ExposureProfile";
 import { useSourceControl } from "@/hooks/use-verified-data";
 
 /**
@@ -191,6 +192,13 @@ export default function Watchlist() {
           </ExecCard>
         </div>
       ) : null}
+
+      {/* The reader's own declared dependencies, matched against the corpus.
+          Distinct from the watchlist: tracking is "follow this", declaring is
+          "show me what reaches what I depend on". */}
+      <div className="lg:col-span-12">
+        <ExposureProfile />
+      </div>
 
       {/* Tracked events. */}
       <div className="lg:col-span-7">
